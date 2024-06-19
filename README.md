@@ -4,7 +4,7 @@
 
 - Website: https://scaffold.ly
 - Forums: https://github.com/scaffoldly/cli/discussions
-- Documentation: https://docs.scaffold.,ly
+- Documentation: https://docs.scaffold.ly
 
 ## Introduction
 
@@ -26,7 +26,7 @@ Options:
 
 Please make sure the following is installed:
 
-- NodeJS v14+
+- NodeJS v16+
 - `npm` or `yarn` or `npx` avaliable on the `$PATH`
 - (MacOS Alternative) Homebrew available on the `$PATH`
 
@@ -36,14 +36,14 @@ Please make sure the following is installed:
 
 ```bash
 npm install -g scaffoldly
-scaffoldly login
+scaffoldly login # or sly login
 ```
 
 **`yarn`**:
 
 ```bash
 yarn global add scaffoldly
-scaffoldly login
+scaffoldly login # or sly login
 ```
 
 **`npx`**:
@@ -57,7 +57,7 @@ npx scaffoldly login
 ```bash
 brew tap scaffoldly/tap
 brew install scaffoldly
-scaffoldly login
+scaffoldly login # or sly login
 ```
 
 ## Getting Started
@@ -66,12 +66,12 @@ Once [the CLI is installed](#installation), run the following commands to login 
 
 ```bash
 # Saves a GitHub token to ~/.scaffoldly/github-token.json
-scaffoldly login
+scaffoldly login # or sly login
 ```
 
 ```bash
 # Show the current identities
-scaffoldly identity
+scaffoldly identity # or sly identity
 ```
 
 ## Reporting Issues
