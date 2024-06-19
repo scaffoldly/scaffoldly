@@ -20,11 +20,9 @@ export class GithubHelper {
       throw new Error(NOT_LOGGED_IN(this.messagesHelper.processName));
     }
 
-    const octokit = this.apiHelper.githubApi(accessToken);
+    const login = await this.scms.getLogin();
 
-    const { data: user } = await octokit.users.getAuthenticated();
-
-    const location = this.scms.saveGithubToken(user.login, accessToken);
+    const location = this.scms.saveGithubToken(login, accessToken);
     console.log(`Saved GitHub credentials to ${location}`);
   }
 }

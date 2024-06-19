@@ -50,7 +50,7 @@ export class ShowCommand {
 
     if (accessToken) {
       identityResponse.github = {
-        identity: await this.scms.getLogin(),
+        identity: await this.scms.getLogin(withToken),
       };
     }
 

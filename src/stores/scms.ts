@@ -89,8 +89,8 @@ export class Scms {
     return this.apiHelper.githubApi(token);
   }
 
-  public async getLogin(): Promise<string> {
-    const token = this.getGithubToken();
+  public async getLogin(withToken?: string): Promise<string> {
+    const token = withToken || this.getGithubToken(withToken);
     if (!token) {
       throw new Error('Unable to get token');
     }
