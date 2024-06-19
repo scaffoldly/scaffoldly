@@ -2,18 +2,18 @@ import { hideBin } from 'yargs/helpers';
 import yargs from 'yargs';
 import axios from 'axios';
 import { OutputType, ShowCommand, ShowSubcommands } from './commands/show';
-import inquirer, { QuestionCollection } from 'inquirer';
+import inquirer, { Answers, QuestionCollection } from 'inquirer';
 import { NoTokenError } from './stores/scms';
 import { GithubHelper } from './helpers/githubHelper';
 import { LoginCommand } from './commands/login';
 import { MessagesHelper } from './helpers/messagesHelper';
-import PromptUI from 'inquirer/lib/ui/prompt';
 import { version } from '../package.json';
 import { ApiHelper } from './helpers/apiHelper';
 import { NOT_LOGGED_IN } from './messages';
 import { ErrorWithReturnCode, RETURN_CODE_NOT_LOGGED_IN } from './errors';
 import { outputStream } from '../cli';
 import { BottomBar, isHeadless } from './ui';
+import Prompt from 'inquirer/lib/ui/prompt';
 
 process.addListener('SIGINT', () => {
   console.log('Exiting!');
@@ -22,12 +22,12 @@ process.addListener('SIGINT', () => {
 
 export const ui = new BottomBar(outputStream);
 
-export const prompt = <T extends inquirer.Answers>(
+export const prompt = (
   field: string,
-  questions: QuestionCollection<T>,
-  initialAnswers?: Partial<T>,
+  questions: QuestionCollection<Answers>,
+  initialAnswers?: Partial<Answers>,
   stream?: NodeJS.WriteStream,
-): Promise<T> & { ui: PromptUI } => {
+): Promise<Answers> & { ui: Prompt<Answers> } => {
   if (!process.stdin.isTTY) {
     throw new Error(`TTY was disabled while attempting to collect \`${field}\`.`);
   }
