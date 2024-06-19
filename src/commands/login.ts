@@ -30,6 +30,9 @@ export class LoginCommand {
       throw new Error(NO_GITHUB_CLIENT);
     }
 
+    const login = await this.scms.getLogin();
+    this.scms.saveGithubToken(login, token);
+
     return;
   }
 }
