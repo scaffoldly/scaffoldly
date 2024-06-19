@@ -25,7 +25,7 @@
     "dist/main.js.map"
   ],
   "engines": {
-    "node": ">=12"
+    "node": ">=16"
   },
   "engineStrict": true,
   "keywords": [

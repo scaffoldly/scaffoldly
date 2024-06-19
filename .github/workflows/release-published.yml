@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node: ['14']
+        node: ['16']
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2-beta
@@ -31,13 +31,13 @@ jobs:
       - run: yarn
       - run: yarn openapi
       - run: yarn build
-      - if: ${{ matrix.node == '14' }}
+      - if: ${{ matrix.node == '16' }}
         uses: scaffoldly/bump-version-action@v1
         with:
           action: postrelease
           version-file: package.json
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - if: ${{ matrix.node == '14' }}
+      - if: ${{ matrix.node == '16' }}
         run: yarn publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
