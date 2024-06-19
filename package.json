@@ -1,6 +1,6 @@
 {
   "name": "scaffoldly",
-  "version": "1.0.0-3",
+  "version": "1.0.0-4",
   "description": "The CLI for scaffoldly",
   "repository": "git@github.com:scaffoldly/cli.git",
   "author": "Scaffoldly",
