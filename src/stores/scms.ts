@@ -59,6 +59,10 @@ export class Scms {
   }
 
   public getGithubToken(withToken?: string): string | undefined {
+    if (withToken) {
+      return withToken;
+    }
+
     const githubFileExists = fs.existsSync(this.githubFile);
 
     if (!githubFileExists) {
@@ -69,9 +73,6 @@ export class Scms {
       const { token } = JSON.parse(fs.readFileSync(this.githubFile).toString()) as GithubFile;
       return token;
     } catch (e) {
-      if (withToken) {
-        return withToken;
-      }
       if (e instanceof Error) {
         ui.updateBottomBar('');
         console.warn(ERROR_LOADING_FILE(this.githubFile, e));
