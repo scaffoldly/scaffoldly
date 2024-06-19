@@ -1,6 +1,6 @@
 # Scaffoldly Command Line Interface
 
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/scaffoldly/cli?label=version) ![GitHub issues](https://img.shields.io/github/issues/scaffoldly/cli) ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/scaffoldly/cli/push-main.yml?branch=main)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/scaffoldly/cli?label=version) ![GitHub issues](https://img.shields.io/github/issues/scaffoldly/cli) ![Acceptance Tests](https://img.shields.io/github/actions/workflow/status/scaffoldly/cli/acceptance-tests.yml?branch=main)
 
 - Website: https://scaffold.ly
 - Forums: https://github.com/scaffoldly/cli/discussions
