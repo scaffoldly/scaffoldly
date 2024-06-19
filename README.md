@@ -93,4 +93,4 @@ SAML_TO_DNT=1 npx scaffoldly
 
 ## License
 
-[Apache-2.0 License](LICENSE)
+[Business Source License 1.1](LICENSE)
