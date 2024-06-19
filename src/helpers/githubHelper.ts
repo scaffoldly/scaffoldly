@@ -8,7 +8,7 @@ export class GithubHelper {
   scms: Scms;
 
   constructor(private apiHelper: ApiHelper, private messagesHelper: MessagesHelper) {
-    this.scms = new Scms(this.apiHelper);
+    this.scms = new Scms(this.apiHelper, this.messagesHelper);
   }
 
   async promptLogin(withToken?: string): Promise<void> {

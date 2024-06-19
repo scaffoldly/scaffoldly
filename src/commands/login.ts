@@ -15,7 +15,7 @@ export class LoginCommand {
   githubHelper: GithubHelper;
 
   constructor(private apiHelper: ApiHelper, private messagesHelper: MessagesHelper) {
-    this.scms = new Scms(this.apiHelper);
+    this.scms = new Scms(this.apiHelper, this.messagesHelper);
     this.awsHelper = new AwsHelper(this.apiHelper);
     this.githubHelper = new GithubHelper(this.apiHelper, this.messagesHelper);
   }

@@ -2,9 +2,10 @@ import { Octokit } from '@octokit/rest';
 import os from 'os';
 import path from 'path';
 import fs from 'fs';
-import { ERROR_LOADING_FILE } from '../messages';
+import { ERROR_LOADING_FILE, NOT_LOGGED_IN } from '../messages';
 import { ui } from '../command';
 import { ApiHelper } from '../helpers/apiHelper';
+import { MessagesHelper } from '../helpers/messagesHelper';
 
 export const CONFIG_DIR = `${path.join(os.homedir(), '.scaffoldly')}`;
 
@@ -28,7 +29,11 @@ export class NoTokenError extends Error {
 export class Scms {
   githubFile: string;
 
-  constructor(private apiHelper: ApiHelper, configDir = CONFIG_DIR) {
+  constructor(
+    private apiHelper: ApiHelper,
+    private messagesHelper: MessagesHelper,
+    configDir = CONFIG_DIR,
+  ) {
     this.githubFile = path.join(configDir, 'github-token.json');
 
     if (!fs.existsSync(configDir)) {
@@ -93,8 +98,19 @@ export class Scms {
     const octokit = new Octokit({ auth: token });
 
     ui.updateBottomBar('Fetching GitHub identity...');
-    const { data: user } = await octokit.users.getAuthenticated();
 
-    return user.login;
+    try {
+      const { data: user } = await octokit.users.getAuthenticated();
+      return user.login;
+    } catch (e) {}
+
+    try {
+      const { data: repos } = await octokit.apps.listReposAccessibleToInstallation();
+      if (repos.total_count === 1) {
+        return repos.repositories[0].full_name;
+      }
+    } catch (e) {}
+
+    throw new Error(NOT_LOGGED_IN(this.messagesHelper.processName));
   }
 }

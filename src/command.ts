@@ -47,7 +47,7 @@ export class Command {
     this.apiHelper = new ApiHelper(argv);
     this.messagesHelper = new MessagesHelper(argv);
     this.login = new LoginCommand(this.apiHelper, this.messagesHelper);
-    this.show = new ShowCommand(this.apiHelper);
+    this.show = new ShowCommand(this.apiHelper, this.messagesHelper);
   }
 
   public async run(argv: string[]): Promise<void> {

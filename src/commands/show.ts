@@ -3,6 +3,7 @@ import { ApiHelper } from '../helpers/apiHelper';
 import { Scms } from '../stores/scms';
 import { AwsHelper } from '../helpers/awsHelper';
 import { ui } from '../command';
+import { MessagesHelper } from '../helpers/messagesHelper';
 
 export type ShowSubcommands = 'identity';
 
@@ -21,8 +22,8 @@ export class ShowCommand {
   scms: Scms;
   awsHelper: AwsHelper;
 
-  constructor(private apiHelper: ApiHelper) {
-    this.scms = new Scms(this.apiHelper);
+  constructor(private apiHelper: ApiHelper, private messagesHelper: MessagesHelper) {
+    this.scms = new Scms(this.apiHelper, this.messagesHelper);
     this.awsHelper = new AwsHelper(this.apiHelper);
   }
 
