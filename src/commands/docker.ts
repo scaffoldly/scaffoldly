@@ -79,7 +79,7 @@ export class DockerCompose {
         stream,
         (err, res) => (err ? reject(err) : resolve(res)),
         (event) => {
-          console.log(`!!! [${name}] event`, JSON.stringify(event, null, 2));
+          console.log(`!!!!!! [${name}] event`, JSON.stringify(event, null, 2));
         },
       );
     });
