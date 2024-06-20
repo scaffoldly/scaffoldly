@@ -14,6 +14,7 @@ import { ErrorWithReturnCode, RETURN_CODE_NOT_LOGGED_IN } from './errors';
 import { outputStream } from '../cli';
 import { BottomBar, isHeadless } from './ui';
 import Prompt from 'inquirer/lib/ui/prompt';
+import { DevCommand } from './commands/dev';
 
 process.addListener('SIGINT', () => {
   console.log('Exiting!');
@@ -41,13 +42,16 @@ export class Command {
 
   private login: LoginCommand;
 
+  private dev: DevCommand;
+
   private show: ShowCommand;
 
   constructor(argv: string[]) {
     this.apiHelper = new ApiHelper(argv);
     this.messagesHelper = new MessagesHelper(argv);
-    this.login = new LoginCommand(this.apiHelper, this.messagesHelper);
     this.show = new ShowCommand(this.apiHelper, this.messagesHelper);
+    this.login = new LoginCommand(this.apiHelper, this.messagesHelper);
+    this.dev = new DevCommand();
   }
 
   public async run(argv: string[]): Promise<void> {
@@ -92,6 +96,19 @@ export class Command {
             isHeadless(),
             withToken as string | undefined,
           ),
+        builder: {
+          withToken: {
+            demand: false,
+            type: 'string',
+            description: 'Skip Device Authentication and save the provided token to ~/.scaffoldly/',
+          },
+        },
+      })
+      .command({
+        command: 'dev',
+        describe: `Launch Development Environment`,
+        handler: ({ withToken }) =>
+          this.loginWrapper(() => this.dev.handle(), isHeadless(), withToken as string | undefined),
         builder: {
           withToken: {
             demand: false,
