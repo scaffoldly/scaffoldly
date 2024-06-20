@@ -15,7 +15,7 @@
     "start": "node --trace-warnings -r ts-node/register -r tsconfig-paths/register cli/index.ts",
     "lint": "eslint 'src/**/*.{js,ts,tsx}' --quiet --fix && yarn run prettier --write 'src/**/*.{js,ts,tsx}'",
     "openapi": "openapi-generator -g axios -i .scaffoldly/$NODE_ENV -o api -r auth-sls-rest-api github-sls-rest-api",
-    "postinstall": "webpack"
+    "prepare": "husky"
   },
   "main": "dist/main.js",
   "bin": {
@@ -72,10 +72,12 @@
     "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-jsx-a11y": "^6.4.1",
     "eslint-plugin-prettier": "^4.0.0",
+    "husky": "^9.0.11",
     "inquirer": "^8.2.0",
     "js-yaml": "^4.1.0",
     "loglevel": "^1.8.0",
     "moment": "^2.29.1",
+    "node-gyp": "^10.1.0",
     "open": "^8.4.0",
     "prettier": "^2.4.1",
     "qrcode-terminal": "^0.12.0",
