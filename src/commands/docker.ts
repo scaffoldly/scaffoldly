@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs';
 import { load } from 'js-yaml';
 import Docker from 'dockerode';
+import path from 'path';
 
 export type Service = {
   container_name?: string;
@@ -35,6 +36,10 @@ export class DockerCompose {
     this.dockerCompose = load(readFileSync(path, 'utf8')) as DockerComposeJson;
   }
 
+  get cwd(): string {
+    return process.cwd();
+  }
+
   get serviceNames(): string[] {
     return Object.keys(this.dockerCompose.services || {});
   }
@@ -65,7 +70,7 @@ export class DockerCompose {
     }
 
     const stream = await this.docker.buildImage(
-      { context, src: [dockerfile] },
+      { context: path.join(this.cwd, context), src: [path.join(this.cwd, dockerfile)] },
       { t: service.container_name },
     );
 
@@ -79,6 +84,6 @@ export class DockerCompose {
       );
     });
 
-    console.log(`Built ${name}: ${foo}`);
+    console.log(`Built ${name}: ${JSON.stringify(foo, null, 2)}`);
   }
 }
