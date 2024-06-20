@@ -70,7 +70,7 @@ export class DockerCompose {
     }
 
     const stream = await this.docker.buildImage(
-      { context: path.join(this.cwd, context), src: [path.join(this.cwd, dockerfile)] },
+      { context: path.join(this.cwd, context), src: [dockerfile] },
       { t: service.container_name },
     );
 

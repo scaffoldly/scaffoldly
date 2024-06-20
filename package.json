@@ -35,17 +35,7 @@
     "sly"
   ],
   "dependencies": {},
-  "peerDependencies": {
-    "@aws-sdk/client-sts": "^3.43.0",
-    "@octokit/request-error": "^2.1.0",
-    "@octokit/rest": "^18.12.0",
-    "axios": "^0.24.0",
-    "inquirer": "^8.2.0",
-    "open": "^8.4.0",
-    "qrcode-terminal": "^0.12.0",
-    "which": "^2.0.2",
-    "yargs": "^17.3.0"
-  },
+  "peerDependencies": {},
   "devDependencies": {
     "@aws-sdk/client-sts": "^3.43.0",
     "@babel/core": "^7.16.0",
