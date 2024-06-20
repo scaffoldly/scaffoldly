@@ -1,24 +1,55 @@
+import { readFileSync } from 'fs';
 import { event } from '../helpers/events';
-import { DockerCompose } from './docker';
+import { ScaffoldlyConfig } from './config';
+import { DockerService } from './docker';
 import path from 'path';
 
+export type PackageJson = {
+  name?: string;
+  version?: string;
+  scaffoldly?: ScaffoldlyConfig;
+};
+
 export class DevCommand {
-  constructor() {}
+  dockerService: DockerService;
+
+  constructor() {
+    this.dockerService = new DockerService(this.cwd);
+  }
 
   get cwd(): string {
+    // TODO, use __dirname??
+    console.log('!!!! __dirname', __dirname);
+    console.log('!!! process.cwd()', process.cwd());
     return process.cwd();
   }
 
-  get dockerCompose(): DockerCompose {
-    return new DockerCompose(path.join(this.cwd, 'docker-compose.yml'));
+  get packageJson(): PackageJson {
+    const packageJson = JSON.parse(readFileSync(path.join(this.cwd, 'package.json'), 'utf8'));
+
+    return packageJson;
   }
 
   async handle(): Promise<void> {
     event('dev');
 
-    const services = this.dockerCompose.serviceNames;
+    const packageJson = this.packageJson;
 
-    await Promise.all(services.map((name) => this.dockerCompose.build(name)));
+    const { name, scaffoldly: config } = packageJson;
+
+    if (!config) {
+      throw new Error('Missing `scaffoldly` in package.json');
+    }
+
+    if (!name) {
+      throw new Error('Missing `name` in package.json');
+    }
+
+    if (!config.name) {
+      config.name = name;
+    }
+
+    await this.dockerService.build(config, 'develop');
 
     return;
   }
