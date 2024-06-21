@@ -3,7 +3,6 @@ import tar, { Pack } from 'tar-fs';
 import { writeFileSync } from 'fs';
 import { Entrypoint, ScaffoldlyConfig } from './config';
 import { base58 } from '@scure/base';
-import { tmpdir } from 'os';
 import { join } from 'path';
 
 type Path = string;
@@ -23,48 +22,6 @@ type DockerFileSpec = {
   entrypoint: string;
 };
 
-export const render = (spec: DockerFileSpec): Path => {
-  const lines = [];
-
-  if (spec.base) {
-    lines.push(render(spec.base));
-  }
-
-  const from = spec.as ? `${spec.from} as ${spec.as}` : spec.from;
-
-  lines.push(`FROM ${from}`);
-  lines.push(`WORKDIR ${spec.workdir}`);
-
-  const { copy, copyFrom, workdir, env, entrypoint } = spec;
-
-  if (copy) {
-    lines.push(`COPY ${copy.join(' ')} .`);
-  }
-
-  if (copyFrom) {
-    for (const cf of copyFrom) {
-      lines.push(`COPY --from=${cf.from} ${cf.src} ${workdir}`);
-    }
-  }
-
-  for (const [key, value] of Object.entries(env)) {
-    lines.push(`ENV ${key}="${value}"`);
-  }
-
-  lines.push(`ENTRYPOINT ${entrypoint}`);
-
-  const dockerfile = lines.join('\n');
-
-  console.log(`!!! ****dockerfile****\n\n${dockerfile}\n\n*****end*****`);
-
-  const tempdir = tmpdir();
-  const path = join(tempdir, 'Dockerfile') as Path;
-
-  writeFileSync(path, dockerfile);
-
-  return path;
-};
-
 export class DockerService {
   docker: Docker;
 
@@ -75,7 +32,7 @@ export class DockerService {
   async build(config: ScaffoldlyConfig, entrypoint: Entrypoint) {
     const { spec, stream } = await this.createSpec(config, entrypoint);
 
-    const dockerfile = render(spec);
+    const dockerfile = this.render(spec);
 
     console.log('!!! dockerfile', dockerfile);
 
@@ -143,12 +100,55 @@ export class DockerService {
     }
 
     const stream = tar.pack(this.cwd, {
-      filter: (path) => {
-        console.log('!!! evaluating path', path);
+      filter: (_path) => {
+        //console.log('!!! evaluating path', path);
         return false;
       },
     });
 
     return { spec, stream };
   }
+
+  render = (spec: DockerFileSpec): Path => {
+    const lines = [];
+
+    if (spec.base) {
+      lines.push(this.render(spec.base));
+    }
+
+    const from = spec.as ? `${spec.from} as ${spec.as}` : spec.from;
+
+    lines.push(`FROM ${from}`);
+    lines.push(`WORKDIR ${spec.workdir}`);
+
+    const { copy, copyFrom, workdir, env, entrypoint } = spec;
+
+    if (copy) {
+      lines.push(`COPY ${copy.join(' ')} .`);
+    }
+
+    if (copyFrom) {
+      for (const cf of copyFrom) {
+        lines.push(`COPY --from=${cf.from} ${cf.src} ${workdir}`);
+      }
+    }
+
+    for (const [key, value] of Object.entries(env)) {
+      lines.push(`ENV ${key}="${value}"`);
+    }
+
+    lines.push(`ENTRYPOINT ${entrypoint}`);
+
+    const dockerfile = lines.join('\n');
+
+    console.log(`!!! ****dockerfile****\n\n${dockerfile}\n\n*****end*****`);
+
+    const path = join(this.cwd, 'Dockerfile') as Path;
+
+    console.log('!!! path', path);
+
+    writeFileSync(path, Buffer.from(dockerfile, 'utf-8'));
+
+    return path;
+  };
 }
