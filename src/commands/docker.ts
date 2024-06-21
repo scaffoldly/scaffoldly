@@ -141,7 +141,6 @@ export class DockerService {
     const buildStream = await this.docker.buildImage(stream, {
       dockerfile: dockerfilePath.replace(this.cwd, './'),
       t: config.name,
-      q: true,
       forcerm: true,
       version: '2', // FYI: Not in the type
     } as ImageBuildOptions);
@@ -189,7 +188,7 @@ export class DockerService {
         NODE_ENV: environment, // TODO Env File Interpolation
         HOSTNAME: '0.0.0.0',
       },
-      entrypoint: '/bin/bootstrap', // TODO How to get this installed
+      entrypoint: 'bootstrap', // TODO How to get this installed
     };
 
     if (mode === 'develop') {
@@ -262,8 +261,6 @@ export class DockerService {
         }
       }
     }
-
-    lines.push('');
 
     if (copyFrom) {
       for (const cf of copyFrom) {
