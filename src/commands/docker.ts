@@ -15,7 +15,7 @@ type DockerFileSpec = {
   copy?: string[];
   copyFrom?: {
     from: string;
-    src: string;
+    file: string;
   }[];
   env: { [key: string]: string };
   run?: string[];
@@ -107,7 +107,7 @@ export class DockerService {
 
       spec.copyFrom = files.map((file) => ({
         from: builder,
-        src: file,
+        file,
       }));
     }
 
@@ -145,19 +145,14 @@ export class DockerService {
       for (const file of copy) {
         const exists = existsSync(join(this.cwd, file));
         if (exists) {
-          lines.push(`COPY ./${file} ${workdir}/${file}`);
+          lines.push(`COPY ${file} ${join(workdir, file)}`);
         }
       }
     }
 
     if (copyFrom) {
       for (const cf of copyFrom) {
-        lines.push(
-          `COPY --from=${cf.from} ${cf.src.replace(this.cwd, workdir)} ${cf.src.replace(
-            this.cwd,
-            workdir,
-          )}`,
-        );
+        lines.push(`COPY --from=${cf.from} ${join(workdir, cf.file)} ${join(workdir, cf.file)}`);
       }
     }
 
