@@ -32,15 +32,15 @@ export class DockerService {
   async build(config: ScaffoldlyConfig, mode: Entrypoint) {
     const { spec } = await this.createSpec(config, mode);
 
-    const { files = [] } = config;
+    // const { files = [] } = config;
 
     // todo add dockerfile to tar instead of writing it to cwd
     const dockerfile = this.render(spec, mode);
 
     const stream = tar.pack(this.cwd, {
-      filter: (name) => {
-        return files.some((file) => name.startsWith(file));
-      },
+      // filter: (name) => {
+      //   return files.some((file) => name.startsWith(file));
+      // },
     });
 
     const buildStream = await this.docker.buildImage(stream, {
