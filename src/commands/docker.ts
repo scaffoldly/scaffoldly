@@ -38,8 +38,8 @@ export class DockerService {
     const dockerfile = this.render(spec, mode);
 
     const stream = tar.pack(this.cwd, {
-      filter: (path) => {
-        return files.includes(path);
+      filter: (name) => {
+        return files.some((file) => name.startsWith(file));
       },
     });
 
