@@ -15,7 +15,9 @@
     "start": "node --trace-warnings -r ts-node/register -r tsconfig-paths/register cli/index.ts",
     "lint": "eslint 'src/**/*.{js,ts,tsx}' --quiet --fix && yarn run prettier --write 'src/**/*.{js,ts,tsx}'",
     "openapi": "openapi-generator -g axios -i .scaffoldly/$NODE_ENV -o api -r auth-sls-rest-api github-sls-rest-api",
-    "prepare": "husky"
+    "prepare": "husky",
+    "prepublishOnly": "pinst --disable",
+    "postpublish": "pinst --enable"
   },
   "main": "dist/main.js",
   "bin": {
@@ -70,6 +72,7 @@
     "loglevel": "^1.8.0",
     "moment": "^2.29.1",
     "open": "^8.4.0",
+    "pinst": "^3.0.0",
     "prettier": "^2.4.1",
     "qrcode-terminal": "^0.12.0",
     "source-map": "^0.7.3",
