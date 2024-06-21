@@ -11,9 +11,11 @@ export const hasOutput = (): boolean => {
 export class BottomBar {
   headless = false;
   hasOutput = false;
+  bottomBar: inquirer.ui.BottomBar;
   constructor(private stream: NodeJS.WriteStream) {
     this.headless = isHeadless();
     this.hasOutput = hasOutput();
+    this.bottomBar = new inquirer.ui.BottomBar({ output: this.stream });
   }
 
   public updateBottomBar(text: string) {
@@ -24,7 +26,7 @@ export class BottomBar {
         process.stderr.write(`${text}\n`);
         return;
       }
-      new inquirer.ui.BottomBar({ output: this.stream }).updateBottomBar(text);
+      this.bottomBar.updateBottomBar(text);
     }
   }
 }

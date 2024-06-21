@@ -60,11 +60,11 @@ export class DockerService {
     if ('stream' in event) {
       const { stream } = event;
       if (stream && typeof stream === 'string') {
-        if (stream.startsWith(' --->')) {
-          this.bottomBar = {};
-        }
         stream.replace('\\n', '');
-        if (stream) this.bottomBar.status = stream;
+        console.log(`!!! stream (len:${stream.length})`, stream);
+        if (stream) {
+          this.bottomBar.status = stream;
+        }
       }
     }
 
@@ -73,12 +73,15 @@ export class DockerService {
     }
 
     if ('status' in event && event.progressDetail) {
-      const { id, status, progress } = event;
+      const { id, status, progress, progressDetail } = event;
       if (id && status && progress) {
         this.bottomBar[id] = `${event.status}: ${event.progress}`;
       }
       if (id && status && !progress) {
         this.bottomBar[id] = status;
+      }
+      if (id && !progress && !progressDetail) {
+        delete this.bottomBar[id];
       }
     }
 
@@ -90,9 +93,9 @@ export class DockerService {
       lines.push(`Status: ${this.bottomBar.status}`);
     }
 
-    ui.updateBottomBar(lines.join('\n'));
+    // ui.updateBottomBar(lines.join('\n'));
 
-    // console.log('!!! unknown event', event);
+    console.log('!!! bottom bar lines', lines);
   }
 
   async build(config: ScaffoldlyConfig, mode: Entrypoint) {
