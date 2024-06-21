@@ -103,7 +103,7 @@ export class DockerService {
 
       spec.base = {
         ...spec,
-        copy: devFiles,
+        copy: [...files, ...devFiles],
         as: builder,
         run: [build],
       };
