@@ -205,7 +205,7 @@ export class DockerService {
       lines.push(this.render(spec.base, mode));
     }
 
-    const { copy, copyFrom, workdir, env, entrypoint } = spec;
+    const { copy, copyFrom, workdir, env, entrypoint, run } = spec;
 
     const from = spec.as ? `${spec.from} as ${spec.as}` : spec.from;
 
@@ -227,9 +227,18 @@ export class DockerService {
       }
     }
 
+    if (run) {
+      lines.push(`RUN ${run.join(' && ')}`);
+    }
+
     if (copyFrom) {
       for (const cf of copyFrom) {
-        lines.push(`COPY --from=${cf.from} ${join(workdir, cf.file)} ${join(workdir, cf.file)}`);
+        const exists = existsSync(join(this.cwd, cf.file));
+        let source = join(workdir, cf.file);
+        if (!exists) {
+          source = `${source}*`;
+        }
+        lines.push(`COPY --from=${cf.from} ${source} ${join(workdir, cf.file)}`);
       }
     }
 
