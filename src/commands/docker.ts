@@ -20,6 +20,7 @@ type DockerFileSpec = {
   }[];
   env: { [key: string]: string };
   run?: string[];
+  paths?: string[];
   entrypoint: string;
 };
 
@@ -119,6 +120,7 @@ export class DockerService {
     const buildStream = await this.docker.buildImage(stream, {
       dockerfile: dockerfilePath.replace(this.cwd, './'),
       t: config.name,
+      q: true,
       // pull: 'true',
       // forcerm: true,
       version: '2', // FYI: Not in the type
@@ -182,6 +184,7 @@ export class DockerService {
         ...spec,
         copy: [...files, ...devFiles],
         as: builder,
+        paths: [`${workdir}/node_modules/.bin`],
         run: [build],
       };
 
@@ -203,9 +206,10 @@ export class DockerService {
 
     if (spec.base) {
       lines.push(this.render(spec.base, mode));
+      lines.push('');
     }
 
-    const { copy, copyFrom, workdir, env, entrypoint, run } = spec;
+    const { copy, copyFrom, workdir, env, entrypoint, run, paths } = spec;
 
     const from = spec.as ? `${spec.from} as ${spec.as}` : spec.from;
 
@@ -213,6 +217,10 @@ export class DockerService {
     lines.push(`FROM ${from}`);
     lines.push(`ENTRYPOINT ${entrypoint}`);
     lines.push(`WORKDIR ${workdir}`);
+
+    for (const path of paths || []) {
+      lines.push(`ENV PATH="${path}:$PATH"`);
+    }
 
     for (const [key, value] of Object.entries(env)) {
       lines.push(`ENV ${key}="${value}"`);
