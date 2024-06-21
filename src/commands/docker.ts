@@ -142,7 +142,7 @@ export class DockerService {
     }
 
     if (copy) {
-      lines.push(`COPY ${copy.map((file) => `${file.replace(this.cwd, '.')}*`).join(' ')} .`);
+      lines.push(`COPY ${copy.map((file) => `${file.replace(this.cwd, '.')}*`).join(' ')} ./`);
     }
 
     if (copyFrom) {
