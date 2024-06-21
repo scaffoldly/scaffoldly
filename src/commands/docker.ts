@@ -30,14 +30,23 @@ export class DockerService {
   }
 
   async build(config: ScaffoldlyConfig, entrypoint: Entrypoint) {
-    const { spec, stream } = await this.createSpec(config, entrypoint);
+    const { spec } = await this.createSpec(config, entrypoint);
 
+    // todo add dockerfile to tar
     const dockerfile = this.render(spec);
+
+    const stream = tar.pack(this.cwd, {
+      filter: (_path) => {
+        // todo filter files
+        //console.log('!!! evaluating path', path);
+        return false;
+      },
+    });
 
     console.log('!!! dockerfile', dockerfile);
 
     const buildStream = await this.docker.buildImage(stream, {
-      dockerfile,
+      // dockerfile,
       t: config.name,
     });
 
@@ -54,7 +63,7 @@ export class DockerService {
   async createSpec(
     config: ScaffoldlyConfig,
     entrypoint: Entrypoint,
-  ): Promise<{ spec: DockerFileSpec; stream: Pack }> {
+  ): Promise<{ spec: DockerFileSpec; stream?: Pack }> {
     const workdir = '/app';
     const { runtime } = config;
 
@@ -99,14 +108,7 @@ export class DockerService {
       throw new Error('No Dockerfile generated');
     }
 
-    const stream = tar.pack(this.cwd, {
-      filter: (_path) => {
-        //console.log('!!! evaluating path', path);
-        return false;
-      },
-    });
-
-    return { spec, stream };
+    return { spec };
   }
 
   render = (spec: DockerFileSpec): Path => {
