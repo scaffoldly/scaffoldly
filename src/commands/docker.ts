@@ -1,4 +1,4 @@
-import Docker from 'dockerode';
+import Docker, { ImageBuildOptions } from 'dockerode';
 import tar, { Pack } from 'tar-fs';
 import { existsSync, writeFileSync } from 'fs';
 import { Entrypoint, ScaffoldlyConfig } from './config';
@@ -118,7 +118,8 @@ export class DockerService {
       dockerfile: dockerfilePath.replace(this.cwd, './'),
       t: config.name,
       pull: 'true',
-    });
+      version: '2', // FYI: Not in the type
+    } as ImageBuildOptions);
 
     await new Promise<any[]>((resolve, reject) => {
       this.docker.modem.followProgress(
