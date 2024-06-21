@@ -34,9 +34,8 @@ export class DockerService {
 
     const { files = [] } = config;
 
-    // todo add dockerfile to tar
-    // const dockerfile =
-    this.render(spec, mode);
+    // todo add dockerfile to tar instead of writing it to cwd
+    const dockerfile = this.render(spec, mode);
 
     const stream = tar.pack(this.cwd, {
       filter: (path) => {
@@ -44,10 +43,8 @@ export class DockerService {
       },
     });
 
-    // console.log('!!! dockerfile', dockerfile);
-
     const buildStream = await this.docker.buildImage(stream, {
-      // dockerfile,
+      dockerfile,
       t: config.name,
     });
 
@@ -156,7 +153,7 @@ export class DockerService {
 
     const dockerfile = lines.join('\n');
 
-    const path = join(this.cwd, 'Dockerfile') as Path;
+    const path = join(this.cwd, `Dockerfile.${mode}`) as Path;
 
     writeFileSync(path, Buffer.from(dockerfile, 'utf-8'));
 
