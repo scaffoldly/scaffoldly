@@ -1,8 +1,12 @@
 import Docker from 'dockerode';
 import tar, { Pack } from 'tar-fs';
+import { writeFileSync } from 'fs';
 import { Entrypoint, ScaffoldlyConfig } from './config';
+import { base58 } from '@scure/base';
+import { tmpdir } from 'os';
+import { join } from 'path';
 
-type Dockerfile = string;
+type Path = string;
 
 type DockerFileSpec = {
   base?: DockerFileSpec;
@@ -19,7 +23,7 @@ type DockerFileSpec = {
   entrypoint: string;
 };
 
-export const render = (spec: DockerFileSpec): Dockerfile => {
+export const render = (spec: DockerFileSpec): Path => {
   const lines = [];
 
   if (spec.base) {
@@ -44,12 +48,21 @@ export const render = (spec: DockerFileSpec): Dockerfile => {
   }
 
   for (const [key, value] of Object.entries(env)) {
-    lines.push(`ENV ${key}=${value}`);
+    lines.push(`ENV ${key}="${value}"`);
   }
 
   lines.push(`ENTRYPOINT ${entrypoint}`);
 
-  return lines.join('\n');
+  const dockerfile = lines.join('\n');
+
+  console.log(`!!! ****dockerfile****\n\n${dockerfile}\n\n*****end*****`);
+
+  const tempdir = tmpdir();
+  const path = join(tempdir, 'Dockerfile') as Path;
+
+  writeFileSync(path, dockerfile);
+
+  return path;
 };
 
 export class DockerService {
@@ -64,7 +77,7 @@ export class DockerService {
 
     const dockerfile = render(spec);
 
-    console.log(`!!! ****dockerfile****\n\n${dockerfile}\n\n*****end*****`);
+    console.log('!!! dockerfile', dockerfile);
 
     const buildStream = await this.docker.buildImage(stream, {
       dockerfile,
@@ -86,24 +99,18 @@ export class DockerService {
     entrypoint: Entrypoint,
   ): Promise<{ spec: DockerFileSpec; stream: Pack }> {
     const workdir = '/app';
-    const { route, runtime } = config;
-
-    if (!route) {
-      throw new Error('Missing route');
-    }
+    const { runtime } = config;
 
     if (!runtime) {
       throw new Error('Missing runtime');
     }
-
-    const handler = route.replace('/{proxy+}', '');
 
     let spec: DockerFileSpec = {
       from: runtime,
       workdir: workdir,
       copy: [],
       env: {
-        _HANDLER: handler,
+        _HANDLER: `base58:${base58.encode(new TextEncoder().encode(JSON.stringify(config)))}`,
       },
       entrypoint: '/bin/bootstrap', // TODO How to get this installed
     };
