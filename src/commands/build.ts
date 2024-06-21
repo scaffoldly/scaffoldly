@@ -2,16 +2,16 @@ import { event } from '../helpers/events';
 import { DockerService } from './docker';
 import { CiCommand } from './ci';
 
-export class DevCommand extends CiCommand {
+export class BuildCommand extends CiCommand {
   constructor() {
     super();
     this.dockerService = new DockerService(this.cwd);
   }
 
   async handle(): Promise<void> {
-    event('dev');
+    event('build');
 
-    await this.dockerService.build(this.config, 'develop');
+    await this.dockerService.build(this.config, 'build');
 
     return;
   }

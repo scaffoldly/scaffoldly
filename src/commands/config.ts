@@ -6,6 +6,7 @@ export type ScaffoldlyConfig = {
   handler?: string;
   route?: string;
   files?: string[];
+  devFiles?: string[];
   entrypoints?: { [key in Entrypoint]: string };
   // services?: {
   //   [key: string]: ScaffoldlyConfig;
