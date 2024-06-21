@@ -44,7 +44,7 @@ export class DockerService {
     });
 
     const buildStream = await this.docker.buildImage(stream, {
-      dockerfile,
+      dockerfile: dockerfile.replace(this.cwd, './'),
       t: config.name,
     });
 
@@ -142,12 +142,12 @@ export class DockerService {
     }
 
     if (copy) {
-      lines.push(`COPY ${copy.map((file) => file.replace(this.cwd, './')).join(' ')}* .`);
+      lines.push(`COPY ${copy.map((file) => `${file.replace(this.cwd, '.')}*`).join(' ')} .`);
     }
 
     if (copyFrom) {
       for (const cf of copyFrom) {
-        lines.push(`COPY --from=${cf.from} ${cf.src.replace(this.cwd, `${workdir}/`)} .`);
+        lines.push(`COPY --from=${cf.from} ${cf.src.replace(this.cwd, `${workdir}`)} .`);
       }
     }
 
