@@ -37,6 +37,9 @@ export class DockerService {
     // todo add dockerfile to tar instead of writing it to cwd
     const dockerfile = this.render(spec, mode);
 
+    const dockerfilePath = join(this.cwd, `Dockerfile.${mode}`) as Path;
+    writeFileSync(dockerfilePath, Buffer.from(dockerfile, 'utf-8'));
+
     const stream = tar.pack(this.cwd, {
       // filter: (name) => {
       //   return files.some((file) => name.startsWith(file));
@@ -44,7 +47,7 @@ export class DockerService {
     });
 
     const buildStream = await this.docker.buildImage(stream, {
-      dockerfile: dockerfile.replace(this.cwd, './'),
+      dockerfile: dockerfilePath.replace(this.cwd, './'),
       t: config.name,
     });
 
@@ -118,7 +121,7 @@ export class DockerService {
     return { spec };
   }
 
-  render = (spec: DockerFileSpec, mode: Entrypoint): Path => {
+  render = (spec: DockerFileSpec, mode: Entrypoint): string => {
     const lines = [];
 
     if (spec.base) {
@@ -158,10 +161,6 @@ export class DockerService {
 
     const dockerfile = lines.join('\n');
 
-    const path = join(this.cwd, `Dockerfile.${mode}`) as Path;
-
-    writeFileSync(path, Buffer.from(dockerfile, 'utf-8'));
-
-    return path;
+    return dockerfile;
   };
 }
