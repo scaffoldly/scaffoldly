@@ -57,6 +57,8 @@ export class DockerService {
   }
 
   private log(event: DockerEvent) {
+    console.log('!!! event', event);
+
     if ('stream' in event) {
       const { stream } = event;
       if (stream && typeof stream === 'string') {
