@@ -143,7 +143,8 @@ export class DockerService {
 
     if (copy) {
       for (const file of copy) {
-        lines.push(`COPY ${file.replace(this.cwd, '.')}* ${file.replace(this.cwd, workdir)}`);
+        lines.push(`COPY ${file}* ${workdir}/${file}`);
+        // lines.push(`COPY ${file.replace(this.cwd, '.')}* ${file.replace(this.cwd, workdir)}`);
       }
     }
 

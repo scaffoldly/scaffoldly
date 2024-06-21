@@ -62,7 +62,8 @@ export class CiCommand {
               return acc;
             }
 
-            acc.push(join(this.cwd, file));
+            // acc.push(join(this.cwd, file));
+            acc.push(file);
 
             return acc;
           },
@@ -70,9 +71,5 @@ export class CiCommand {
         ),
       ),
     ];
-  }
-
-  async deploy(): Promise<void> {
-    console.log('Deploying...');
   }
 }
