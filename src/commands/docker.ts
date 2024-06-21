@@ -60,8 +60,7 @@ export class DockerService {
     if ('stream' in event) {
       const { stream } = event;
       if (stream && typeof stream === 'string') {
-        stream.replace('\\n', '');
-        console.log(`!!! stream (len:${stream.length})`, stream);
+        stream.replace('\\n', '').trim();
         if (stream) {
           this.bottomBar.status = stream;
         }
