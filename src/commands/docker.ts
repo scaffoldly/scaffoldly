@@ -184,7 +184,7 @@ export class DockerService {
         ...spec,
         copy: [...files, ...devFiles],
         as: builder,
-        paths: [`${workdir}/node_modules/.bin`],
+        paths: [join(workdir, 'node_modules', '.bin')],
         run: [build],
       };
 
