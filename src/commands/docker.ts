@@ -209,7 +209,7 @@ export class DockerService {
 
     const from = spec.as ? `${spec.from} as ${spec.as}` : spec.from;
 
-    lines.push('# syntax=docker/dockerfile:1');
+    // lines.push('# syntax=docker/dockerfile:1');
     lines.push(`FROM ${from}`);
     lines.push(`ENTRYPOINT ${entrypoint}`);
     lines.push(`WORKDIR ${workdir}`);
