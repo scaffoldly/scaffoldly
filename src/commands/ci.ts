@@ -19,9 +19,6 @@ export class CiCommand {
   }
 
   get cwd(): string {
-    // TODO, use __dirname??
-    console.log('!!!! __dirname', __dirname);
-    console.log('!!! process.cwd()', process.cwd());
     return process.cwd();
   }
 
@@ -62,7 +59,6 @@ export class CiCommand {
               return acc;
             }
 
-            // acc.push(join(this.cwd, file));
             acc.push(file);
 
             return acc;

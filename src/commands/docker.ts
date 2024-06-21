@@ -1,6 +1,6 @@
 import Docker from 'dockerode';
 import tar, { Pack } from 'tar-fs';
-import { writeFileSync } from 'fs';
+import { existsSync, writeFileSync } from 'fs';
 import { Entrypoint, ScaffoldlyConfig } from './config';
 import { base58 } from '@scure/base';
 import { join } from 'path';
@@ -143,8 +143,10 @@ export class DockerService {
 
     if (copy) {
       for (const file of copy) {
-        lines.push(`COPY ${file}* ${workdir}/${file}`);
-        // lines.push(`COPY ${file.replace(this.cwd, '.')}* ${file.replace(this.cwd, workdir)}`);
+        const exists = existsSync(join(this.cwd, file));
+        if (exists) {
+          lines.push(`COPY ./${file} ${workdir}/${file}`);
+        }
       }
     }
 
