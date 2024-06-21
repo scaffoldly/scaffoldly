@@ -122,7 +122,7 @@ export class DockerService {
       version: '2', // FYI: Not in the type
     } as ImageBuildOptions);
 
-    await new Promise<any[]>((resolve, reject) => {
+    const foo = await new Promise<any[]>((resolve, reject) => {
       this.docker.modem.followProgress(
         buildStream,
         (err, res) => {
@@ -135,6 +135,8 @@ export class DockerService {
     });
 
     ui.updateBottomBar('');
+
+    console.log('!!! foo', foo);
 
     // console.log('!!! stuffs', stuffs);
   }
