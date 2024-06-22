@@ -3,11 +3,12 @@ import { ScaffoldlyConfig } from './config';
 import { DockerService } from './docker';
 import { readFileSync } from 'fs';
 
+export type PackageJsonBin = { [key: string]: string };
+
 export type PackageJson = {
   name?: string;
   version?: string;
-  main?: string; // TODO Support
-  bin?: { [key: string]: string }; // TODO Support
+  bin?: PackageJsonBin;
   files?: string[];
   scaffoldly?: ScaffoldlyConfig;
 };

@@ -3,7 +3,7 @@ import tar, { Pack } from 'tar-fs';
 import { existsSync, writeFileSync } from 'fs';
 import { Entrypoint, ScaffoldlyConfig } from './config';
 import { base58 } from '@scure/base';
-import { join } from 'path';
+import { join, sep } from 'path';
 import { ui } from '../command';
 
 type Path = string;
@@ -17,6 +17,7 @@ type DockerFileSpec = {
   copyFrom?: {
     from: string;
     file: string;
+    dest: string;
   }[];
   env?: { [key: string]: string };
   run?: string[];
@@ -47,6 +48,11 @@ type StatusEvent = {
 
 type StreamEvent = {
   stream?: string;
+};
+
+const splitPath = (path: string): [string, string] => {
+  const parts = path.split(sep);
+  return [parts.slice(0, -1).join(sep), parts.pop() as string];
 };
 
 export class DockerService {
@@ -169,9 +175,8 @@ export class DockerService {
     mode: Entrypoint,
   ): Promise<{ spec: DockerFileSpec; stream?: Pack }> {
     const workdir = '/var/task';
-    const builder = 'builder';
 
-    const { runtime } = config;
+    const { runtime, bin = {} } = config;
 
     if (!runtime) {
       throw new Error('Missing runtime');
@@ -179,9 +184,15 @@ export class DockerService {
 
     const environment = mode === 'develop' ? 'development' : 'production';
 
-    let spec: DockerFileSpec = {
-      from: runtime,
-      workdir: workdir,
+    const spec: DockerFileSpec = {
+      base: {
+        from: runtime,
+        as: 'base',
+        workdir,
+      },
+      from: 'base',
+      as: 'runner',
+      workdir,
       copy: [],
       env: {
         _HANDLER: `base58:${base58.encode(new TextEncoder().encode(JSON.stringify(config)))}`,
@@ -196,7 +207,7 @@ export class DockerService {
       spec.copy = files;
     }
 
-    if (mode === 'build' || mode === 'serve') {
+    if (mode === 'build') {
       const { build } = config.entrypoints || {};
       const { files = [], devFiles = [] } = config;
       if (!build) {
@@ -205,20 +216,33 @@ export class DockerService {
 
       spec.base = {
         ...spec,
+        as: 'builder',
         copy: [...files, ...devFiles],
-        as: builder,
         paths: [join(workdir, 'node_modules', '.bin')],
         run: [build],
       };
 
-      spec.copyFrom = files.map((file) => ({
-        from: builder,
+      const copyFrom = files.map((file) => ({
+        from: 'builder',
         file,
+        dest: workdir,
       }));
-    }
 
-    if (!spec) {
-      throw new Error('No Dockerfile generated');
+      Object.entries(bin).forEach(([key, value]) => {
+        const [dir, file] = splitPath(value);
+        copyFrom.push({
+          from: 'builder',
+          file,
+          dest: key,
+        });
+        copyFrom.push({
+          from: 'builder',
+          file: `${dir}/`,
+          dest: workdir,
+        });
+      });
+
+      spec.copyFrom = copyFrom;
     }
 
     return { spec };
@@ -241,8 +265,6 @@ export class DockerService {
     lines.push(`ENTRYPOINT ${entrypoint}`);
     lines.push(`WORKDIR ${workdir}`);
 
-    lines.push('');
-
     for (const path of paths) {
       lines.push(`ENV PATH="${path}:$PATH"`);
     }
@@ -250,8 +272,6 @@ export class DockerService {
     for (const [key, value] of Object.entries(env)) {
       lines.push(`ENV ${key}="${value}"`);
     }
-
-    lines.push('');
 
     if (copy) {
       for (const file of copy) {
@@ -269,11 +289,9 @@ export class DockerService {
         if (!exists) {
           source = `${source}*`;
         }
-        lines.push(`COPY --from=${cf.from} ${source} ${join(workdir, cf.file)}`);
+        lines.push(`COPY --from=${cf.from} ${source} ${cf.dest}`);
       }
     }
-
-    lines.push('');
 
     if (run) {
       lines.push(`RUN ${run.join(' && ')}`);
