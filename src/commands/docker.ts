@@ -6,13 +6,15 @@ import { base58 } from '@scure/base';
 import { join, sep } from 'path';
 import { ui } from '../command';
 
+const DEFAULT_WORDIR = '/var/task';
+
 type Path = string;
 
 type DockerFileSpec = {
   base?: DockerFileSpec;
   from: string;
   as?: string;
-  workdir: string;
+  workdir?: string;
   copy?: string[];
   copyFrom?: {
     from: string;
@@ -174,7 +176,7 @@ export class DockerService {
     config: ScaffoldlyConfig,
     mode: Entrypoint,
   ): Promise<{ spec: DockerFileSpec; stream?: Pack }> {
-    const workdir = '/var/task';
+    const workdir = DEFAULT_WORDIR;
 
     const { runtime, bin = {} } = config;
 
@@ -186,20 +188,30 @@ export class DockerService {
 
     const spec: DockerFileSpec = {
       base: {
-        from: runtime,
-        as: 'base',
-        workdir,
+        base: {
+          from: runtime,
+          as: 'base',
+        },
+        from: 'scaffoldly/awslambda-bootstrap:latest',
+        as: 'bootstrap',
       },
       from: 'base',
       as: 'runner',
       workdir,
       copy: [],
+      copyFrom: [
+        {
+          from: 'bootstrap',
+          file: '/bin/bootstrap',
+          dest: '/bin/bootstrap',
+        },
+      ],
       env: {
         _HANDLER: `base58:${base58.encode(new TextEncoder().encode(JSON.stringify(config)))}`,
         NODE_ENV: environment, // TODO Env File Interpolation
         HOSTNAME: '0.0.0.0',
       },
-      entrypoint: 'bootstrap', // TODO How to get this installed
+      entrypoint: 'bootstrap',
     };
 
     if (mode === 'develop') {
@@ -242,7 +254,7 @@ export class DockerService {
         });
       });
 
-      spec.copyFrom = copyFrom;
+      spec.copyFrom = [...(spec.copyFrom || []), ...copyFrom];
     }
 
     return { spec };
@@ -256,13 +268,21 @@ export class DockerService {
       lines.push('');
     }
 
-    const { copy, copyFrom, workdir, env = {}, entrypoint, run, paths = [] } = spec;
+    const {
+      copy,
+      copyFrom,
+      workdir = DEFAULT_WORDIR,
+      env = {},
+      entrypoint,
+      run,
+      paths = [],
+    } = spec;
 
     const from = spec.as ? `${spec.from} as ${spec.as}` : spec.from;
 
     // lines.push('# syntax=docker/dockerfile:1');
     lines.push(`FROM ${from}`);
-    lines.push(`ENTRYPOINT ${entrypoint}`);
+    if (entrypoint) lines.push(`ENTRYPOINT ${entrypoint}`);
     lines.push(`WORKDIR ${workdir}`);
 
     for (const path of paths) {
