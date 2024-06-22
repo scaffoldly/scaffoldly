@@ -49,7 +49,6 @@ export class Command {
   private show: ShowCommand;
 
   constructor(argv: string[]) {
-    console.log('!!! hello from Command constructor123');
     this.apiHelper = new ApiHelper(argv);
     this.messagesHelper = new MessagesHelper(argv);
     this.show = new ShowCommand(this.apiHelper, this.messagesHelper);
@@ -60,8 +59,6 @@ export class Command {
 
   public async run(argv: string[]): Promise<void> {
     const yargs = (await import('yargs')).default;
-    console.log('!!! yargs', yargs);
-    console.log('!!! yargs()', yargs());
     const ya = yargs()
       .scriptName(this.messagesHelper.processName)
       .command({
