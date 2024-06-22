@@ -11,19 +11,15 @@
   "license": "SEE LICENSE IN LICENSE",
   "private": false,
   "scripts": {
-    "build": "webpack",
-    "start": "node --trace-warnings -r ts-node/register -r tsconfig-paths/register cli/index.ts",
-    "lint": "eslint 'src/**/*.{js,ts,tsx}' --quiet --fix && yarn run prettier --write 'src/**/*.{js,ts,tsx}'",
-    "openapi": "openapi-generator -g axios -i .scaffoldly/$NODE_ENV -o api -r auth-sls-rest-api github-sls-rest-api"
+    "build": "esbuild cli/index.ts --bundle --minify --platform=node --target=node16 --outdir=dist"
   },
-  "main": "dist/main.js",
+  "main": "dist/index.js",
   "bin": {
-    "scaffoldly": "dist/main.js",
-    "sly": "dist/main.js"
+    "scaffoldly": "dist/index.js",
+    "sly": "dist/index.js"
   },
   "files": [
-    "dist/main.js",
-    "dist/main.js.map"
+    "dist/index.js"
   ],
   "engines": {
     "node": ">=16"
@@ -56,6 +52,7 @@
     "@typescript-eslint/parser": "^4.29.3",
     "axios": "^0.27.2",
     "dockerode": "^4.0.2",
+    "esbuild": "^0.21.5",
     "eslint": "^7.2.0",
     "eslint-config-airbnb": "18.2.1",
     "eslint-config-airbnb-typescript": "14.0.2",

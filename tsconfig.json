@@ -6,9 +6,9 @@
     "target": "ESNext",
     "module": "CommonJS",
     "outDir": "build/",
-    "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
+    "inlineSourceMap": true,
 
     /* Strict Type-Checking Options */
     "strict": true,

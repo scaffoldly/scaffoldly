@@ -1,8 +1,4 @@
 node_modules
 externals
-
-/build/**/*
-/dist/**/*.map
-!/dist/main.js.map
-
+build
 *.log
