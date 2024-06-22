@@ -1,2 +1,3 @@
+exit -1
 yarn build
 git add dist
