@@ -31,11 +31,10 @@
     "scaffoldly",
     "sly"
   ],
-  "dependencies": {},
+  "dependencies": {
+    "esbuild": "^0.21.5"
+  },
   "peerDependencies": {},
-  "bundledDependencies": [
-    "esbuild"
-  ],
   "devDependencies": {
     "@aws-sdk/client-sts": "^3.43.0",
     "@babel/core": "^7.16.0",
