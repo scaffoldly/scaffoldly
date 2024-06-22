@@ -7,11 +7,12 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 if (fs.existsSync(path.join(__dirname, '.git'))) {
+  console.log("Activating Husky's Git hooks...");
   execSync(path.join(__dirname, 'node_modules', '.bin', 'husky'), { stdio: 'inherit' });
 }
 
 const buildOptions = {
-  entryPoints: ['cli/index.ts'], // Entry point of your application
+  entryPoints: ['src/index.ts'], // Entry point of your application
   bundle: true, // Bundle all dependencies into the output file
   outfile: 'dist/index.js', // Output file
   minify: false, // Minify the output
