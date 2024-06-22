@@ -14,13 +14,13 @@
     "build": "node esbuild.config.cjs",
     "postinstall": "node esbuild.config.cjs"
   },
-  "main": "dist/index.js",
+  "main": "dist/cli.cjs",
   "bin": {
-    "scaffoldly": "dist/index.js",
-    "sly": "dist/index.js"
+    "scaffoldly": "dist/cli.cjs",
+    "sly": "dist/cli.cjs"
   },
   "files": [
-    "dist/index.js",
+    "dist/**/*",
     "esbuild.config.js"
   ],
   "engines": {

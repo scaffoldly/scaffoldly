@@ -50,6 +50,7 @@ export class Command {
   private show: ShowCommand;
 
   constructor(argv: string[]) {
+    console.log('!!! hello from Command constructor');
     this.apiHelper = new ApiHelper(argv);
     this.messagesHelper = new MessagesHelper(argv);
     this.show = new ShowCommand(this.apiHelper, this.messagesHelper);

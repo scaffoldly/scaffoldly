@@ -20,7 +20,8 @@ console.debug = customConsole.debug;
 console.clear = customConsole.clear;
 console.trace = customConsole.trace;
 
-(async () => {
+export const run = async (): Promise<void> => {
+  console.log('!!! helllo from run');
   const command = new Command(process.argv);
   try {
     await command.run(process.argv);
@@ -31,4 +32,4 @@ console.trace = customConsole.trace;
     }
     process.exit(-1);
   }
-})();
+};
