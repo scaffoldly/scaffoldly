@@ -210,6 +210,7 @@ export class DockerService {
         HOSTNAME: '0.0.0.0',
       },
       entrypoint: 'bootstrap',
+      paths: [join(workdir, 'node_modules', '.bin')],
     };
 
     if (mode === 'develop') {
@@ -227,8 +228,9 @@ export class DockerService {
       spec.base = {
         ...spec,
         as: 'builder',
+        entrypoint: undefined,
+        copyFrom: [],
         copy: [...files, ...devFiles],
-        paths: [join(workdir, 'node_modules', '.bin')],
         run: [build],
       };
 
