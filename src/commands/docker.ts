@@ -306,9 +306,11 @@ export class DockerService {
         const exists = existsSync(join(this.cwd, cf.file));
         if (workdir) {
           let source = join(workdir, cf.file);
-          const { glob = true } = cf;
-          if (glob === false && !exists) {
-            source = `${source}*`;
+          let { glob } = cf;
+          if (glob !== false) {
+            if (!exists) {
+              source = `${source}*`;
+            }
           }
           lines.push(`COPY --from=${cf.from} ${source} ${cf.dest}`);
         }
