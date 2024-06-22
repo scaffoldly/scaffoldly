@@ -5,8 +5,12 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 if (fs.existsSync(path.join(__dirname, '.git'))) {
-  console.log("Activating Husky's Git hooks...");
-  execSync(path.join(__dirname, 'node_modules', '.bin', 'husky'), { stdio: 'inherit' });
+  try {
+    console.log("Activating Husky's Git hooks...");
+    execSync(path.join(__dirname, 'node_modules', '.bin', 'husky'), { stdio: 'inherit' });
+  } catch (e) {
+    console.warn('Failed to activate Husky Git hooks:', e.message);
+  }
 }
 
 const build = async () => {
