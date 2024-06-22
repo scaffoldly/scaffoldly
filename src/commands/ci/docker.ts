@@ -241,7 +241,7 @@ export class DockerService {
         (file) =>
           ({
             from: 'builder',
-            file: file === '.' ? workdir : file,
+            file,
             dest: join(workdir, file),
           } as CopyFrom),
       );
@@ -268,6 +268,8 @@ export class DockerService {
   }
 
   render = (spec: DockerFileSpec, mode: Entrypoint): string => {
+    console.log('!!! spec', JSON.stringify(spec));
+
     const lines = [];
 
     if (spec.base) {
@@ -307,14 +309,19 @@ export class DockerService {
 
     if (copyFrom) {
       for (const cf of copyFrom) {
+        let { file } = cf;
+        if (file === '.' && workdir) {
+          file = workdir;
+        }
+
         if (cf.noGlob) {
-          lines.push(`COPY --from=${cf.from} ${cf.file} ${cf.dest}`);
+          lines.push(`COPY --from=${cf.from} ${file} ${cf.dest}`);
           continue;
         }
 
-        const exists = existsSync(join(this.cwd, cf.file));
+        const exists = existsSync(join(this.cwd, file));
         if (workdir) {
-          let source = join(workdir, cf.file);
+          let source = join(workdir, file);
           if (!exists) {
             source = `${source}*`;
           }
