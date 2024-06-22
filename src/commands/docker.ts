@@ -186,24 +186,24 @@ export class DockerService {
 
     const spec: DockerFileSpec = {
       base: {
-        base: {
-          from: runtime,
-          as: 'base',
-        },
-        from: 'scaffoldly/awslambda-bootstrap:latest',
-        as: 'bootstrap',
+        // base: {
+        from: runtime,
+        as: 'base',
+        // },
+        // from: 'scaffoldly/awslambda-bootstrap:latest',
+        // as: 'bootstrap',
       },
       from: 'base',
       as: 'runner',
       workdir,
       copy: [],
-      copyFrom: [
-        {
-          from: 'bootstrap',
-          file: 'bootstrap',
-          dest: '/bin/bootstrap',
-        },
-      ],
+      // copyFrom: [
+      //   {
+      //     from: 'bootstrap',
+      //     file: 'bootstrap',
+      //     dest: '/bin/bootstrap',
+      //   },
+      // ],
       env: {
         _HANDLER: `base58:${base58.encode(new TextEncoder().encode(JSON.stringify(config)))}`,
         NODE_ENV: environment, // TODO Env File Interpolation
