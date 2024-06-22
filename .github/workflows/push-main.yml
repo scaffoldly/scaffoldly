@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node: ['16', '18', '20']
+        node: ['18', '20', '22']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -31,7 +31,7 @@ jobs:
       - run: yarn
       - run: yarn openapi
       - run: yarn build
-      - if: ${{ matrix.node == '16' }}
+      - if: ${{ matrix.node == '18' }}
         uses: scaffoldly/bump-version-action@v1
         with:
           action: prerelease

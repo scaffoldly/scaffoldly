@@ -1,5 +1,14 @@
+#!/usr/bin/env node
+
 const esbuild = require('esbuild');
 const chokidar = require('chokidar');
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+
+if (fs.existsSync(path.join(__dirname, '.git'))) {
+  execSync(path.join(__dirname, 'node_modules', '.bin', 'husky'), { stdio: 'inherit' });
+}
 
 const buildOptions = {
   entryPoints: ['cli/index.ts'], // Entry point of your application
@@ -8,14 +17,13 @@ const buildOptions = {
   minify: false, // Minify the output
   sourcemap: true, // Generate source maps
   platform: 'node', // Platform target (e.g., 'node' or 'browser')
-  target: ['node16'], // Target environment (e.g., 'esnext', 'node14', 'chrome58', etc.)
+  target: ['node18'], // Target environment (e.g., 'esnext', 'node14', 'chrome58', etc.)
   external: [], // External dependencies to exclude from the bundle
 };
 
 const build = async () => {
   try {
     await esbuild.build(buildOptions);
-    console.log('Build successful');
   } catch (error) {
     console.error('Build failed:', error);
   }

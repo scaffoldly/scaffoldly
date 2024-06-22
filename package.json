@@ -11,10 +11,10 @@
   "license": "SEE LICENSE IN LICENSE",
   "private": false,
   "scripts": {
-    "dev": "node esbuild.config.cjs --watch",
-    "build": "node esbuild.config.cjs",
+    "dev": "./build.cjs --watch",
+    "build": "./build.cjs",
     "start": "node dist/cli.cjs",
-    "postinstall": "node esbuild.config.cjs"
+    "postinstall": "./build.cjs"
   },
   "main": "dist/cli.cjs",
   "bin": {
@@ -22,11 +22,10 @@
     "sly": "dist/cli.cjs"
   },
   "files": [
-    "dist/**/*",
-    "esbuild.config.js"
+    "dist/**/*"
   ],
   "engines": {
-    "node": ">=16"
+    "node": ">=18"
   },
   "engineStrict": true,
   "keywords": [
