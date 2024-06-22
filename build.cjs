@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-const esbuild = require('esbuild');
-const chokidar = require('chokidar');
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
@@ -12,6 +10,7 @@ if (fs.existsSync(path.join(__dirname, '.git'))) {
 }
 
 const build = async () => {
+  const esbuild = await import('esbuild');
   try {
     await esbuild.build({
       entryPoints: ['src/scaffoldly.ts', 'src/awslambda-bootstrap.ts'],
@@ -28,14 +27,17 @@ const build = async () => {
   }
 };
 
+const watch = async () => {
+  if (process.argv.includes('--watch')) {
+    const chokidar = await import('chokidar');
+    console.log('Watching for changes...');
+    chokidar.watch('src/**/*.{ts,js}', { ignoreInitial: true }).on('all', (event, path) => {
+      console.log(`${event} detected at ${path}. Rebuilding...`);
+      build();
+    });
+  }
+};
+
 // Initial build
 build();
-
-const watch = process.argv.includes('--watch');
-if (watch) {
-  console.log('Watching for changes...');
-  chokidar.watch('src/**/*.{ts,js}', { ignoreInitial: true }).on('all', (event, path) => {
-    console.log(`${event} detected at ${path}. Rebuilding...`);
-    build();
-  });
-}
+watch();

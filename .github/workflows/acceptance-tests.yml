@@ -30,7 +30,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - run: npm install -g esbuild
       - run: npm install -g .
       - name: Login
         run: scaffoldly login github --withToken ${{ secrets.GITHUB_TOKEN }}
@@ -52,7 +51,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - run: npm install -g esbuild
       - run: npm install -g .
       - name: Test ${{ matrix.command }}
         run: |
