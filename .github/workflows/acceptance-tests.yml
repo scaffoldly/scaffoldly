@@ -33,7 +33,7 @@ jobs:
       - run: npm install -g .
       - name: Login
         run: scaffoldly login github --withToken ${{ secrets.GITHUB_TOKEN }}
-      - name: Test ${{ matrx.fommand }}
+      - name: Test ${{ matrix.fommand }}
         run: |
           scaffoldly ${{ matrix.command }}
 
@@ -52,6 +52,6 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - run: npm install -g .
-      - name: Test ${{ matrx.command }}
+      - name: Test ${{ matrix.command }}
         run: |
           awslambda-bootstrap ${{ matrix.command }}
