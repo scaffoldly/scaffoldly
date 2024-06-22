@@ -241,7 +241,7 @@ export class DockerService {
         (file) =>
           ({
             from: 'builder',
-            file,
+            file: file === '.' ? workdir : file,
             dest: join(workdir, file),
           } as CopyFrom),
       );
