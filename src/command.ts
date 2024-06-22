@@ -1,5 +1,4 @@
 import { hideBin } from 'yargs/helpers';
-import yargs from 'yargs';
 import axios from 'axios';
 import { OutputType, ShowCommand, ShowSubcommands } from './commands/show';
 import inquirer, { Answers, QuestionCollection } from 'inquirer';
@@ -14,6 +13,8 @@ import { ErrorWithReturnCode, RETURN_CODE_NOT_LOGGED_IN } from './errors';
 import { outputStream } from '../cli';
 import { BottomBar, isHeadless } from './ui';
 import Prompt from 'inquirer/lib/ui/prompt';
+import { DevCommand } from './commands/ci/dev';
+import { BuildCommand } from './commands/ci/build';
 
 process.addListener('SIGINT', () => {
   console.log('Exiting!');
@@ -41,17 +42,24 @@ export class Command {
 
   private login: LoginCommand;
 
+  private dev: DevCommand;
+
+  private build: BuildCommand;
+
   private show: ShowCommand;
 
   constructor(argv: string[]) {
     this.apiHelper = new ApiHelper(argv);
     this.messagesHelper = new MessagesHelper(argv);
-    this.login = new LoginCommand(this.apiHelper, this.messagesHelper);
     this.show = new ShowCommand(this.apiHelper, this.messagesHelper);
+    this.login = new LoginCommand(this.apiHelper, this.messagesHelper);
+    this.dev = new DevCommand();
+    this.build = new BuildCommand();
   }
 
   public async run(argv: string[]): Promise<void> {
-    const ya = yargs
+    const yargs = (await import('yargs')).default;
+    const ya = yargs()
       .scriptName(this.messagesHelper.processName)
       .command({
         command: 'identity',
@@ -71,7 +79,7 @@ export class Command {
           withToken: {
             demand: false,
             type: 'string',
-            description: 'Use the provided token (defaults to using the token in ~/.scaffoldly/)',
+            description: 'Skip authentication and save the provided token to ~/.scaffoldly/',
           },
           output: {
             alias: 'o',
@@ -96,7 +104,37 @@ export class Command {
           withToken: {
             demand: false,
             type: 'string',
-            description: 'Skip Device Authentication and save the provided token to ~/.scaffoldly/',
+            description: 'Skip authentication and save the provided token to ~/.scaffoldly/',
+          },
+        },
+      })
+      .command({
+        command: 'dev',
+        describe: `Launch a development environment`,
+        handler: ({ withToken }) =>
+          this.loginWrapper(() => this.dev.handle(), isHeadless(), withToken as string | undefined),
+        builder: {
+          withToken: {
+            demand: false,
+            type: 'string',
+            description: 'Skip authentication and save the provided token to ~/.scaffoldly/',
+          },
+        },
+      })
+      .command({
+        command: 'build',
+        describe: `Build the production environment`,
+        handler: ({ withToken }) =>
+          this.loginWrapper(
+            () => this.build.handle(),
+            isHeadless(),
+            withToken as string | undefined,
+          ),
+        builder: {
+          withToken: {
+            demand: false,
+            type: 'string',
+            description: 'Skip authentication and save the provided token to ~/.scaffoldly/',
           },
         },
       })

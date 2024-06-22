@@ -1,6 +1,3 @@
-#!/usr/bin/env node
-
-// import { Console } from 'console';
 import { ErrorWithReturnCode } from '../src/errors';
 import { Command } from '../src/command';
 import { Console } from 'console';
@@ -20,7 +17,7 @@ console.debug = customConsole.debug;
 console.clear = customConsole.clear;
 console.trace = customConsole.trace;
 
-(async () => {
+export const run = async (): Promise<void> => {
   const command = new Command(process.argv);
   try {
     await command.run(process.argv);
@@ -29,6 +26,9 @@ console.trace = customConsole.trace;
     if (e instanceof ErrorWithReturnCode) {
       process.exit(e.returnCode);
     }
+    if (e instanceof Error) {
+      console.error('Error: ', e.message);
+    }
     process.exit(-1);
   }
-})();
+};
