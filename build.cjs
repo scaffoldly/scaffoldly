@@ -11,20 +11,18 @@ if (fs.existsSync(path.join(__dirname, '.git'))) {
   execSync(path.join(__dirname, 'node_modules', '.bin', 'husky'), { stdio: 'inherit' });
 }
 
-const buildOptions = {
-  entryPoints: ['src/index.ts'], // Entry point of your application
-  bundle: true, // Bundle all dependencies into the output file
-  outfile: 'dist/index.js', // Output file
-  minify: false, // Minify the output
-  sourcemap: true, // Generate source maps
-  platform: 'node', // Platform target (e.g., 'node' or 'browser')
-  target: ['node18'], // Target environment (e.g., 'esnext', 'node14', 'chrome58', etc.)
-  external: [], // External dependencies to exclude from the bundle
-};
-
 const build = async () => {
   try {
-    await esbuild.build(buildOptions);
+    await esbuild.build({
+      entryPoints: ['src/scaffoldly.ts', 'src/awslambda-bootstrap.ts'],
+      bundle: true,
+      outdir: 'dist',
+      minify: true,
+      sourcemap: true,
+      platform: 'node',
+      target: ['node18'],
+      external: [],
+    });
   } catch (error) {
     console.error('Build failed:', error);
   }
