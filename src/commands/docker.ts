@@ -237,7 +237,7 @@ export class DockerService {
       const copyFrom = files.map((file) => ({
         from: 'builder',
         file,
-        dest: workdir,
+        dest: join(workdir, file),
       }));
 
       Object.entries(bin).forEach(([key, value]) => {
