@@ -11,9 +11,9 @@
   "license": "SEE LICENSE IN LICENSE",
   "private": false,
   "scripts": {
+    "prepare": "node esbuild.config.cjs",
     "build": "node esbuild.config.cjs",
-    "start": "node dist/cli.cjs",
-    "postinstall": "node esbuild.config.cjs"
+    "start": "node dist/cli.cjs"
   },
   "main": "dist/cli.cjs",
   "bin": {
