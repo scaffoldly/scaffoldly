@@ -59,7 +59,7 @@ export class Command {
   }
 
   public async run(argv: string[]): Promise<void> {
-    const yargs = await import('yargs');
+    const yargs = (await import('yargs')).default;
     console.log('!!! yargs', yargs);
     const ya = yargs
       .scriptName(this.messagesHelper.processName)
