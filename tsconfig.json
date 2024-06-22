@@ -20,6 +20,7 @@
     "noImplicitThis": true,
     "alwaysStrict": true,
     "useUnknownInCatchVariables": false,
+    "skipLibCheck": true,
 
     /* Additional Checks */
     "noUnusedLocals": true,
@@ -40,5 +41,11 @@
     /* Advanced Options */
     "forceConsistentCasingInFileNames": true
   },
-  "exclude": ["dist/**/*", "build/**/*"]
+  "exclude": [
+    "dist/**/*",
+    "build/**/*",
+    "examples/**/*",
+    "tests/integration/**/*",
+    "node_modules/**/*"
+  ]
 }

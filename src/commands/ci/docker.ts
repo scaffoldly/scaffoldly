@@ -179,6 +179,8 @@ export class DockerService {
   ): Promise<{ spec: DockerFileSpec; stream?: Pack }> {
     const { runtime, bin = {} } = config;
 
+    bin.bootstrap = 'node_modules/.bin/awslambda-bootstrap';
+
     if (!runtime) {
       throw new Error('Missing runtime');
     }

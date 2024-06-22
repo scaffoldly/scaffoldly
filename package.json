@@ -33,6 +33,7 @@
     "sly"
   ],
   "dependencies": {
+    "@scaffoldly/awslambda-bootstrap": "^1.0.20",
     "esbuild": "^0.21.5"
   },
   "peerDependencies": {},
