@@ -62,7 +62,7 @@ export class Command {
     const yargs = (await import('yargs')).default;
     console.log('!!! yargs', yargs);
     console.log('!!! yargs()', yargs());
-    const ya = yargs
+    const ya = yargs()
       .scriptName(this.messagesHelper.processName)
       .command({
         command: 'identity',
