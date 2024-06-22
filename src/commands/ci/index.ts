@@ -20,6 +20,7 @@ export class CiCommand {
   }
 
   get cwd(): string {
+    console.log('!!! cwd', process.cwd());
     return process.cwd();
   }
 

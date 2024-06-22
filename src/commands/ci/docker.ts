@@ -1,7 +1,7 @@
 import Docker, { ImageBuildOptions } from 'dockerode';
 import tar, { Pack } from 'tar-fs';
 import { existsSync, writeFileSync } from 'fs';
-import { Entrypoint, ScaffoldlyConfig } from '../config';
+import { Script, ScaffoldlyConfig } from '../config';
 import { base58 } from '@scure/base';
 import { join, sep } from 'path';
 import { ui } from '../../command';
@@ -109,7 +109,7 @@ export class DockerService {
     console.log('!!! bottom bar lines', lines);
   }
 
-  async build(config: ScaffoldlyConfig, mode: Entrypoint) {
+  async build(config: ScaffoldlyConfig, mode: Script) {
     const { spec } = await this.createSpec(config, mode);
 
     // const { files = [] } = config;
@@ -175,7 +175,7 @@ export class DockerService {
 
   async createSpec(
     config: ScaffoldlyConfig,
-    mode: Entrypoint,
+    mode: Script,
   ): Promise<{ spec: DockerFileSpec; stream?: Pack }> {
     const { runtime, bin = {} } = config;
 
@@ -217,13 +217,14 @@ export class DockerService {
     };
 
     if (mode === 'develop') {
-      const { files = [] } = config;
-      spec.copy = files;
+      const { files = [], devFiles = ['.'] } = config;
+      spec.copy = [...devFiles, ...files];
     }
 
     if (mode === 'build') {
-      const { build } = config.entrypoints || {};
-      const { files = [] } = config;
+      console.log('!!!entrypoints', config);
+      const { build } = config.scripts || {};
+      const { files = [], devFiles = ['.'] } = config;
       if (!build) {
         throw new Error('Missing build entrypoint');
       }
@@ -233,7 +234,7 @@ export class DockerService {
         as: 'builder',
         entrypoint: undefined,
         copyFrom: [],
-        copy: ['.'],
+        copy: [...devFiles, ...files],
         run: [build],
       };
 
@@ -267,7 +268,7 @@ export class DockerService {
     return { spec };
   }
 
-  render = (spec: DockerFileSpec, mode: Entrypoint): string => {
+  render = (spec: DockerFileSpec, mode: Script): string => {
     console.log('!!! spec', JSON.stringify(spec, null, 2));
 
     const lines = [];
@@ -296,7 +297,7 @@ export class DockerService {
     if (copy) {
       for (const file of copy) {
         if (file === '.') {
-          lines.push(`COPY . ${workdir}`);
+          lines.push(`COPY . ${workdir}/`);
           continue;
         }
         const exists = existsSync(join(this.cwd, file));
