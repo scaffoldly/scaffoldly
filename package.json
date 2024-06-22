@@ -12,6 +12,7 @@
   "private": false,
   "scripts": {
     "build": "node esbuild.config.cjs",
+    "start": "node dist/cli.cjs",
     "postinstall": "node esbuild.config.cjs"
   },
   "main": "dist/cli.cjs",

@@ -1,6 +1,3 @@
-#!/usr/bin/env node
-
-// import { Console } from 'console';
 import { ErrorWithReturnCode } from '../src/errors';
 import { Command } from '../src/command';
 import { Console } from 'console';
