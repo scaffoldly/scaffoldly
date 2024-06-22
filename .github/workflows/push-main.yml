@@ -16,20 +16,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - uses: actions/cache@v2
-        with:
-          path: ./node_modules
-          key: ${{ runner.os }}-${{ matrix.node }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.node }}-yarn-
-      - uses: actions/cache@v2
-        with:
-          path: ./api
-          key: ${{ runner.os }}-${{ matrix.node }}-openapi-${{ hashFiles('./.openapis') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.node }}-openapi-
+          cache: 'yarn'
       - run: yarn
-      - run: yarn openapi
       - run: yarn build
       - if: ${{ matrix.node == '18' }}
         uses: scaffoldly/bump-version-action@v1

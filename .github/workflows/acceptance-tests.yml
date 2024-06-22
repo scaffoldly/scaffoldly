@@ -14,25 +14,46 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  identity:
+  scaffoldly:
     strategy:
       matrix:
         node: [18, 20, 22]
-        os: ['macos-latest', 'ubuntu-latest', 'windows-latest']
-        flags:
-          - ''
+        # os: ['macos-latest', 'ubuntu-latest', 'windows-latest']
+        os: ['macos-latest', 'ubuntu-latest']
+        command:
+          - '--version'
+          - '--help'
+          - 'identity'
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-          cache: 'yarn'
       - run: yarn
+      - run: npm install -g .
       - name: Login
-        id: login
-        run: yarn start login github --withToken ${{ secrets.GITHUB_TOKEN }} ${{ matrix.flags }}
-      - name: Identity
-        id: identity_gha_token
+        run: scaffoldly login github --withToken ${{ secrets.GITHUB_TOKEN }}
+      - name: Test ${{ matrix.fommand }}
         run: |
-          yarn --silent start identity ${{ matrix.flags }}
+          scaffoldly ${{ matrix.command }}
+
+  awslambda-bootstrap:
+    strategy:
+      matrix:
+        node: [18, 20, 22]
+        # os: ['macos-latest', 'ubuntu-latest', 'windows-latest']
+        os: ['macos-latest', 'ubuntu-latest']
+        command:
+          - '--version'
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: yarn
+      - run: npm install -g .
+      - name: Test ${{ matrix.command }}
+        run: |
+          awslambda-bootstrap ${{ matrix.command }}
