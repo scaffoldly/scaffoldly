@@ -12,7 +12,7 @@ type CopyFrom = {
   from: string;
   file: string;
   dest: string;
-  glob?: boolean;
+  noGlob?: boolean;
 };
 
 type DockerFileSpec = {
@@ -251,7 +251,7 @@ export class DockerService {
         copyFrom.push({
           from: 'builder',
           file: `${dir}`,
-          glob: false,
+          noGlob: true,
           dest: `${workdir}${sep}`,
         });
         copyFrom.push({
@@ -306,11 +306,8 @@ export class DockerService {
         const exists = existsSync(join(this.cwd, cf.file));
         if (workdir) {
           let source = join(workdir, cf.file);
-          let { glob } = cf;
-          if (glob !== false) {
-            if (!exists) {
-              source = `${source}*`;
-            }
+          if (!exists && !cf.noGlob) {
+            source = `${source}*`;
           }
           lines.push(`COPY --from=${cf.from} ${source} ${cf.dest}`);
         }
