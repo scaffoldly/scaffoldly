@@ -5,7 +5,6 @@ esbuild
     entryPoints: ['cli/index.ts'],
     outfile: 'dist/index.js',
     bundle: true,
-    minify: true,
     sourcemap: true,
     platform: 'node',
     target: ['node16'],
