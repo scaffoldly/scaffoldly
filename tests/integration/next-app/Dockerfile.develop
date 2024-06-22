@@ -1,0 +1,11 @@
+FROM node:20-alpine as base
+
+FROM base as runner
+ENTRYPOINT bootstrap
+WORKDIR /var/task
+ENV PATH="/var/task/node_modules/.bin:$PATH"
+ENV _HANDLER="base58:3HpamuPWFykr8ZxX7txNexRAoc69Hbjgr7J8n4pYbVPeAvb9eNxN7r1fFnkts83YGvd9YHg6jw6zRBoGj78YcYMLXpQtHpaUMoMowyq5h5s3isg5HNokwLL4Xh3gNSHbEv1LmR6muMwpW53V65pjctRsYnBQaXBPHrmZ2FjHwMrMwLpdQn8MMnBmKuMeuBDtNiAxaX2kQLwRXsRHkEHetBEFMaYLmtJq9Sjj2gmK217qWLhWij592uUqVLYCkrQxbT9K9qinMnZfRftKtREMRTjehoyLrjWBgtg1y4dJ9hyr44wfHCsr6akULFdX7RfJgXtijJ9ao6QCwsfY2uwt5wXoptiMuR9ZYib4PV8sz2jt8Q5V4qcyfAuB38ZaMCg"
+ENV NODE_ENV="development"
+ENV HOSTNAME="0.0.0.0"
+COPY README.md /var/task/README.md
+COPY public /var/task/public

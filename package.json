@@ -11,6 +11,7 @@
   "license": "SEE LICENSE IN LICENSE",
   "private": false,
   "scripts": {
+    "dev": "node esbuild.config.cjs --watch",
     "build": "node esbuild.config.cjs",
     "start": "node dist/cli.cjs",
     "postinstall": "node esbuild.config.cjs"
@@ -56,6 +57,7 @@
     "@typescript-eslint/eslint-plugin": "^4.29.3",
     "@typescript-eslint/parser": "^4.29.3",
     "axios": "^0.27.2",
+    "chokidar": "^3.6.0",
     "dockerode": "^4.0.2",
     "esbuild": "^0.21.5",
     "eslint": "^7.2.0",
