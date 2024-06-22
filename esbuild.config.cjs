@@ -10,7 +10,5 @@ esbuild
     target: ['node16'],
     external: [],
   })
-  .then(() => {
-    console.log('Build successful');
-  })
-  .catch((e) => 'Build failed: ' + e.message);
+  .then(() => {})
+  .catch((e) => console.log('[scaffoldly] Build failed: ' + e.message));
