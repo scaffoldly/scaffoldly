@@ -11,6 +11,8 @@ export class DevCommand extends CiCommand {
   async handle(): Promise<void> {
     event('dev');
 
+    console.log('!!! process.argv', JSON.stringify(process.argv, null, 2));
+
     await this.dockerService.build(this.config, 'develop');
 
     return;
