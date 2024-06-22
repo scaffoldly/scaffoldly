@@ -11,7 +11,8 @@
   "license": "SEE LICENSE IN LICENSE",
   "private": false,
   "scripts": {
-    "build": "esbuild cli/index.ts --bundle --minify --platform=node --target=node16 --outdir=dist"
+    "build": "node esbuild.config.cjs",
+    "postinstall": "node esbuild.config.cjs"
   },
   "main": "dist/index.js",
   "bin": {
@@ -19,7 +20,8 @@
     "sly": "dist/index.js"
   },
   "files": [
-    "dist/index.js"
+    "dist/index.js",
+    "esbuild.config.js"
   ],
   "engines": {
     "node": ">=16"
