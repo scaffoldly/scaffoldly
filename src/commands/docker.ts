@@ -244,8 +244,8 @@ export class DockerService {
         const [dir, _] = splitPath(value);
         copyFrom.push({
           from: 'builder',
-          file: `${dir}/`,
-          dest: workdir,
+          file: `${dir}${sep}`,
+          dest: `${workdir}${sep}`,
         });
         copyFrom.push({
           from: 'builder',
