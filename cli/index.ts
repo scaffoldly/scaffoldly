@@ -26,6 +26,9 @@ export const run = async (): Promise<void> => {
     if (e instanceof ErrorWithReturnCode) {
       process.exit(e.returnCode);
     }
+    if (e instanceof Error) {
+      console.error('Error: ', e.message);
+    }
     process.exit(-1);
   }
 };
