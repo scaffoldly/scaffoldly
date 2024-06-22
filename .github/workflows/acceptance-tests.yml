@@ -31,8 +31,8 @@ jobs:
       - run: yarn
       - name: Login
         id: login
-        run: yarn start login github --withToken ${{ secrets.GITHUB_TOKEN }} ${{ matrix.flags }}
+        run: yarn scaffoldly login github --withToken ${{ secrets.GITHUB_TOKEN }} ${{ matrix.flags }}
       - name: Identity
         id: identity_gha_token
         run: |
-          yarn --silent start identity ${{ matrix.flags }}
+          yarn --silent scaffoldly identity ${{ matrix.flags }}

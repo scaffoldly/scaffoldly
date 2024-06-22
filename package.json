@@ -13,7 +13,8 @@
   "scripts": {
     "dev": "./build.cjs --watch",
     "build": "./build.cjs",
-    "start": "node dist/cli.cjs",
+    "scaffoldly": "node dist/scaffoldly.cjs",
+    "awslambda-bootstrap": "node dist/awslambda-bootstrap.cjs",
     "postinstall": "./build.cjs"
   },
   "main": "dist/cli.cjs",
