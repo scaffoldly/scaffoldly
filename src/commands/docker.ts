@@ -8,17 +8,20 @@ import { ui } from '../command';
 
 type Path = string;
 
+type CopyFrom = {
+  from: string;
+  file: string;
+  dest: string;
+  glob?: boolean;
+};
+
 type DockerFileSpec = {
   base?: DockerFileSpec;
   from: string;
   as?: string;
   workdir?: string;
   copy?: string[];
-  copyFrom?: {
-    from: string;
-    file: string;
-    dest: string;
-  }[];
+  copyFrom?: CopyFrom[];
   env?: { [key: string]: string };
   run?: string[];
   paths?: string[];
@@ -234,17 +237,21 @@ export class DockerService {
         run: [build],
       };
 
-      const copyFrom = files.map((file) => ({
-        from: 'builder',
-        file,
-        dest: join(workdir, file),
-      }));
+      const copyFrom = files.map(
+        (file) =>
+          ({
+            from: 'builder',
+            file,
+            dest: join(workdir, file),
+          } as CopyFrom),
+      );
 
       Object.entries(bin).forEach(([key, value]) => {
         const [dir, _] = splitPath(value);
         copyFrom.push({
           from: 'builder',
-          file: `${dir}${sep}`,
+          file: `${dir}`,
+          glob: false,
           dest: `${workdir}${sep}`,
         });
         copyFrom.push({
@@ -299,7 +306,7 @@ export class DockerService {
         const exists = existsSync(join(this.cwd, cf.file));
         if (workdir) {
           let source = join(workdir, cf.file);
-          if (!exists) {
+          if (!cf.glob && !exists) {
             source = `${source}*`;
           }
           lines.push(`COPY --from=${cf.from} ${source} ${cf.dest}`);
