@@ -1,6 +1,6 @@
-import { event } from '../helpers/events';
+import { event } from '../../helpers/events';
 import { DockerService } from './docker';
-import { CiCommand } from './ci';
+import { CiCommand } from '.';
 
 export class DevCommand extends CiCommand {
   constructor() {

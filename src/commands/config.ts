@@ -9,7 +9,6 @@ export type ScaffoldlyConfig = {
   route?: string;
   files?: string[]; // Get copied to workdir/{file} during build and serve
   bin?: PackageJsonBin; // Get copied to workdir root
-  devFiles?: string[]; // Get copied to workdir/{file} during build
   entrypoints?: { [key in Entrypoint]: string };
   // services?: {
   //   [key: string]: ScaffoldlyConfig;

@@ -14,8 +14,8 @@ import { ErrorWithReturnCode, RETURN_CODE_NOT_LOGGED_IN } from './errors';
 import { outputStream } from '../cli';
 import { BottomBar, isHeadless } from './ui';
 import Prompt from 'inquirer/lib/ui/prompt';
-import { DevCommand } from './commands/dev';
-import { BuildCommand } from './commands/build';
+import { DevCommand } from './commands/ci/dev';
+import { BuildCommand } from './commands/ci/build';
 
 process.addListener('SIGINT', () => {
   console.log('Exiting!');

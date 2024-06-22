@@ -1,5 +1,5 @@
 import { join } from 'path';
-import { ScaffoldlyConfig } from './config';
+import { ScaffoldlyConfig } from '../config';
 import { DockerService } from './docker';
 import { readFileSync } from 'fs';
 

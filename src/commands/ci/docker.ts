@@ -1,10 +1,10 @@
 import Docker, { ImageBuildOptions } from 'dockerode';
 import tar, { Pack } from 'tar-fs';
 import { existsSync, writeFileSync } from 'fs';
-import { Entrypoint, ScaffoldlyConfig } from './config';
+import { Entrypoint, ScaffoldlyConfig } from '../config';
 import { base58 } from '@scure/base';
 import { join, sep } from 'path';
-import { ui } from '../command';
+import { ui } from '../../command';
 
 type Path = string;
 
@@ -223,7 +223,7 @@ export class DockerService {
 
     if (mode === 'build') {
       const { build } = config.entrypoints || {};
-      const { files = [], devFiles = [] } = config;
+      const { files = [] } = config;
       if (!build) {
         throw new Error('Missing build entrypoint');
       }
@@ -233,7 +233,7 @@ export class DockerService {
         as: 'builder',
         entrypoint: undefined,
         copyFrom: [],
-        copy: [...files, ...devFiles],
+        copy: ['.'],
         run: [build],
       };
 
@@ -294,6 +294,10 @@ export class DockerService {
 
     if (copy) {
       for (const file of copy) {
+        if (file === '.') {
+          lines.push(`COPY . ${workdir}`);
+          continue;
+        }
         const exists = existsSync(join(this.cwd, file));
         if (exists && workdir) {
           lines.push(`COPY ${file} ${join(workdir, file)}`);
@@ -303,10 +307,15 @@ export class DockerService {
 
     if (copyFrom) {
       for (const cf of copyFrom) {
+        if (cf.noGlob) {
+          lines.push(`COPY --from=${cf.from} ${cf.file} ${cf.dest}`);
+          continue;
+        }
+
         const exists = existsSync(join(this.cwd, cf.file));
         if (workdir) {
           let source = join(workdir, cf.file);
-          if (!exists && !cf.noGlob) {
+          if (!exists) {
             source = `${source}*`;
           }
           lines.push(`COPY --from=${cf.from} ${source} ${cf.dest}`);
