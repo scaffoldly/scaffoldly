@@ -1,5 +1,4 @@
 import { hideBin } from 'yargs/helpers';
-import yargs from 'yargs';
 import axios from 'axios';
 import { OutputType, ShowCommand, ShowSubcommands } from './commands/show';
 import inquirer, { Answers, QuestionCollection } from 'inquirer';
@@ -60,6 +59,8 @@ export class Command {
   }
 
   public async run(argv: string[]): Promise<void> {
+    const yargs = await import('yargs');
+    console.log('!!! yargs', yargs);
     const ya = yargs
       .scriptName(this.messagesHelper.processName)
       .command({
