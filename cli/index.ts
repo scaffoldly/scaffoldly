@@ -21,7 +21,7 @@ console.clear = customConsole.clear;
 console.trace = customConsole.trace;
 
 export const run = async (): Promise<void> => {
-  console.log('!!! helllo from run');
+  console.log('!!! helllo from run123');
   const command = new Command(process.argv);
   try {
     await command.run(process.argv);
