@@ -32,7 +32,7 @@ export class CiCommand {
   get config(): ScaffoldlyConfig {
     const packageJson = this.packageJson;
 
-    const { name, files = [], scaffoldly: config } = packageJson;
+    const { name, files = [], bin, scaffoldly: config } = packageJson;
 
     if (!config) {
       throw new Error('Missing `scaffoldly` in package.json');
@@ -46,6 +46,7 @@ export class CiCommand {
       config.name = name;
     }
 
+    config.bin = bin;
     config.files = this.prepareFiles(files, config);
 
     return config;
