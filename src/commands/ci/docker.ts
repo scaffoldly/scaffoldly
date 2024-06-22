@@ -268,7 +268,7 @@ export class DockerService {
   }
 
   render = (spec: DockerFileSpec, mode: Entrypoint): string => {
-    console.log('!!! spec', JSON.stringify(spec));
+    console.log('!!! spec', JSON.stringify(spec, null, 2));
 
     const lines = [];
 
@@ -281,7 +281,6 @@ export class DockerService {
 
     const from = spec.as ? `${spec.from} as ${spec.as}` : spec.from;
 
-    // lines.push('# syntax=docker/dockerfile:1');
     lines.push(`FROM ${from}`);
     if (entrypoint) lines.push(`ENTRYPOINT ${entrypoint}`);
     if (workdir) lines.push(`WORKDIR ${workdir}`);
