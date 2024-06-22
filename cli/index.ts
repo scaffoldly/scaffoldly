@@ -20,6 +20,8 @@ console.debug = customConsole.debug;
 console.clear = customConsole.clear;
 console.trace = customConsole.trace;
 
+console.log('!!! process.argv', JSON.stringify(process.argv, null, 2));
+
 (async () => {
   const command = new Command(process.argv);
   try {
