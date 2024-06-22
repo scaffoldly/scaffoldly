@@ -55,18 +55,15 @@ export class CiCommand {
   protected prepareFiles(files: string[], config: ScaffoldlyConfig): string[] {
     return [
       ...new Set(
-        [...['README.md', 'LICENSE', 'package.json'], ...files, ...(config.files || [])].reduce(
-          (acc, file) => {
-            if (file.startsWith('!')) {
-              return acc;
-            }
-
-            acc.push(file);
-
+        [...['README.md', 'LICENSE'], ...files, ...(config.files || [])].reduce((acc, file) => {
+          if (file.startsWith('!')) {
             return acc;
-          },
-          [] as string[],
-        ),
+          }
+
+          acc.push(file);
+
+          return acc;
+        }, [] as string[]),
       ),
     ];
   }

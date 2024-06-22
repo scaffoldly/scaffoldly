@@ -229,11 +229,11 @@ export class DockerService {
       }));
 
       Object.entries(bin).forEach(([key, value]) => {
-        const [dir, file] = splitPath(value);
+        const [dir, _] = splitPath(value);
         copyFrom.push({
           from: 'builder',
-          file,
-          dest: key,
+          file: value,
+          dest: join(workdir, key),
         });
         copyFrom.push({
           from: 'builder',
