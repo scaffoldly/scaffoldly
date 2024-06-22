@@ -6,8 +6,6 @@ import { base58 } from '@scure/base';
 import { join, sep } from 'path';
 import { ui } from '../command';
 
-const DEFAULT_WORDIR = '/var/task';
-
 type Path = string;
 
 type DockerFileSpec = {
@@ -176,8 +174,6 @@ export class DockerService {
     config: ScaffoldlyConfig,
     mode: Entrypoint,
   ): Promise<{ spec: DockerFileSpec; stream?: Pack }> {
-    const workdir = DEFAULT_WORDIR;
-
     const { runtime, bin = {} } = config;
 
     if (!runtime) {
@@ -185,6 +181,8 @@ export class DockerService {
     }
 
     const environment = mode === 'develop' ? 'development' : 'production';
+
+    const workdir = '/var/task';
 
     const spec: DockerFileSpec = {
       base: {
@@ -202,7 +200,7 @@ export class DockerService {
       copyFrom: [
         {
           from: 'bootstrap',
-          file: '/bin/bootstrap',
+          file: 'bootstrap',
           dest: '/bin/bootstrap',
         },
       ],
@@ -268,22 +266,14 @@ export class DockerService {
       lines.push('');
     }
 
-    const {
-      copy,
-      copyFrom,
-      workdir = DEFAULT_WORDIR,
-      env = {},
-      entrypoint,
-      run,
-      paths = [],
-    } = spec;
+    const { copy, copyFrom, workdir, env = {}, entrypoint, run, paths = [] } = spec;
 
     const from = spec.as ? `${spec.from} as ${spec.as}` : spec.from;
 
     // lines.push('# syntax=docker/dockerfile:1');
     lines.push(`FROM ${from}`);
     if (entrypoint) lines.push(`ENTRYPOINT ${entrypoint}`);
-    lines.push(`WORKDIR ${workdir}`);
+    if (workdir) lines.push(`WORKDIR ${workdir}`);
 
     for (const path of paths) {
       lines.push(`ENV PATH="${path}:$PATH"`);
@@ -296,7 +286,7 @@ export class DockerService {
     if (copy) {
       for (const file of copy) {
         const exists = existsSync(join(this.cwd, file));
-        if (exists) {
+        if (exists && workdir) {
           lines.push(`COPY ${file} ${join(workdir, file)}`);
         }
       }
@@ -305,11 +295,13 @@ export class DockerService {
     if (copyFrom) {
       for (const cf of copyFrom) {
         const exists = existsSync(join(this.cwd, cf.file));
-        let source = join(workdir, cf.file);
-        if (!exists) {
-          source = `${source}*`;
+        if (workdir) {
+          let source = join(workdir, cf.file);
+          if (!exists) {
+            source = `${source}*`;
+          }
+          lines.push(`COPY --from=${cf.from} ${source} ${cf.dest}`);
         }
-        lines.push(`COPY --from=${cf.from} ${source} ${cf.dest}`);
       }
     }
 
