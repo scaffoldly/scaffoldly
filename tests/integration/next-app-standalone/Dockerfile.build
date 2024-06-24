@@ -3,6 +3,7 @@ FROM node:20-alpine as base
 FROM base as builder
 WORKDIR /var/task
 ENV PATH="/var/task/node_modules/.bin:$PATH"
+ENV PATH="/var/task:$PATH"
 ENV _HANDLER="base58:3WNeZEKToEps2MoFabhFQibUz6NgiskoSbFA8RX9odNmvvTkas3k2Uau5WbUwzaQ4miFQ3KHjjYuEFpcdJDfZqVStUoCpByh4jAm3eWr1m7JbG2X8RRUfAopzGJRp1wff4eMtdK1YjFQuJMtCymjWu9CRMSt8bBNjB45eaJncHckJdkPSr1tzSd6WUkkEKYmD9EdMW6o9oqyUZcE2PNzfpeoPivJcXYf33h9yUx44fVq29hkrn54wCsBDN7aUwKxxKY7bMe7zcLBen46JJ1rppB8PsansuWvaUqtoD75Tf8HNc8Js7bg9fdguGWpEdapV5qS1QFvso9UJSdC4jX6EPumHMKrUsnJKNbK7eANwqvDArLFqsY9r4dY6x2dP7zwbsgXQbn4RHoiKv"
 ENV NODE_ENV="production"
 ENV HOSTNAME="0.0.0.0"
@@ -12,12 +13,14 @@ COPY public /var/task/public
 RUN next build
 
 FROM base as runner
-ENTRYPOINT bootstrap
+ENTRYPOINT /var/task/bootstrap
 WORKDIR /var/task
 ENV PATH="/var/task/node_modules/.bin:$PATH"
+ENV PATH="/var/task:$PATH"
 ENV _HANDLER="base58:3WNeZEKToEps2MoFabhFQibUz6NgiskoSbFA8RX9odNmvvTkas3k2Uau5WbUwzaQ4miFQ3KHjjYuEFpcdJDfZqVStUoCpByh4jAm3eWr1m7JbG2X8RRUfAopzGJRp1wff4eMtdK1YjFQuJMtCymjWu9CRMSt8bBNjB45eaJncHckJdkPSr1tzSd6WUkkEKYmD9EdMW6o9oqyUZcE2PNzfpeoPivJcXYf33h9yUx44fVq29hkrn54wCsBDN7aUwKxxKY7bMe7zcLBen46JJ1rppB8PsansuWvaUqtoD75Tf8HNc8Js7bg9fdguGWpEdapV5qS1QFvso9UJSdC4jX6EPumHMKrUsnJKNbK7eANwqvDArLFqsY9r4dY6x2dP7zwbsgXQbn4RHoiKv"
 ENV NODE_ENV="production"
 ENV HOSTNAME="0.0.0.0"
+COPY bootstrap* /var/task/bootstrap
 COPY --from=builder /var/task/README.md /var/task/README.md
 COPY --from=builder /var/task/LICENSE* /var/task/LICENSE
 COPY --from=builder /var/task/.next/static* /var/task/.next/static

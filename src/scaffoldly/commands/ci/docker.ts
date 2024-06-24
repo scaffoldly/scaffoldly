@@ -1,6 +1,6 @@
 import Docker, { ImageBuildOptions } from 'dockerode';
 import tar, { Pack } from 'tar-fs';
-import { existsSync, writeFileSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { Script, ScaffoldlyConfig } from '../config';
 import { base58 } from '@scure/base';
 import { join, sep } from 'path';
@@ -8,11 +8,12 @@ import { ui } from '../../command';
 
 type Path = string;
 
-type CopyFrom = {
-  from: string;
-  file: string;
+type Copy = {
+  from?: string;
+  src: string;
   dest: string;
   noGlob?: boolean;
+  resolve?: boolean;
 };
 
 type DockerFileSpec = {
@@ -20,8 +21,7 @@ type DockerFileSpec = {
   from: string;
   as?: string;
   workdir?: string;
-  copy?: string[];
-  copyFrom?: CopyFrom[];
+  copy?: Copy[];
   env?: { [key: string]: string };
   run?: string[];
   paths?: string[];
@@ -112,8 +112,6 @@ export class DockerService {
   async build(config: ScaffoldlyConfig, mode: Script) {
     const { spec } = await this.createSpec(config, mode);
 
-    // const { files = [] } = config;
-
     // todo add dockerfile to tar instead of writing it to cwd
     const dockerfile = this.render(spec, mode);
 
@@ -122,9 +120,31 @@ export class DockerService {
 
     const stream = tar.pack(this.cwd, {
       // filter: (name) => {
-      //   return files.some((file) => name.startsWith(file));
+      //   if ([...staticBins].find((file) => name === join(this.cwd, file))) {
+      //     return true;
+      //   }
+      //   return false;
       // },
     });
+
+    const { copy = [] } = spec;
+
+    copy
+      .filter((copy) => copy.resolve)
+      .forEach((copy) => {
+        // This will remove the symlink and add the actual file
+        const content = readFileSync(join(this.cwd, copy.src));
+        stream.entry(
+          {
+            name: copy.dest,
+            mode: 0o755,
+          },
+          content,
+          () => {
+            console.log('!!! added bin: ', copy.dest);
+          },
+        );
+      });
 
     const { runtime } = config;
     if (!runtime) {
@@ -179,7 +199,8 @@ export class DockerService {
   ): Promise<{ spec: DockerFileSpec; stream?: Pack }> {
     const { runtime, bin = {} } = config;
 
-    bin.bootstrap = 'node_modules/.bin/awslambda-bootstrap';
+    const bootstrap = join('node_modules', 'scaffoldly', 'dist', 'awslambda-bootstrap.js');
+    const entrypoint = 'bootstrap';
 
     if (!runtime) {
       throw new Error('Missing runtime');
@@ -201,32 +222,39 @@ export class DockerService {
       from: 'base',
       as: 'runner',
       workdir,
-      copy: [],
-      // copyFrom: [
-      //   {
-      //     from: 'bootstrap',
-      //     file: 'bootstrap',
-      //     dest: '/bin/bootstrap',
-      //   },
-      // ],
+      copy: [
+        {
+          src: bootstrap,
+          dest: entrypoint,
+          resolve: true,
+        },
+      ],
       env: {
         _HANDLER: `base58:${base58.encode(new TextEncoder().encode(JSON.stringify(config)))}`,
         NODE_ENV: environment, // TODO Env File Interpolation
         HOSTNAME: '0.0.0.0',
       },
-      entrypoint: 'bootstrap',
-      paths: [join(workdir, 'node_modules', '.bin')],
+      paths: [join(workdir, 'node_modules', '.bin'), workdir],
+      entrypoint: join(workdir, entrypoint),
     };
 
+    const { files = [], devFiles = ['.'] } = config;
+    const buildFiles: Copy[] = [...devFiles, ...files].map(
+      (file) =>
+        ({
+          src: file,
+          dest: file,
+        } as Copy),
+    );
+
     if (mode === 'develop') {
-      const { files = [], devFiles = ['.'] } = config;
-      spec.copy = [...devFiles, ...files];
+      spec.copy = buildFiles;
     }
 
     if (mode === 'build') {
       console.log('!!!entrypoints', config);
       const { build } = config.scripts || {};
-      const { files = [], devFiles = ['.'] } = config;
+      const { files = [] } = config;
       if (!build) {
         throw new Error('Missing build entrypoint');
       }
@@ -235,36 +263,35 @@ export class DockerService {
         ...spec,
         as: 'builder',
         entrypoint: undefined,
-        copyFrom: [],
-        copy: [...devFiles, ...files],
+        copy: buildFiles,
         run: [build],
       };
 
-      const copyFrom = files.map(
+      const copy = files.map(
         (file) =>
           ({
             from: 'builder',
-            file,
+            src: file,
             dest: join(workdir, file),
-          } as CopyFrom),
+          } as Copy),
       );
 
       Object.entries(bin).forEach(([key, value]) => {
         const [dir, _] = splitPath(value);
-        copyFrom.push({
+        copy.push({
           from: 'builder',
-          file: `${join(workdir, dir)}`,
+          src: `${join(workdir, dir)}`,
           noGlob: true,
           dest: `${workdir}${sep}`,
         });
-        copyFrom.push({
+        copy.push({
           from: 'builder',
-          file: value,
+          src: value,
           dest: join(workdir, key),
         });
       });
 
-      spec.copyFrom = [...(spec.copyFrom || []), ...copyFrom];
+      spec.copy = [...(spec.copy || []), ...copy];
     }
 
     return { spec };
@@ -280,7 +307,7 @@ export class DockerService {
       lines.push('');
     }
 
-    const { copy, copyFrom, workdir, env = {}, entrypoint, run, paths = [] } = spec;
+    const { copy, workdir, env = {}, entrypoint, run, paths = [] } = spec;
 
     const from = spec.as ? `${spec.from} as ${spec.as}` : spec.from;
 
@@ -297,39 +324,47 @@ export class DockerService {
     }
 
     if (copy) {
-      for (const file of copy) {
-        if (file === '.') {
-          lines.push(`COPY . ${workdir}/`);
-          continue;
-        }
-        const exists = existsSync(join(this.cwd, file));
-        if (exists && workdir) {
-          lines.push(`COPY ${file} ${join(workdir, file)}`);
-        }
-      }
-    }
-
-    if (copyFrom) {
-      for (const cf of copyFrom) {
-        let { file } = cf;
-        if (file === '.' && workdir) {
-          file = workdir;
-        }
-
-        if (cf.noGlob) {
-          lines.push(`COPY --from=${cf.from} ${file} ${cf.dest}`);
-          continue;
-        }
-
-        const exists = existsSync(join(this.cwd, file));
-        if (workdir) {
-          let source = join(workdir, file);
-          if (!exists) {
-            source = `${source}*`;
+      copy
+        .filter((c) => !c.from)
+        .forEach((c) => {
+          if (c.resolve && workdir) {
+            lines.push(`COPY ${c.dest}* ${join(workdir, c.dest)}`);
+            return;
           }
-          lines.push(`COPY --from=${cf.from} ${source} ${cf.dest}`);
-        }
-      }
+
+          if (c.src === '.') {
+            lines.push(`COPY . ${workdir}/`);
+            return;
+          }
+
+          const exists = existsSync(join(this.cwd, c.src));
+          if (exists && workdir) {
+            lines.push(`COPY ${c.src} ${join(workdir, c.dest)}`);
+          }
+        });
+
+      copy
+        .filter((c) => !!c.from)
+        .forEach((c) => {
+          let { src } = c;
+          if (src === '.' && workdir) {
+            src = workdir;
+          }
+
+          if (c.noGlob) {
+            lines.push(`COPY --from=${c.from} ${src} ${c.dest}`);
+            return;
+          }
+
+          const exists = existsSync(join(this.cwd, src));
+          if (workdir) {
+            let source = join(workdir, src);
+            if (!exists) {
+              source = `${source}*`;
+            }
+            lines.push(`COPY --from=${c.from} ${source} ${c.dest}`);
+          }
+        });
     }
 
     if (run) {
