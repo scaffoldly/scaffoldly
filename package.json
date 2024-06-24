@@ -20,7 +20,9 @@
   "main": "dist/cli.cjs",
   "bin": {
     "scaffoldly": "dist/scaffoldly.cjs",
-    "sly": "dist/scaffoldly.cjs"
+    "sly": "dist/scaffoldly.cjs",
+    "awslambda-bootstrap": "dist/awslambda-bootstrap.cjs",
+    "bootstrap": "dist/awslambda-bootstrap.cjs"
   },
   "files": [
     "dist/**/*"
