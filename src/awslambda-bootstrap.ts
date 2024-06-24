@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { pollForEvents } from './awslambda-bootstrap/events';
 import { endpointSpawn, endpointProxy } from './awslambda-bootstrap/endpoints';
 import { log } from './awslambda-bootstrap/log';
@@ -55,3 +57,14 @@ export {
   EndpointProxyRequest,
   EndpointResponse,
 };
+
+if (require.main === module) {
+  (async () => {
+    try {
+      await run();
+    } catch (e) {
+      console.error(e);
+      process.exit(-1);
+    }
+  })();
+}
