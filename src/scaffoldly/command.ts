@@ -15,6 +15,7 @@ import { BottomBar, isHeadless } from './ui';
 import Prompt from 'inquirer/lib/ui/prompt';
 import { DevCommand } from './commands/ci/dev';
 import { BuildCommand } from './commands/ci/build';
+import { DeployCommand } from './commands/cd/deploy';
 
 process.addListener('SIGINT', () => {
   console.log('Exiting!');
@@ -46,6 +47,8 @@ export class Command {
 
   private build: BuildCommand;
 
+  private deploy: DeployCommand;
+
   private show: ShowCommand;
 
   constructor(argv: string[]) {
@@ -55,6 +58,7 @@ export class Command {
     this.login = new LoginCommand(this.apiHelper, this.messagesHelper);
     this.dev = new DevCommand();
     this.build = new BuildCommand();
+    this.deploy = new DeployCommand();
   }
 
   public async run(argv: string[]): Promise<void> {
@@ -123,10 +127,27 @@ export class Command {
       })
       .command({
         command: 'build',
-        describe: `Build the production environment`,
+        describe: `Build the environment`,
         handler: ({ withToken }) =>
           this.loginWrapper(
             () => this.build.handle(),
+            isHeadless(),
+            withToken as string | undefined,
+          ),
+        builder: {
+          withToken: {
+            demand: false,
+            type: 'string',
+            description: 'Skip authentication and save the provided token to ~/.scaffoldly/',
+          },
+        },
+      })
+      .command({
+        command: 'deploy',
+        describe: `Deploy the environment`,
+        handler: ({ withToken }) =>
+          this.loginWrapper(
+            () => this.deploy.handle(),
             isHeadless(),
             withToken as string | undefined,
           ),

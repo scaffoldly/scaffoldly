@@ -25,6 +25,9 @@ const build = async () => {
       platform: 'node',
       target: ['node18'],
       external: [],
+      loader: {
+        '.node': 'file', // TODO: This is a hack to prevent esbuild from trying to bundle .node files
+      },
     });
   } catch (error) {
     console.error('Build failed:', error);

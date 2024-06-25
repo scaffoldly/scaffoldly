@@ -4,16 +4,11 @@ import { pollForEvents } from './awslambda-bootstrap/events';
 import { endpointSpawn, endpointProxy } from './awslambda-bootstrap/endpoints';
 import { log } from './awslambda-bootstrap/log';
 import { getRuntimeEvent, postRuntimeEventResponse } from './awslambda-bootstrap/runtime';
-import {
-  RuntimeEvent,
-  EndpointExecRequest,
-  EndpointProxyRequest,
-  EndpointResponse,
-} from './awslambda-bootstrap/types';
-import { WebsocketProxy } from './awslambda-bootstrap/websocket';
+import { RuntimeEvent, EndpointProxyRequest, EndpointResponse } from './awslambda-bootstrap/types';
 import packageJson from '../package.json';
+import { decode } from './config';
 
-const { _HANDLER, AWS_LAMBDA_RUNTIME_API, _WEBSOCKET_ROUTE } = process.env;
+const { CONFIG, AWS_LAMBDA_RUNTIME_API } = process.env;
 
 export const run = async (): Promise<void> => {
   if (process.argv.includes('--version')) {
@@ -25,19 +20,19 @@ export const run = async (): Promise<void> => {
     throw new Error('No AWS_LAMBDA_RUNTIME_API specified');
   }
 
-  if (!_HANDLER) {
-    throw new Error('No handler specified');
+  if (!CONFIG) {
+    throw new Error('No config specified');
   }
 
-  log('Bootstraping', { _HANDLER, AWS_LAMBDA_RUNTIME_API, _WEBSOCKET_ROUTE });
+  log('Bootstraping', { CONFIG, AWS_LAMBDA_RUNTIME_API });
 
-  const { childProcess, bin, endpoint } = await endpointSpawn(_HANDLER, process.env);
+  const config = decode(CONFIG);
 
-  const websocketProxy = new WebsocketProxy(endpoint, _WEBSOCKET_ROUTE);
+  const { childProcess, handler } = await endpointSpawn(config, process.env);
 
   try {
-    log('Polling for events', { bin, endpoint });
-    await pollForEvents(AWS_LAMBDA_RUNTIME_API, bin, endpoint, websocketProxy);
+    log('Polling for events', { handler });
+    await pollForEvents(AWS_LAMBDA_RUNTIME_API, handler);
   } catch (e) {
     if (childProcess) {
       log('Killing child process', { pid: childProcess.pid });
@@ -53,7 +48,6 @@ export {
   getRuntimeEvent,
   postRuntimeEventResponse,
   RuntimeEvent,
-  EndpointExecRequest,
   EndpointProxyRequest,
   EndpointResponse,
 };

@@ -6,6 +6,7 @@
     "dev": "scaffoldly dev",
     "build": "scaffoldly build",
     "start": "scaffoldly start",
+    "deploy": "scaffoldly deploy",
     "lint": "next lint"
   },
   "dependencies": {
@@ -33,8 +34,7 @@
   ],
   "scaffoldly": {
     "runtime": "node:20-alpine",
-    "handler": "http://localhost:3000",
-    "route": "/{proxy+}",
+    "handler": "localhost:3000",
     "scripts": {
       "dev": "next dev",
       "build": "next build",
