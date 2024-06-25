@@ -8,7 +8,7 @@
     "url": "https://github.com/scaffoldly/cli/issues"
   },
   "homepage": "https://github.com/scaffoldly/cli#readme",
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "SEE LICENSE IN LICENSE.md",
   "private": false,
   "scripts": {
     "dev": "./build.cjs --watch",
