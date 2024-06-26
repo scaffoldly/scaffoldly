@@ -12,6 +12,7 @@ export class BottomBar {
   headless = false;
   hasOutput = false;
   bottomBar: inquirer.ui.BottomBar;
+  interval?: NodeJS.Timeout;
   constructor(private stream: NodeJS.WriteStream) {
     this.headless = isHeadless();
     this.hasOutput = hasOutput();
@@ -19,6 +20,16 @@ export class BottomBar {
   }
 
   public updateBottomBar(text: string) {
+    if (this.interval) {
+      clearInterval(this.interval);
+      this.interval = undefined;
+    }
+
+    if (!text) {
+      this.bottomBar.updateBottomBar('');
+      return;
+    }
+
     if (!this.headless && !this.hasOutput) {
       if (process.platform === 'win32') {
         // BottomBar on windows causes yarn start commands to emit a exit code of 1 for some reason
@@ -26,7 +37,12 @@ export class BottomBar {
         process.stderr.write(`${text}\n`);
         return;
       }
-      this.bottomBar.updateBottomBar(text);
+
+      let count = 3;
+      this.interval = setInterval(() => {
+        this.bottomBar.updateBottomBar(`${text}${'.'.repeat(count % 4)}`);
+        count++;
+      }, 500);
     }
   }
 }

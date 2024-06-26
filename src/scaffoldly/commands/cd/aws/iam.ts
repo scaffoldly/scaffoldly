@@ -50,7 +50,6 @@ export class IamService {
       })
       .catch(async (e) => {
         if (e.name === 'NoSuchEntityException') {
-          console.log('Creating role', name);
           const response = await this.iamClient.send(
             new CreateRoleCommand({
               RoleName: name, // TODO Uniqueify

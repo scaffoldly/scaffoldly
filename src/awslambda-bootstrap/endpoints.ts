@@ -110,8 +110,6 @@ export const endpointProxy = async ({
   // TDOO: fix event type
   const rawEvent = JSON.parse(event) as Partial<APIGatewayProxyEventV2>;
 
-  log('!!! Received event', { requestId, rawEvent: JSON.stringify(rawEvent) });
-
   const {
     requestContext,
     rawPath,

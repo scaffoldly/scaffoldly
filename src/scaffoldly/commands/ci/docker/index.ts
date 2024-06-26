@@ -27,7 +27,7 @@ type DockerFileSpec = {
   entrypoint?: string;
 };
 
-type DockerEvent = StreamEvent | StatusEvent | AuxEvent;
+type DockerEvent = StreamEvent | StatusEvent | AuxEvent<AuxDigestEvent> | AuxEvent<string>;
 
 type StatusEvent = {
   status?: string;
@@ -39,11 +39,14 @@ type StatusEvent = {
   id?: string;
 };
 
-type AuxEvent = {
+type AuxDigestEvent = {
+  Digest?: string;
+};
+
+type AuxEvent<T extends AuxDigestEvent | string> = {
   progressDetail?: {};
-  aux?: {
-    Digest?: string;
-  };
+  id?: string;
+  aux?: T;
 };
 
 type StreamEvent = {
@@ -56,54 +59,16 @@ const splitPath = (path: string): [string, string] => {
 };
 
 export class DockerService {
-  bottomBar: { [key: string]: string | undefined } = {};
   docker: Docker;
+  eventCount = 0;
 
   constructor(private cwd: string) {
     this.docker = new Docker();
   }
 
-  private log(event: DockerEvent) {
-    console.log('!!! event', event);
-
-    if ('stream' in event) {
-      const { stream } = event;
-      if (stream && typeof stream === 'string') {
-        stream.replace('\\n', '').trim();
-        if (stream) {
-          this.bottomBar.status = stream;
-        }
-      }
-    }
-
-    if ('status' in event && !event.progressDetail) {
-      this.bottomBar.status = event.status;
-    }
-
-    if ('status' in event && event.progressDetail) {
-      const { id, status, progress, progressDetail } = event;
-      if (id && status && progress) {
-        this.bottomBar[id] = `${event.status}: ${event.progress}`;
-      }
-      if (id && status && !progress) {
-        this.bottomBar[id] = status;
-      }
-      if (id && !progress && !progressDetail) {
-        delete this.bottomBar[id];
-      }
-    }
-
-    const lines = Object.entries(this.bottomBar)
-      .filter(([key, value]) => key !== 'status' && !!value)
-      .map(([key, value]) => `[${key}] ${value}`);
-
-    if (this.bottomBar.status) {
-      lines.push(`Status: ${this.bottomBar.status}`);
-    }
-
-    // ui.updateBottomBar(lines.join('\n'));
-
-    console.log('!!! bottom bar lines', lines);
+  private log(type: 'Pulling' | 'Building' | 'Pushing', _event: DockerEvent) {
+    ui.updateBottomBar(`${type} Image`);
+    this.eventCount += 1;
   }
 
   async build(
@@ -143,9 +108,7 @@ export class DockerService {
             mode: 0o755,
           },
           content,
-          () => {
-            console.log('!!! added bin: ', copy.dest);
-          },
+          () => {},
         );
       });
 
@@ -156,19 +119,17 @@ export class DockerService {
 
     const pullStream = await this.docker.pull(runtime);
 
-    const pullOutput = await new Promise<DockerEvent[]>((resolve, reject) => {
+    await new Promise<DockerEvent[]>((resolve, reject) => {
       this.docker.modem.followProgress(
         pullStream,
         (err, res) => {
           err ? reject(err) : resolve(res);
         },
         (event) => {
-          this.log(event);
+          this.log('Pulling', event);
         },
       );
     });
-
-    console.log('!!! pullOutput', pullOutput);
 
     const buildStream = await this.docker.buildImage(stream, {
       dockerfile: dockerfilePath.replace(this.cwd, './'),
@@ -177,23 +138,19 @@ export class DockerService {
       version: '2', // FYI: Not in the type
     } as ImageBuildOptions);
 
-    const buildOutput = await new Promise<DockerEvent[]>((resolve, reject) => {
+    await new Promise<DockerEvent[]>((resolve, reject) => {
       this.docker.modem.followProgress(
         buildStream,
         (err, res) => {
           err ? reject(err) : resolve(res);
         },
         (event) => {
-          this.log(event);
+          this.log('Building', event);
         },
       );
     });
 
     ui.updateBottomBar('');
-
-    console.log('!!! buildOutput', buildOutput);
-
-    // console.log('!!! stuffs', stuffs);
 
     return { imageName };
   }
@@ -258,7 +215,6 @@ export class DockerService {
     }
 
     if (mode === 'build') {
-      console.log('!!!entrypoints', config);
       const { build } = config.scripts || {};
       const { files = [] } = config;
       if (!build) {
@@ -304,8 +260,6 @@ export class DockerService {
   }
 
   render = (spec: DockerFileSpec, mode: Script): string => {
-    console.log('!!! spec', JSON.stringify(spec, null, 2));
-
     const lines = [];
 
     if (spec.base) {
@@ -403,12 +357,15 @@ export class DockerService {
           err ? reject(err) : resolve(res);
         },
         (event) => {
-          this.log(event);
+          this.log('Pushing', event);
         },
       );
     });
 
-    const event = events.find((event) => 'aux' in event) as AuxEvent | undefined;
+    const event = events.find(
+      (event) =>
+        'aux' in event && !!event.aux && typeof event.aux !== 'string' && 'Digest' in event.aux,
+    ) as AuxEvent<AuxDigestEvent>;
 
     const imageDigest = event?.aux?.Digest;
 
