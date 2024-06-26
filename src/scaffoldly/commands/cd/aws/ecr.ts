@@ -29,6 +29,7 @@ export class EcrService {
     const { repositoryArn, repositoryUri } = await this.ecrClient
       .send(new DescribeRepositoriesCommand({ repositoryNames: [name] }))
       .then((response) => {
+        console.log('!!! decribe response', response);
         if (response.repositories && response.repositories.length > 0) {
           return {
             repositoryArn: response.repositories[0].repositoryArn,
@@ -42,6 +43,7 @@ export class EcrService {
           return this.ecrClient
             .send(new CreateRepositoryCommand({ repositoryName: name }))
             .then((response) => {
+              console.log('!!! create response', response);
               return {
                 repositoryArn: response.repository?.repositoryArn,
                 repositoryUri: response.repository?.repositoryUri,

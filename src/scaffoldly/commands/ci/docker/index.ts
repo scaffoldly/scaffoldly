@@ -60,15 +60,14 @@ const splitPath = (path: string): [string, string] => {
 
 export class DockerService {
   docker: Docker;
-  eventCount = 0;
 
   constructor(private cwd: string) {
     this.docker = new Docker();
   }
 
   private log(type: 'Pulling' | 'Building' | 'Pushing', _event: DockerEvent) {
+    console.log('!!! event', _event);
     ui.updateBottomBar(`${type} Image`);
-    this.eventCount += 1;
   }
 
   async build(
@@ -78,7 +77,7 @@ export class DockerService {
   ): Promise<{ imageName: string }> {
     const { spec } = await this.createSpec(config, mode);
 
-    let imageName = repositoryUri ? repositoryUri : `${config.name}:${mode}`;
+    let imageName = repositoryUri ? `${repositoryUri}:${config.version}` : `${config.name}:${mode}`;
 
     // todo add dockerfile to tar instead of writing it to cwd
     const dockerfile = this.render(spec, mode);
