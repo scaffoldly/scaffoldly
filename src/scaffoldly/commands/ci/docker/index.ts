@@ -78,7 +78,7 @@ export class DockerService {
   ): Promise<{ imageName: string }> {
     const { spec } = await this.createSpec(config, mode);
 
-    let imageName = repositoryUri ? `${repositoryUri}:${config.version}` : `${config.name}:${mode}`;
+    let imageName = repositoryUri ? repositoryUri : `${config.name}:${mode}`;
 
     // todo add dockerfile to tar instead of writing it to cwd
     const dockerfile = this.render(spec, mode);
