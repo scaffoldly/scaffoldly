@@ -27,7 +27,23 @@ type DockerFileSpec = {
   entrypoint?: string;
 };
 
-type DockerEvent = StreamEvent | StatusEvent | AuxEvent<AuxDigestEvent> | AuxEvent<string>;
+type DockerEvent =
+  | ErrorEvent
+  | StreamEvent
+  | StatusEvent
+  | AuxEvent<AuxDigestEvent>
+  | AuxEvent<string>;
+
+type ErrorEvent = {
+  error?: string;
+  errorDetail?: {
+    message?: string;
+  };
+};
+
+type StreamEvent = {
+  stream?: string;
+};
 
 type StatusEvent = {
   status?: string;
@@ -49,10 +65,6 @@ type AuxEvent<T extends AuxDigestEvent | string> = {
   aux?: T;
 };
 
-type StreamEvent = {
-  stream?: string;
-};
-
 const splitPath = (path: string): [string, string] => {
   const parts = path.split(sep);
   return [parts.slice(0, -1).join(sep), parts.pop() as string];
@@ -65,9 +77,14 @@ export class DockerService {
     this.docker = new Docker();
   }
 
-  private log(type: 'Pulling' | 'Building' | 'Pushing', _event: DockerEvent) {
-    console.log('!!! event', _event);
-    ui.updateBottomBar(`${type} Image`);
+  private handleDockerEvent(type: 'Pull' | 'Build' | 'Push', event: DockerEvent) {
+    ui.updateBottomBar(`${type}ing Image`);
+    if ('error' in event) {
+      ui.updateBottomBar('');
+      throw new Error(
+        `Image ${type} Failed: ${event.error || event.errorDetail?.message || 'Unknown Error'}`,
+      );
+    }
   }
 
   async build(
@@ -125,7 +142,11 @@ export class DockerService {
           err ? reject(err) : resolve(res);
         },
         (event) => {
-          this.log('Pulling', event);
+          try {
+            this.handleDockerEvent('Pull', event);
+          } catch (e) {
+            reject(e);
+          }
         },
       );
     });
@@ -144,7 +165,11 @@ export class DockerService {
           err ? reject(err) : resolve(res);
         },
         (event) => {
-          this.log('Building', event);
+          try {
+            this.handleDockerEvent('Build', event);
+          } catch (e) {
+            reject(e);
+          }
         },
       );
     });
@@ -356,7 +381,11 @@ export class DockerService {
           err ? reject(err) : resolve(res);
         },
         (event) => {
-          this.log('Pushing', event);
+          try {
+            this.handleDockerEvent('Push', event);
+          } catch (e) {
+            reject(e);
+          }
         },
       );
     });
