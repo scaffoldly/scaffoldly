@@ -21,10 +21,10 @@ type DockerFileSpec = {
   as?: string;
   workdir?: string;
   copy?: Copy[];
-  env?: { [key: string]: string };
+  env?: { [key: string]: string | undefined };
   run?: string[];
   paths?: string[];
-  entrypoint?: string;
+  entrypoint?: string[];
 };
 
 type DockerEvent =
@@ -60,7 +60,7 @@ type AuxDigestEvent = {
 };
 
 type AuxEvent<T extends AuxDigestEvent | string> = {
-  progressDetail?: {};
+  progressDetail?: unknown;
   id?: string;
   aux?: T;
 };
@@ -80,7 +80,6 @@ export class DockerService {
   private handleDockerEvent(type: 'Pull' | 'Build' | 'Push', event: DockerEvent) {
     ui.updateBottomBar(`${type}ing Image`);
     if ('error' in event) {
-      ui.updateBottomBar('');
       throw new Error(
         `Image ${type} Failed: ${event.error || event.errorDetail?.message || 'Unknown Error'}`,
       );
@@ -94,7 +93,9 @@ export class DockerService {
   ): Promise<{ imageName: string }> {
     const { spec } = await this.createSpec(config, mode);
 
-    let imageName = repositoryUri ? `${repositoryUri}:${config.version}` : `${config.name}:${mode}`;
+    const imageName = repositoryUri
+      ? `${repositoryUri}:${config.version}`
+      : `${config.name}:${mode}`;
 
     // todo add dockerfile to tar instead of writing it to cwd
     const dockerfile = this.render(spec, mode);
@@ -114,13 +115,13 @@ export class DockerService {
     const { copy = [] } = spec;
 
     copy
-      .filter((copy) => copy.resolve)
-      .forEach((copy) => {
+      .filter((c) => c.resolve)
+      .forEach((c) => {
         // This will remove the symlink and add the actual file
-        const content = readFileSync(join(this.cwd, copy.src));
+        const content = readFileSync(join(this.cwd, c.src));
         stream.entry(
           {
-            name: copy.dest,
+            name: c.dest,
             mode: 0o755,
           },
           content,
@@ -138,9 +139,7 @@ export class DockerService {
     await new Promise<DockerEvent[]>((resolve, reject) => {
       this.docker.modem.followProgress(
         pullStream,
-        (err, res) => {
-          err ? reject(err) : resolve(res);
-        },
+        (err, res) => (err ? reject(err) : resolve(res)),
         (event) => {
           try {
             this.handleDockerEvent('Pull', event);
@@ -161,9 +160,7 @@ export class DockerService {
     await new Promise<DockerEvent[]>((resolve, reject) => {
       this.docker.modem.followProgress(
         buildStream,
-        (err, res) => {
-          err ? reject(err) : resolve(res);
-        },
+        (err, res) => (err ? reject(err) : resolve(res)),
         (event) => {
           try {
             this.handleDockerEvent('Build', event);
@@ -174,8 +171,6 @@ export class DockerService {
       );
     });
 
-    ui.updateBottomBar('');
-
     return { imageName };
   }
 
@@ -185,8 +180,11 @@ export class DockerService {
   ): Promise<{ spec: DockerFileSpec; stream?: Pack }> {
     const { runtime, bin = {} } = config;
 
-    const bootstrap = join('node_modules', 'scaffoldly', 'dist', 'awslambda-bootstrap.js');
-    const entrypoint = 'bootstrap';
+    const bootstrapScript = join('node_modules', 'scaffoldly', 'dist', 'awslambda-bootstrap.js');
+    const bootstrapBin = 'bootstrap';
+
+    const serveScript = join('node_modules', 'scaffoldly', 'scripts', 'awslambda', 'serve.sh');
+    const serveBin = 'serve';
 
     if (!runtime) {
       throw new Error('Missing runtime');
@@ -210,8 +208,13 @@ export class DockerService {
       workdir,
       copy: [
         {
-          src: bootstrap,
-          dest: entrypoint,
+          src: serveScript,
+          dest: serveBin,
+          resolve: true,
+        },
+        {
+          src: bootstrapScript,
+          dest: bootstrapBin,
           resolve: true,
         },
       ],
@@ -222,7 +225,7 @@ export class DockerService {
         SLY_DEBUG: 'true',
       },
       paths: [join(workdir, 'node_modules', '.bin'), workdir],
-      entrypoint: join(workdir, entrypoint),
+      entrypoint: [join(workdir, serveBin), join(workdir, bootstrapBin)],
     };
 
     const { files = [], devFiles = ['.'] } = config;
@@ -240,7 +243,6 @@ export class DockerService {
 
     if (mode === 'build') {
       const { build } = config.scripts || {};
-      const { files = [] } = config;
       if (!build) {
         throw new Error('Missing build entrypoint');
       }
@@ -263,7 +265,7 @@ export class DockerService {
       );
 
       Object.entries(bin).forEach(([key, value]) => {
-        const [dir, _] = splitPath(value);
+        const [dir] = splitPath(value);
         copy.push({
           from: 'builder',
           src: `${join(workdir, dir)}`,
@@ -278,6 +280,8 @@ export class DockerService {
       });
 
       spec.copy = [...(spec.copy || []), ...copy];
+
+      spec.env = { ...{ SERVE_CMD: config.scripts?.start }, ...spec.env };
     }
 
     return { spec };
@@ -296,7 +300,7 @@ export class DockerService {
     const from = spec.as ? `${spec.from} as ${spec.as}` : spec.from;
 
     lines.push(`FROM ${from}`);
-    if (entrypoint) lines.push(`ENTRYPOINT ${entrypoint}`);
+    if (entrypoint) lines.push(`ENTRYPOINT [${entrypoint.map((ep) => `"${ep}"`).join(',')}]`);
     if (workdir) lines.push(`WORKDIR ${workdir}`);
 
     for (const path of paths) {
@@ -377,9 +381,7 @@ export class DockerService {
     const events = await new Promise<DockerEvent[]>((resolve, reject) => {
       this.docker.modem.followProgress(
         pushStream,
-        (err, res) => {
-          err ? reject(err) : resolve(res);
-        },
+        (err, res) => (err ? reject(err) : resolve(res)),
         (event) => {
           try {
             this.handleDockerEvent('Push', event);
@@ -391,8 +393,7 @@ export class DockerService {
     });
 
     const event = events.find(
-      (event) =>
-        'aux' in event && !!event.aux && typeof event.aux !== 'string' && 'Digest' in event.aux,
+      (evt) => 'aux' in evt && !!evt.aux && typeof evt.aux !== 'string' && 'Digest' in evt.aux,
     ) as AuxEvent<AuxDigestEvent>;
 
     const imageDigest = event?.aux?.Digest;

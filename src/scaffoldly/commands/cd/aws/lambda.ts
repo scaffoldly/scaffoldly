@@ -1,22 +1,28 @@
 import {
+  AddPermissionCommand,
   CreateFunctionCommand,
   CreateFunctionUrlConfigCommand,
   GetFunctionCommand,
   GetFunctionUrlConfigCommand,
   LambdaClient,
   UpdateFunctionCodeCommand,
+  UpdateFunctionConfigurationCommand,
 } from '@aws-sdk/client-lambda';
 import { ScaffoldlyConfig } from '../../../../config';
 import { IamService, PolicyDocument, TrustRelationship } from './iam';
 import { EcrService } from './ecr';
 import { DockerService } from '../../ci/docker';
 import promiseRetry from 'promise-retry';
-import { ui } from 'src/scaffoldly/command';
+import { ui } from '../../../command';
+import _ from 'lodash';
 
 export class LambdaService {
   lambdaClient: LambdaClient;
+
   iamService: IamService;
+
   ecrService: EcrService;
+
   constructor(private dockerService: DockerService, private config: ScaffoldlyConfig) {
     this.iamService = new IamService(this.config);
     this.ecrService = new EcrService(this.config);
@@ -60,7 +66,7 @@ export class LambdaService {
     };
   }
 
-  public async deploy() {
+  public async deploy(): Promise<void> {
     ui.updateBottomBar('Creating ECR repository');
     const { authConfig, repositoryUri } = await this.ecrService.getOrCreateEcrRepository();
 
@@ -83,6 +89,9 @@ export class LambdaService {
       roleArn,
       architecture,
     );
+
+    ui.updateBottomBar('Setting permissions');
+    await this.setPermissions();
 
     ui.updateBottomBar(`Creating function URL`);
     const { url } = await this.getOrCreateFunctionUrl();
@@ -108,21 +117,31 @@ export class LambdaService {
   ): Promise<{ functionArn: string }> {
     const { name } = this.config;
 
-    let { functionArn, revisionId } = await promiseRetry(
+    const desiredConfig = {
+      role: roleArn,
+      timeout: 30,
+      memorySize: 1024,
+    };
+
+    const { functionArn } = await promiseRetry(
       async (retry) => {
-        return await this.lambdaClient
+        return this.lambdaClient
           .send(new GetFunctionCommand({ FunctionName: name }))
           .then((response) => {
             return {
               functionArn: response.Configuration?.FunctionArn,
-              revisionId: response.Configuration?.RevisionId,
               state: response.Configuration?.State,
+              status: response.Configuration?.LastUpdateStatus,
+              actualConfig: {
+                role: response.Configuration?.Role,
+                timeout: response.Configuration?.Timeout,
+                memorySize: response.Configuration?.MemorySize,
+              },
             };
           })
           .catch(async (e) => {
             if (e.name === 'ResourceNotFoundException') {
               const response = await this.lambdaClient.send(
-                // TODO: UpdateFunctionConfigurationCommand
                 new CreateFunctionCommand({
                   Code: {
                     ImageUri: `${repositoryUri}@${imageDigest}`,
@@ -132,25 +151,65 @@ export class LambdaService {
                   Publish: false,
                   PackageType: 'Image',
                   Timeout: 30,
+                  MemorySize: 1024,
                   Architectures: [architecture === 'arm64' ? 'arm64' : 'x86_64'],
                 }),
               );
               return {
                 functionArn: response.FunctionArn,
-                revisionId: response.RevisionId,
                 state: response.State,
+                status: response.LastUpdateStatus,
+                actualConfig: {
+                  role: response.Role,
+                  timeout: response.Timeout,
+                  memorySize: response.MemorySize,
+                },
               };
             }
             throw e;
           })
+          .then(async (response) => {
+            if (_.isEqual(response.actualConfig, desiredConfig)) {
+              return response;
+            }
+
+            const updated = await this.lambdaClient.send(
+              new UpdateFunctionConfigurationCommand({
+                FunctionName: name,
+                Role: roleArn,
+                Timeout: 30,
+                MemorySize: 1024,
+              }),
+            );
+            return {
+              functionArn: updated.FunctionArn,
+              state: updated.State,
+              status: updated.LastUpdateStatus,
+              actualConfig: {
+                role: updated.Role,
+                timeout: updated.Timeout,
+                memorySize: updated.MemorySize,
+              },
+            };
+          })
           .then((response) => {
+            if (!_.isEqual(response.actualConfig, desiredConfig)) {
+              return retry(
+                new Error(
+                  `Timed out waiting for ${name} to update with configuration ${desiredConfig}`,
+                ),
+              );
+            }
+            if (response.status !== 'Successful') {
+              return retry(new Error(`Timed out waiting for ${name} update to be successful.`));
+            }
             if (response.state !== 'Active') {
               return retry(new Error(`Timed out waiting for ${name} to become active.`));
             }
             return response;
           });
       },
-      { factor: 2, randomize: true },
+      { factor: 1 },
     );
 
     if (!functionArn) {
@@ -159,12 +218,11 @@ export class LambdaService {
 
     const imageUri = `${repositoryUri}@${imageDigest}`;
 
-    revisionId = await this.lambdaClient
+    await this.lambdaClient
       .send(
         new UpdateFunctionCodeCommand({
           FunctionName: name,
           ImageUri: imageUri,
-          RevisionId: revisionId,
           Publish: true,
         }),
       )
@@ -172,7 +230,7 @@ export class LambdaService {
 
     await promiseRetry(
       async (retry) => {
-        return await this.lambdaClient
+        return this.lambdaClient
           .send(new GetFunctionCommand({ FunctionName: name }))
           .then((response) => {
             if (response.Configuration?.State !== 'Active') {
@@ -189,10 +247,31 @@ export class LambdaService {
             return response.Code?.ResolvedImageUri;
           });
       },
-      { factor: 2, randomize: true },
+      { factor: 1 },
     );
 
     return { functionArn };
+  }
+
+  private async setPermissions(): Promise<void> {
+    const { name } = this.config;
+    if (!name) {
+      throw new Error('Missing name');
+    }
+
+    await this.lambdaClient
+      .send(
+        new AddPermissionCommand({
+          Action: 'lambda:InvokeFunctionUrl',
+          FunctionName: name,
+          Principal: '*',
+          StatementId: 'InvokeFunctionUrl',
+          FunctionUrlAuthType: 'NONE',
+        }),
+      )
+      .catch(() => {
+        // TODO: decide what to do here...
+      });
   }
 
   private async getOrCreateFunctionUrl(): Promise<{ url: string }> {

@@ -20,6 +20,7 @@ export type IdentityResponse = {
 
 export class ShowCommand {
   scms: Scms;
+
   awsHelper: AwsHelper;
 
   constructor(private apiHelper: ApiHelper, private messagesHelper: MessagesHelper) {

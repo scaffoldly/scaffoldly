@@ -1,10 +1,10 @@
-import axios, { AxiosResponse, AxiosResponseHeaders, RawAxiosResponseHeaders } from 'axios';
+import axios, { AxiosResponseHeaders, RawAxiosResponseHeaders } from 'axios';
 import net from 'net';
 import { EndpointProxyRequest, EndpointResponse, SpawnResult } from './types';
 import { info, log } from './log';
 import { ChildProcess, spawn } from 'child_process';
 import { APIGatewayProxyEventV2 } from 'aws-lambda';
-import { ScaffoldlyConfig } from 'src/config';
+import { ScaffoldlyConfig } from '../config';
 
 function convertHeaders(
   headers: RawAxiosResponseHeaders | AxiosResponseHeaders,
@@ -145,7 +145,7 @@ export const endpointProxy = async ({
 
   log('Proxying request', { url, method, rawHeaders, timeout });
 
-  let response: AxiosResponse<any, any> | undefined = undefined;
+  let response: AxiosResponse<unknown, unknown> | undefined = undefined;
 
   response = await axios.request({
     method: method.toLowerCase(),
@@ -164,6 +164,10 @@ export const endpointProxy = async ({
   }
 
   const { data: rawData, headers: rawResponseHeaders } = response;
+
+  if (!Buffer.isBuffer(rawData)) {
+    throw new Error('Response data is not a buffer');
+  }
 
   log('Proxy request complete', { url, method, rawResponseHeaders });
 

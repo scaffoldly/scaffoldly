@@ -8,8 +8,6 @@ export const pollForEvents = async (runtimeApi: string, handler: string): Promis
 
   const { requestId, event, deadline } = await getRuntimeEvent(runtimeApi);
 
-  let payload: any | undefined = undefined;
-
   log('Proxying request', { handler });
 
   const request: EndpointProxyRequest = {
@@ -19,10 +17,7 @@ export const pollForEvents = async (runtimeApi: string, handler: string): Promis
     deadline,
   };
 
-  payload = (await endpointProxy(request)).payload;
-
-  log('Proxy request complete');
-
+  const payload = (await endpointProxy(request)).payload;
   await postRuntimeEventResponse(runtimeApi, requestId, payload);
 
   log('Response sent to Lambda Runtime API', { runtimeApi, requestId });

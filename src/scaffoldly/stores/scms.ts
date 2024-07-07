@@ -1,4 +1,4 @@
-import { Octokit } from '@octokit/rest';
+import { Octokit } from 'octokit';
 import os from 'os';
 import path from 'path';
 import fs from 'fs';
@@ -103,14 +103,18 @@ export class Scms {
     try {
       const { data: user } = await octokit.users.getAuthenticated();
       return user.login;
-    } catch (e) {}
+    } catch (e) {
+      // No-op
+    }
 
     try {
       const { data: repos } = await octokit.apps.listReposAccessibleToInstallation();
       if (repos.total_count === 1) {
         return repos.repositories[0].full_name;
       }
-    } catch (e) {}
+    } catch (e) {
+      // No-op
+    }
 
     throw new Error(NOT_LOGGED_IN(this.messagesHelper.processName));
   }

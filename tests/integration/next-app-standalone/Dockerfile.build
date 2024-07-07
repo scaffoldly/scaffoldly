@@ -4,7 +4,7 @@ FROM base as builder
 WORKDIR /var/task
 ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV PATH="/var/task:$PATH"
-ENV CONFIG="base58:mcYsjWZqUojMB4aPyGkF4z44LKQn5pcGP2GPLUK3Gmk9dnNd4eA8cuuVbF8dqV1hvWbV2nWSZSkSBA5R2eLGnH3Yt374btsZpokCHWwBd6ZiTnwvKzWN1854VW1PH6gdQXTu1CATr2g8eoL7LULKRhLzkbm13eDDCbWmJouPWff2vQYPC8TUWMFv5MMyCAdbsES74TmSNpgVHnGXy4o1yrbpAtV7TwSh84pyEGYbYTgUWyQCWBW3ceAuhPwFK7DC77crZS4KhYUTH6SX2dq42Ba7QormZgi4g5NwpzNUawpUkvFmkjebtbDcSjnK2Q8ghUqnQSwxSbUumtZDjZuYAmrJLR4SfdLM2ymUEU7QxCejc61GggpKNcEkUZHjQJt5J"
+ENV CONFIG="scaffoldly@1.0.8:mcYsjWZqUojMB4aPyGkF4z44LKQn5pcGP2GPLUK3Gmk9dnNd4eA8cuuVbF8dqV1hvWbV2nWSZSkSBA5R2eLGnH3Yt374btsZpokCHWwBd6ZiTnwvKzWN1854VW1PH6gdQXTu1CATr2g8eoL7LULKRhLzkbm13eDDCbWmJouPWff2vQYPC8TUWMFv5MMyCAdbsES74TmSNpgVHnGXy4o1yrbpAtV7TwSh84pyEGYbYTgUWyQCWBW3ceAuhPwFK7DC77crZS4KhYUTH6SX2dq42Ba7QormZgi4g5NwpzNUawpUkvFmkjebtbDcSjnK2Q8ghUqnQSwxSbUumtZDjZuYAmrJLR4SfdLM2ymUEU7QxCejc61GggpKNcEkUZHjQJt5J"
 ENV NODE_ENV="production"
 ENV HOSTNAME="0.0.0.0"
 ENV SLY_DEBUG="true"
@@ -14,14 +14,16 @@ COPY public /var/task/public
 RUN next build
 
 FROM base as runner
-ENTRYPOINT /var/task/bootstrap
+ENTRYPOINT ["/var/task/serve","/var/task/bootstrap"]
 WORKDIR /var/task
 ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV PATH="/var/task:$PATH"
-ENV CONFIG="base58:mcYsjWZqUojMB4aPyGkF4z44LKQn5pcGP2GPLUK3Gmk9dnNd4eA8cuuVbF8dqV1hvWbV2nWSZSkSBA5R2eLGnH3Yt374btsZpokCHWwBd6ZiTnwvKzWN1854VW1PH6gdQXTu1CATr2g8eoL7LULKRhLzkbm13eDDCbWmJouPWff2vQYPC8TUWMFv5MMyCAdbsES74TmSNpgVHnGXy4o1yrbpAtV7TwSh84pyEGYbYTgUWyQCWBW3ceAuhPwFK7DC77crZS4KhYUTH6SX2dq42Ba7QormZgi4g5NwpzNUawpUkvFmkjebtbDcSjnK2Q8ghUqnQSwxSbUumtZDjZuYAmrJLR4SfdLM2ymUEU7QxCejc61GggpKNcEkUZHjQJt5J"
+ENV SERVE_CMD="node server.js"
+ENV CONFIG="scaffoldly@1.0.8:mcYsjWZqUojMB4aPyGkF4z44LKQn5pcGP2GPLUK3Gmk9dnNd4eA8cuuVbF8dqV1hvWbV2nWSZSkSBA5R2eLGnH3Yt374btsZpokCHWwBd6ZiTnwvKzWN1854VW1PH6gdQXTu1CATr2g8eoL7LULKRhLzkbm13eDDCbWmJouPWff2vQYPC8TUWMFv5MMyCAdbsES74TmSNpgVHnGXy4o1yrbpAtV7TwSh84pyEGYbYTgUWyQCWBW3ceAuhPwFK7DC77crZS4KhYUTH6SX2dq42Ba7QormZgi4g5NwpzNUawpUkvFmkjebtbDcSjnK2Q8ghUqnQSwxSbUumtZDjZuYAmrJLR4SfdLM2ymUEU7QxCejc61GggpKNcEkUZHjQJt5J"
 ENV NODE_ENV="production"
 ENV HOSTNAME="0.0.0.0"
 ENV SLY_DEBUG="true"
+COPY serve* /var/task/serve
 COPY bootstrap* /var/task/bootstrap
 COPY --from=builder /var/task/README.md /var/task/README.md
 COPY --from=builder /var/task/LICENSE* /var/task/LICENSE

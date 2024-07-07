@@ -28,6 +28,7 @@ export type PolicyDocument = {
 
 export class IamService {
   iamClient: IAMClient;
+
   constructor(private config: ScaffoldlyConfig) {
     this.iamClient = new IAMClient({
       region: 'us-east-1', // TODO check why env var is not being used

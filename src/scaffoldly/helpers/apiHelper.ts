@@ -1,6 +1,6 @@
 import { STSClient } from '@aws-sdk/client-sts';
 import packageJson from '../../../package.json';
-import { Octokit } from '@octokit/rest';
+import { Octokit } from 'octokit';
 
 export class ApiHelper {
   private dev = false;

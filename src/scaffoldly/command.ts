@@ -1,5 +1,5 @@
 import { hideBin } from 'yargs/helpers';
-import axios from 'axios';
+import { isAxiosError } from 'axios';
 import { OutputType, ShowCommand, ShowSubcommands } from './commands/show';
 import inquirer, { Answers, QuestionCollection } from 'inquirer';
 import { NoTokenError } from './stores/scms';
@@ -163,7 +163,7 @@ export class Command {
       .wrap(null)
       .version(version)
       .fail((msg, error) => {
-        if (axios.isAxiosError(error)) {
+        if (isAxiosError(error)) {
           if (error.response && error.response.status === 401) {
             ui.updateBottomBar('');
             console.error(NOT_LOGGED_IN(this.messagesHelper.processName));

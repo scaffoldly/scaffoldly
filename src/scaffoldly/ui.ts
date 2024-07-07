@@ -10,16 +10,20 @@ export const hasOutput = (): boolean => {
 
 export class BottomBar {
   headless = false;
+
   hasOutput = false;
+
   bottomBar: inquirer.ui.BottomBar;
+
   interval?: NodeJS.Timeout;
+
   constructor(private stream: NodeJS.WriteStream) {
     this.headless = isHeadless();
     this.hasOutput = hasOutput();
     this.bottomBar = new inquirer.ui.BottomBar({ output: this.stream });
   }
 
-  public updateBottomBar(text: string) {
+  public updateBottomBar(text: string): void {
     if (this.interval) {
       clearInterval(this.interval);
       this.interval = undefined;

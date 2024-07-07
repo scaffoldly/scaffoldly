@@ -28,18 +28,14 @@ export const run = async (): Promise<void> => {
 
   const config = decode(CONFIG);
 
-  const { childProcess, handler } = await endpointSpawn(config, process.env);
+  const { handler } = config;
 
-  try {
-    log('Polling for events', { handler });
-    await pollForEvents(AWS_LAMBDA_RUNTIME_API, handler);
-  } catch (e) {
-    if (childProcess) {
-      log('Killing child process', { pid: childProcess.pid });
-      childProcess.kill();
-    }
-    throw e;
+  if (!handler) {
+    throw new Error('No handler found in config');
   }
+
+  log('Polling for events', { config });
+  await pollForEvents(AWS_LAMBDA_RUNTIME_API, handler);
 };
 
 export {

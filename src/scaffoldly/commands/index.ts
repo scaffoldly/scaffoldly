@@ -13,8 +13,6 @@ export type PackageJson = {
 };
 
 export class Command {
-  constructor() {}
-
   get cwd(): string {
     return process.cwd();
   }

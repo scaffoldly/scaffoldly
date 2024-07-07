@@ -5,7 +5,9 @@ import { AwsService } from './aws';
 
 export class DeployCommand extends CdCommand {
   awsService: AwsService;
+
   dockerService: DockerService;
+
   constructor() {
     super();
     this.dockerService = new DockerService(this.cwd);

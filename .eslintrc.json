@@ -22,6 +22,6 @@
   "ignorePatterns": [
     // Auto-generated files
     "dist/**/*",
-    "api/**/*"
+    "tests/integration/**/*"
   ]
 }
