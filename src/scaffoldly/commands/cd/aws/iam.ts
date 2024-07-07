@@ -1,9 +1,11 @@
+import promiseRetry from 'promise-retry';
 import { ScaffoldlyConfig } from '../../../../config';
 import {
   CreateRoleCommand,
   GetRoleCommand,
   IAMClient,
   PutRolePolicyCommand,
+  UpdateAssumeRolePolicyCommand,
 } from '@aws-sdk/client-iam';
 
 export type TrustRelationship = {
@@ -44,27 +46,40 @@ export class IamService {
       throw new Error('Missing name');
     }
 
-    const roleArn = await this.iamClient
-      .send(new GetRoleCommand({ RoleName: name }))
-      .then((response) => {
-        return response.Role?.Arn;
-      })
-      .catch(async (e) => {
-        if (e.name === 'NoSuchEntityException') {
-          const response = await this.iamClient.send(
-            new CreateRoleCommand({
-              RoleName: name, // TODO Uniqueify
-              AssumeRolePolicyDocument: JSON.stringify(trustRelationship),
+    const roleArn = await promiseRetry(
+      async (retry) => {
+        return this.iamClient
+          .send(
+            new UpdateAssumeRolePolicyCommand({
+              RoleName: name,
+              PolicyDocument: JSON.stringify(trustRelationship),
             }),
-          );
-          return response.Role?.Arn;
-        }
-        throw e;
-      });
-
-    if (!roleArn) {
-      throw new Error('Failed to create role');
-    }
+          )
+          .then(async () => {
+            const response = await this.iamClient.send(new GetRoleCommand({ RoleName: name }));
+            return response.Role?.Arn;
+          })
+          .catch(async (e) => {
+            if (e.name === 'NoSuchEntityException') {
+              const response = await this.iamClient.send(
+                new CreateRoleCommand({
+                  RoleName: name, // TODO Uniqueify
+                  AssumeRolePolicyDocument: JSON.stringify(trustRelationship),
+                }),
+              );
+              return response.Role?.Arn;
+            }
+            throw e;
+          })
+          .then((arn) => {
+            if (!arn) {
+              return retry(new Error(`Timed out waiting for role ${name} to exist`));
+            }
+            return arn;
+          });
+      },
+      { factor: 1, retries: 60 },
+    );
 
     await this.iamClient.send(
       new PutRolePolicyCommand({

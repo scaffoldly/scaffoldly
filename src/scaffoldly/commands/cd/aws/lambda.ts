@@ -141,20 +141,24 @@ export class LambdaService {
           })
           .catch(async (e) => {
             if (e.name === 'ResourceNotFoundException') {
-              const response = await this.lambdaClient.send(
-                new CreateFunctionCommand({
-                  Code: {
-                    ImageUri: `${repositoryUri}@${imageDigest}`,
-                  },
-                  FunctionName: name,
-                  Role: roleArn,
-                  Publish: false,
-                  PackageType: 'Image',
-                  Timeout: 30,
-                  MemorySize: 1024,
-                  Architectures: [architecture === 'arm64' ? 'arm64' : 'x86_64'],
-                }),
-              );
+              const response = await this.lambdaClient
+                .send(
+                  new CreateFunctionCommand({
+                    Code: {
+                      ImageUri: `${repositoryUri}@${imageDigest}`,
+                    },
+                    FunctionName: name,
+                    Role: roleArn,
+                    Publish: false,
+                    PackageType: 'Image',
+                    Timeout: 30,
+                    MemorySize: 1024,
+                    Architectures: [architecture === 'arm64' ? 'arm64' : 'x86_64'],
+                  }),
+                )
+                .catch((createError) => {
+                  return retry(createError);
+                });
               return {
                 functionArn: response.FunctionArn,
                 state: response.State,
