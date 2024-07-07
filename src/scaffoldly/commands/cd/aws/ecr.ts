@@ -12,9 +12,7 @@ export class EcrService {
   ecrClient: ECRClient;
 
   constructor(private config: ScaffoldlyConfig) {
-    this.ecrClient = new ECRClient({
-      region: 'us-east-1', // TODO check why env var is not being used
-    });
+    this.ecrClient = new ECRClient();
   }
 
   public async getOrCreateEcrRepository(): Promise<{

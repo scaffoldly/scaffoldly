@@ -17,9 +17,7 @@ IN DEVELOPMENT MODE
   }
 
   stsApi(): STSClient {
-    return new STSClient({
-      region: 'us-east-1',
-    });
+    return new STSClient();
   }
 
   githubApi(withToken: string): Octokit {

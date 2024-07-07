@@ -26,9 +26,7 @@ export class LambdaService {
   constructor(private dockerService: DockerService, private config: ScaffoldlyConfig) {
     this.iamService = new IamService(this.config);
     this.ecrService = new EcrService(this.config);
-    this.lambdaClient = new LambdaClient({
-      region: 'us-east-1', // TODO check why env var is not being used
-    });
+    this.lambdaClient = new LambdaClient();
   }
 
   get trustRelationship(): TrustRelationship {
