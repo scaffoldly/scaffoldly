@@ -9,6 +9,6 @@ fi
 PID=$!
 
 # Print the PID
-echo "[awslambda-bootstrap] Started '${SERVE_CMD}' with PID $PID"
+echo "[awslambda-entrypoint] Started '${SERVE_CMD}' with PID $PID"
 
 exec "$@"

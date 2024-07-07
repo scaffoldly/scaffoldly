@@ -21,6 +21,7 @@
   },
   "ignorePatterns": [
     // Auto-generated files
+    "**/*.cjs",
     "dist/**/*",
     "tests/integration/**/*"
   ]

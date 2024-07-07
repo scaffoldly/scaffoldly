@@ -180,8 +180,8 @@ export class DockerService {
   ): Promise<{ spec: DockerFileSpec; stream?: Pack }> {
     const { runtime, bin = {} } = config;
 
-    const bootstrapScript = join('node_modules', 'scaffoldly', 'dist', 'awslambda-bootstrap.js');
-    const bootstrapBin = 'bootstrap';
+    const entrypointScript = join('node_modules', 'scaffoldly', 'dist', 'awslambda-entrypoint.js');
+    const entrypointBin = 'entrypoint';
 
     const serveScript = join('node_modules', 'scaffoldly', 'scripts', 'awslambda', 'serve.sh');
     const serveBin = 'serve';
@@ -196,12 +196,8 @@ export class DockerService {
 
     const spec: DockerFileSpec = {
       base: {
-        // base: {
         from: runtime,
         as: 'base',
-        // },
-        // from: 'scaffoldly/awslambda-bootstrap:latest',
-        // as: 'bootstrap',
       },
       from: 'base',
       as: 'runner',
@@ -213,8 +209,8 @@ export class DockerService {
           resolve: true,
         },
         {
-          src: bootstrapScript,
-          dest: bootstrapBin,
+          src: entrypointScript,
+          dest: entrypointBin,
           resolve: true,
         },
       ],
@@ -225,7 +221,7 @@ export class DockerService {
         SLY_DEBUG: 'true',
       },
       paths: [join(workdir, 'node_modules', '.bin'), workdir],
-      entrypoint: [join(workdir, serveBin), join(workdir, bootstrapBin)],
+      entrypoint: [join(workdir, serveBin), join(workdir, entrypointBin)],
     };
 
     const { files = [], devFiles = ['.'] } = config;

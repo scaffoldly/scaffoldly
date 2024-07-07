@@ -14,7 +14,7 @@ COPY public /var/task/public
 RUN next build
 
 FROM base as runner
-ENTRYPOINT ["/var/task/serve","/var/task/bootstrap"]
+ENTRYPOINT ["/var/task/serve","/var/task/entrypoint"]
 WORKDIR /var/task
 ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV PATH="/var/task:$PATH"
@@ -24,7 +24,7 @@ ENV NODE_ENV="production"
 ENV HOSTNAME="0.0.0.0"
 ENV SLY_DEBUG="true"
 COPY serve* /var/task/serve
-COPY bootstrap* /var/task/bootstrap
+COPY entrypoint* /var/task/entrypoint
 COPY --from=builder /var/task/README.md /var/task/README.md
 COPY --from=builder /var/task/LICENSE* /var/task/LICENSE
 COPY --from=builder /var/task/.next/static* /var/task/.next/static

@@ -38,7 +38,7 @@ jobs:
         run: |
           scaffoldly ${{ matrix.command }}
 
-  awslambda-bootstrap:
+  awslambda-entrypoint:
     strategy:
       matrix:
         node: [18, 20, 22]
@@ -56,4 +56,4 @@ jobs:
       - run: npm install -g .
       - name: Test ${{ matrix.command }}
         run: |
-          awslambda-bootstrap ${{ matrix.command }}
+          awslambda-entrypoint ${{ matrix.command }}
