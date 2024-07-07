@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 if [ -z "$SERVE_CMD" ]; then
   echo "Missing SERVE_CMD environment variable"
   exit 1

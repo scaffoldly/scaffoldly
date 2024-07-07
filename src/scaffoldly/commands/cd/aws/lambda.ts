@@ -209,7 +209,7 @@ export class LambdaService {
             return response;
           });
       },
-      { factor: 1 },
+      { factor: 1, retries: 60 },
     );
 
     if (!functionArn) {
@@ -247,7 +247,7 @@ export class LambdaService {
             return response.Code?.ResolvedImageUri;
           });
       },
-      { factor: 1 },
+      { factor: 1, retries: 60 },
     );
 
     return { functionArn };
