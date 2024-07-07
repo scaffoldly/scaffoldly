@@ -93,4 +93,4 @@ SAML_TO_DNT=1 npx scaffoldly
 
 ## License
 
-[Business Source License 1.1](LICENSE)
+[Functional Source License, Version 1.1](LICENSE)
