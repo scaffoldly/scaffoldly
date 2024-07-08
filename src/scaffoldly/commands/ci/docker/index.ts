@@ -181,10 +181,10 @@ export class DockerService {
     const { runtime, bin = {} } = config;
 
     const entrypointScript = join('node_modules', 'scaffoldly', 'dist', 'awslambda-entrypoint.js');
-    const entrypointBin = 'entrypoint';
+    const entrypointBin = `.entrypoint`;
 
     const serveScript = join('node_modules', 'scaffoldly', 'scripts', 'awslambda', 'serve.sh');
-    const serveBin = 'serve';
+    const serveBin = `.serve`;
 
     if (!runtime) {
       throw new Error('Missing runtime');
@@ -200,7 +200,7 @@ export class DockerService {
         as: 'base',
       },
       from: 'base',
-      as: 'runner',
+      as: 'package',
       workdir,
       copy: [
         {
@@ -225,13 +225,13 @@ export class DockerService {
     };
 
     const { files = [], devFiles = ['.'] } = config;
-    const buildFiles: Copy[] = [...devFiles, ...files].map(
-      (file) =>
-        ({
-          src: file,
-          dest: file,
-        } as Copy),
-    );
+    const buildFiles: Copy[] = [...devFiles, ...files].map((file) => {
+      const copy: Copy = {
+        src: file,
+        dest: file,
+      };
+      return copy;
+    });
 
     if (mode === 'develop') {
       spec.copy = buildFiles;
@@ -245,7 +245,7 @@ export class DockerService {
 
       spec.base = {
         ...spec,
-        as: 'builder',
+        as: 'build',
         entrypoint: undefined,
         copy: buildFiles,
         run: [build],
@@ -254,7 +254,7 @@ export class DockerService {
       const copy = files.map(
         (file) =>
           ({
-            from: 'builder',
+            from: 'build',
             src: file,
             dest: join(workdir, file),
           } as Copy),
@@ -263,19 +263,30 @@ export class DockerService {
       Object.entries(bin).forEach(([key, value]) => {
         const [dir] = splitPath(value);
         copy.push({
-          from: 'builder',
+          from: 'build',
           src: `${join(workdir, dir)}`,
           noGlob: true,
           dest: `${workdir}${sep}`,
         });
         copy.push({
-          from: 'builder',
+          from: 'build',
           src: value,
           dest: join(workdir, key),
         });
       });
 
-      spec.copy = [...(spec.copy || []), ...copy];
+      spec.copy = [...(spec.copy || []), ...copy].map((c) => {
+        const srcGlobIx = c.src.indexOf('*');
+        if (srcGlobIx !== -1) {
+          c.src = c.src.slice(0, srcGlobIx);
+        }
+        const destGlobIx = c.dest.indexOf('*');
+        if (destGlobIx !== -1) {
+          c.dest = c.dest.slice(0, destGlobIx);
+        }
+
+        return c;
+      });
 
       spec.env = { ...{ SERVE_CMD: config.scripts?.start }, ...spec.env };
     }

@@ -1,6 +1,6 @@
 FROM node:20-alpine as base
 
-FROM base as builder
+FROM base as build
 WORKDIR /var/task
 ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV PATH="/var/task:$PATH"
@@ -14,7 +14,7 @@ COPY public /var/task/public
 COPY node_modules /var/task/node_modules
 RUN next build
 
-FROM base as runner
+FROM base as package
 ENTRYPOINT ["/var/task/serve","/var/task/entrypoint"]
 WORKDIR /var/task
 ENV PATH="/var/task/node_modules/.bin:$PATH"
@@ -26,8 +26,8 @@ ENV HOSTNAME="0.0.0.0"
 ENV SLY_DEBUG="true"
 COPY serve* /var/task/serve
 COPY entrypoint* /var/task/entrypoint
-COPY --from=builder /var/task/README.md /var/task/README.md
-COPY --from=builder /var/task/LICENSE* /var/task/LICENSE
-COPY --from=builder /var/task/.next* /var/task/.next
-COPY --from=builder /var/task/public /var/task/public
-COPY --from=builder /var/task/node_modules /var/task/node_modules
+COPY --from=build /var/task/README.md /var/task/README.md
+COPY --from=build /var/task/LICENSE* /var/task/LICENSE
+COPY --from=build /var/task/.next* /var/task/.next
+COPY --from=build /var/task/public /var/task/public
+COPY --from=build /var/task/node_modules /var/task/node_modules
