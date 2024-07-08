@@ -26,13 +26,13 @@ export class Command {
   get config(): ScaffoldlyConfig {
     const packageJson = this.packageJson;
 
-    const { name, version, files = [], bin, scaffoldly: config } = packageJson;
+    const { name: packageJsonName, version, files = [], bin, scaffoldly: config } = packageJson;
 
     if (!config) {
       throw new Error('Missing `scaffoldly` in package.json');
     }
 
-    if (!name) {
+    if (!packageJsonName) {
       throw new Error('Missing `name` in package.json');
     }
 
@@ -40,8 +40,12 @@ export class Command {
       throw new Error('Missing `version` in package.json');
     }
 
+    if (config.name) {
+      config.name = `${packageJsonName}-${config.name}`;
+    }
+
     if (!config.name) {
-      config.name = name;
+      config.name = packageJsonName;
     }
 
     if (!config.version) {
