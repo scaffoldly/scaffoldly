@@ -3,7 +3,6 @@ import tar, { Pack } from 'tar-fs';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { Script, ScaffoldlyConfig, encode } from '../../../../config';
 import { join, sep } from 'path';
-import { ui } from '../../../command';
 
 type Path = string;
 
@@ -78,7 +77,7 @@ export class DockerService {
   }
 
   private handleDockerEvent(type: 'Pull' | 'Build' | 'Push', event: DockerEvent) {
-    ui.updateBottomBar(`${type}ing Image`);
+    // ui.updateBottomBar(`${type}ing Image`);
     if ('error' in event) {
       throw new Error(
         `Image ${type} Failed: ${event.error || event.errorDetail?.message || 'Unknown Error'}`,

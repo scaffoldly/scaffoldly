@@ -9,102 +9,60 @@ import {
   UpdateFunctionConfigurationCommand,
 } from '@aws-sdk/client-lambda';
 import { ScaffoldlyConfig } from '../../../../config';
-import { IamService, PolicyDocument, TrustRelationship } from './iam';
-import { EcrService } from './ecr';
-import { DockerService } from '../../ci/docker';
+import { IamConsumer, PolicyDocument, TrustRelationship } from './iam';
 import promiseRetry from 'promise-retry';
 import { ui } from '../../../command';
 import _ from 'lodash';
+import { DeployStatus } from '.';
 
-export class LambdaService {
+export type LambdaDeployStatus = {
+  functionArn?: string;
+  url?: string;
+};
+
+export class LambdaService implements IamConsumer {
   lambdaClient: LambdaClient;
 
-  iamService: IamService;
-
-  ecrService: EcrService;
-
-  constructor(private dockerService: DockerService, private config: ScaffoldlyConfig) {
-    this.iamService = new IamService(this.config);
-    this.ecrService = new EcrService(this.config);
+  constructor(private config: ScaffoldlyConfig) {
     this.lambdaClient = new LambdaClient();
   }
 
-  get trustRelationship(): TrustRelationship {
-    return {
-      Version: '2012-10-17',
-      Statement: [
-        {
-          Effect: 'Allow',
-          Principal: {
-            Service: 'lambda.amazonaws.com',
-          },
-          Action: 'sts:AssumeRole',
-        },
-      ],
-    };
-  }
+  public async deploy(status: DeployStatus): Promise<LambdaDeployStatus> {
+    const lambdaStatus: LambdaDeployStatus = {};
 
-  get policyDocument(): PolicyDocument {
-    return {
-      Version: '2012-10-17',
-      Statement: [
-        {
-          Action: [
-            'logs:CreateLogStream',
-            'logs:CreateLogGroup',
-            'logs:TagResource',
-            'logs:PutLogEvents',
-            'xray:PutTraceSegments',
-            'xray:PutTelemetryRecords',
-          ],
-          Resource: ['*'],
-          Effect: 'Allow',
-        },
-      ],
-    };
-  }
+    if (!status.repositoryUri) {
+      throw new Error('Missing repository URI');
+    }
 
-  public async deploy(): Promise<void> {
-    ui.updateBottomBar('Creating ECR repository');
-    const { authConfig, repositoryUri } = await this.ecrService.getOrCreateEcrRepository();
+    if (!status.imageDigest) {
+      throw new Error('Missing image digest');
+    }
 
-    ui.updateBottomBar('Building image');
-    const { imageName } = await this.dockerService.build(this.config, 'build', repositoryUri);
+    if (!status.roleArn) {
+      throw new Error('Missing role ARN');
+    }
 
-    ui.updateBottomBar('Pushing image');
-    const { imageDigest, architecture } = await this.dockerService.push(imageName, authConfig);
+    if (!status.architecture) {
+      throw new Error('Missing architecture');
+    }
 
-    ui.updateBottomBar(`Creating IAM role`);
-    const { roleArn } = await this.iamService.getOrCreateIamRole(
-      this.trustRelationship,
-      this.policyDocument,
-    );
-
-    ui.updateBottomBar(`Deploying function`);
+    ui.updateBottomBar('Creating Lambda function');
     const { functionArn } = await this.getOrCreateLambdaFunction(
-      repositoryUri,
-      imageDigest,
-      roleArn,
-      architecture,
+      status.repositoryUri,
+      status.imageDigest,
+      status.roleArn,
+      status.architecture,
     );
+    lambdaStatus.functionArn = functionArn;
 
     ui.updateBottomBar('Setting permissions');
     await this.setPermissions();
 
     ui.updateBottomBar(`Creating function URL`);
     const { url } = await this.getOrCreateFunctionUrl();
-    ui.updateBottomBar('');
+    lambdaStatus.url = url;
 
-    const status = {
-      repositoryUri,
-      imageDigest,
-      architecture,
-      roleArn,
-      functionArn,
-      url,
-    };
-    console.table(status);
-    console.log('🚀 Deployment Complete!');
+    return lambdaStatus;
   }
 
   private async getOrCreateLambdaFunction(
@@ -312,5 +270,40 @@ export class LambdaService {
     }
 
     return { url: functionUrl };
+  }
+
+  get trustRelationship(): TrustRelationship {
+    return {
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Effect: 'Allow',
+          Principal: {
+            Service: 'lambda.amazonaws.com',
+          },
+          Action: 'sts:AssumeRole',
+        },
+      ],
+    };
+  }
+
+  get policyDocument(): PolicyDocument {
+    return {
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Action: [
+            'logs:CreateLogStream',
+            'logs:CreateLogGroup',
+            'logs:TagResource',
+            'logs:PutLogEvents',
+            'xray:PutTraceSegments',
+            'xray:PutTelemetryRecords',
+          ],
+          Resource: ['*'],
+          Effect: 'Allow',
+        },
+      ],
+    };
   }
 }

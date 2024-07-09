@@ -1,15 +1,63 @@
-import { DockerService } from '../../ci/docker';
+import { DockerService as DockerCiService } from '../../ci/docker';
 import { ScaffoldlyConfig } from '../../../../config';
-import { LambdaService } from './lambda';
+import { LambdaDeployStatus, LambdaService } from './lambda';
+import { ResourceOptions } from '..';
+import { IamDeployStatus, IamService } from './iam';
+import { EcrDeployStatus, EcrService } from './ecr';
+import { ui } from '../../../command';
+import { DockerDeployStatus, DockerService } from '../docker';
+
+export type DeployStatus = DockerDeployStatus &
+  EcrDeployStatus &
+  IamDeployStatus &
+  LambdaDeployStatus;
 
 export class AwsService {
-  private lambdaService: LambdaService;
+  dockerService: DockerService;
 
-  constructor(private dockerService: DockerService, private config: ScaffoldlyConfig) {
-    this.lambdaService = new LambdaService(this.dockerService, this.config);
+  iamService: IamService;
+
+  ecrService: EcrService;
+
+  lambdaService: LambdaService;
+
+  constructor(private config: ScaffoldlyConfig, dockerService: DockerCiService) {
+    this.dockerService = new DockerService(this.config, dockerService);
+    this.iamService = new IamService(this.config);
+    this.ecrService = new EcrService(this.config);
+    this.lambdaService = new LambdaService(this.config);
   }
 
   async deploy(): Promise<void> {
-    await this.lambdaService.deploy();
+    const options: ResourceOptions = {};
+    let status: DeployStatus = {};
+
+    // Deploy ECR
+    status = {
+      ...status,
+      ...(await this.ecrService.deploy(status, options)),
+    };
+
+    // Deploy Docker Container
+    status = {
+      ...status,
+      ...(await this.dockerService.deploy(status, this.ecrService, options)),
+    };
+
+    // Deploy IAM
+    status = {
+      ...status,
+      ...(await this.iamService.deploy(status, this.lambdaService, options)),
+    };
+
+    // Deploy Lambda
+    status = {
+      ...status,
+      ...(await this.lambdaService.deploy(status)),
+    };
+
+    ui.updateBottomBar('');
+    console.table(status);
+    console.log('🚀 Deployment Complete!');
   }
 }

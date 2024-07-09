@@ -3,77 +3,127 @@ import {
   CreateRepositoryCommand,
   DescribeRepositoriesCommand,
   GetAuthorizationTokenCommand,
+  // eslint-disable-next-line import/named
+  Repository,
+  // eslint-disable-next-line import/named
+  AuthorizationData,
 } from '@aws-sdk/client-ecr';
-import { RepositoryNotFoundException } from './errors';
+import { ui } from '../../../command';
 import { ScaffoldlyConfig } from '../../../../config';
 import { AuthConfig } from 'dockerode';
+import { CloudResource, manageResource, ResourceOptions } from '..';
+import {} from '@smithy/types';
+import { NotFoundException } from './errors';
+import { DeployStatus } from '.';
 
-export class EcrService {
+export type EcrDeployStatus = {
+  repositoryUri?: string;
+};
+
+export type RepositoryResource = CloudResource<
+  ECRClient,
+  Repository,
+  CreateRepositoryCommand,
+  undefined
+>;
+
+export type AuthorizationDataResource = CloudResource<
+  ECRClient,
+  AuthorizationData,
+  CreateRepositoryCommand,
+  undefined
+>;
+
+export interface RegistryAuthConsumer {
+  get authConfig(): Promise<AuthConfig>;
+}
+
+export class EcrService implements RegistryAuthConsumer {
   ecrClient: ECRClient;
 
   constructor(private config: ScaffoldlyConfig) {
     this.ecrClient = new ECRClient();
   }
 
-  public async getOrCreateEcrRepository(): Promise<{
-    repositoryArn: string;
-    repositoryUri: string;
-    authConfig: AuthConfig;
-  }> {
+  public async deploy(_status: DeployStatus, options: ResourceOptions): Promise<EcrDeployStatus> {
+    const ecrStatus: EcrDeployStatus = {};
+
+    ui.updateBottomBar('Creating ECR repository');
+    const { repository } = await this.manageEcrRepository(options);
+
+    const { repositoryUri } = repository;
+    ecrStatus.repositoryUri = repositoryUri;
+
+    return ecrStatus;
+  }
+
+  private repositoryResource(name: string): RepositoryResource {
+    const read = () =>
+      this.ecrClient
+        .send(new DescribeRepositoriesCommand({ repositoryNames: [name] }))
+        .then((response) => {
+          if (!response.repositories || response.repositories.length === 0) {
+            throw new NotFoundException('Repository not found');
+          }
+
+          return response.repositories[0];
+        });
+
+    return {
+      client: this.ecrClient,
+      read,
+      create: async (command) => this.ecrClient.send(command).then(read),
+      update: read,
+      request: {
+        create: new CreateRepositoryCommand({ repositoryName: this.config.name }),
+      },
+    };
+  }
+
+  private async manageEcrRepository(options: ResourceOptions): Promise<{ repository: Repository }> {
     const { name } = this.config;
     if (!name) {
       throw new Error('Missing name');
     }
 
-    const { repositoryArn, repositoryUri } = await this.ecrClient
-      .send(new DescribeRepositoriesCommand({ repositoryNames: [name] }))
-      .then((response) => {
-        if (response.repositories && response.repositories.length > 0) {
-          return {
-            repositoryArn: response.repositories[0].repositoryArn,
-            repositoryUri: response.repositories[0].repositoryUri,
-          };
-        }
-        throw new RepositoryNotFoundException();
-      })
-      .catch(async (e) => {
-        if (e.name === 'RepositoryNotFoundException') {
-          return this.ecrClient
-            .send(new CreateRepositoryCommand({ repositoryName: name }))
-            .then((response) => {
-              return {
-                repositoryArn: response.repository?.repositoryArn,
-                repositoryUri: response.repository?.repositoryUri,
-              };
-            });
-        }
-        throw e;
-      });
+    const repository = await manageResource(this.repositoryResource(name), options);
 
-    if (!repositoryArn || !repositoryUri) {
+    if (!repository) {
       throw new Error('Failed to create repository');
     }
 
-    const authConfig = await this.ecrClient
-      .send(new GetAuthorizationTokenCommand({}))
-      .then((response) => {
-        if (response.authorizationData && response.authorizationData.length > 0) {
-          const { authorizationToken, proxyEndpoint } = response.authorizationData[0];
-          if (!authorizationToken) {
-            throw new Error('Authorization token missing in authorization data');
-          }
-          const [username, password] = Buffer.from(authorizationToken, 'base64')
-            .toString('utf-8')
-            .split(':');
-          return {
-            username,
-            password,
-            serveraddress: proxyEndpoint,
-          } as AuthConfig;
-        }
-        throw new Error('Failed to get ECR authorization token');
-      });
+    return { repository };
+  }
 
-    return { repositoryArn, repositoryUri, authConfig };
+  get authConfig(): Promise<AuthConfig> {
+    return this.ecrClient.send(new GetAuthorizationTokenCommand({})).then((response) => {
+      if (!response.authorizationData || response.authorizationData.length === 0) {
+        throw new NotFoundException('Repository not found');
+      }
+
+      const [authorizationData] = response.authorizationData;
+      if (!authorizationData) {
+        throw new NotFoundException('Unable to get authorization data from ECR');
+      }
+
+      const { authorizationToken, proxyEndpoint } = authorizationData;
+      if (!authorizationToken) {
+        throw new NotFoundException('Unable to get authorization token from ECR');
+      }
+
+      if (!proxyEndpoint) {
+        throw new NotFoundException('Unable to get proxy endpoint from ECR');
+      }
+
+      const [username, password] = Buffer.from(authorizationToken, 'base64')
+        .toString('utf-8')
+        .split(':');
+
+      return {
+        username,
+        password,
+        serveraddress: proxyEndpoint,
+      };
+    });
   }
 }

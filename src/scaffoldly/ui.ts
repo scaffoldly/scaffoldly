@@ -4,6 +4,10 @@ export const isHeadless = (): boolean => {
   return !!process.argv.find((arg) => arg === '--headless');
 };
 
+export const isDebug = (): boolean => {
+  return !!process.argv.find((arg) => arg === '--debug');
+};
+
 export const hasOutput = (): boolean => {
   return !!process.argv.find((arg) => arg === '--output' || arg === '-o');
 };
