@@ -53,7 +53,7 @@ export class AwsService {
     // Deploy Lambda
     status = {
       ...status,
-      ...(await this.lambdaService.deploy(status)),
+      ...(await this.lambdaService.deploy(status, options)),
     };
 
     ui.updateBottomBar('');

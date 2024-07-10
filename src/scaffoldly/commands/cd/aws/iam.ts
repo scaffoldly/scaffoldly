@@ -113,12 +113,20 @@ export class IamService {
 
   private roleResource(name: string, trustRelationship: TrustRelationship): RoleResource {
     const read = async () => {
-      return this.iamClient.send(new GetRoleCommand({ RoleName: name })).then((response) => {
-        if (!response.Role) {
-          throw new NotFoundException('Role not found');
-        }
-        return response.Role;
-      });
+      return this.iamClient
+        .send(new GetRoleCommand({ RoleName: name }))
+        .then((response) => {
+          if (!response.Role) {
+            throw new NotFoundException('Role not found');
+          }
+          return response.Role;
+        })
+        .catch((e) => {
+          if (e.name === 'NotFoundException') {
+            throw new NotFoundException('Role not found', e);
+          }
+          throw e;
+        });
     };
 
     return {

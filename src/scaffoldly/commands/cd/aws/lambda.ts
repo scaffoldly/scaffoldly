@@ -7,6 +7,12 @@ import {
   LambdaClient,
   UpdateFunctionCodeCommand,
   UpdateFunctionConfigurationCommand,
+  // eslint-disable-next-line import/named
+  FunctionConfiguration,
+  // eslint-disable-next-line import/named
+  FunctionCodeLocation,
+  // eslint-disable-next-line import/named
+  AddPermissionRequest,
 } from '@aws-sdk/client-lambda';
 import { ScaffoldlyConfig } from '../../../../config';
 import { IamConsumer, PolicyDocument, TrustRelationship } from './iam';
@@ -14,11 +20,42 @@ import promiseRetry from 'promise-retry';
 import { ui } from '../../../command';
 import _ from 'lodash';
 import { DeployStatus } from '.';
+import { NotFoundException } from './errors';
+import { CloudResource, manageResource, ResourceOptions } from '..';
 
 export type LambdaDeployStatus = {
   functionArn?: string;
+  imageUri?: string;
   url?: string;
 };
+
+export type FunctionResource = CloudResource<
+  LambdaClient,
+  FunctionConfiguration,
+  CreateFunctionCommand,
+  UpdateFunctionConfigurationCommand
+>;
+
+export type CodeResource = CloudResource<
+  LambdaClient,
+  FunctionCodeLocation,
+  UpdateFunctionCodeCommand,
+  undefined
+>;
+
+export type PermissionResource = CloudResource<
+  LambdaClient,
+  AddPermissionRequest,
+  AddPermissionCommand,
+  undefined
+>;
+
+export type UrlResource = CloudResource<
+  LambdaClient,
+  string,
+  CreateFunctionUrlConfigCommand,
+  undefined
+>;
 
 export class LambdaService implements IamConsumer {
   lambdaClient: LambdaClient;
@@ -27,249 +64,310 @@ export class LambdaService implements IamConsumer {
     this.lambdaClient = new LambdaClient();
   }
 
-  public async deploy(status: DeployStatus): Promise<LambdaDeployStatus> {
+  public async deploy(status: DeployStatus, options: ResourceOptions): Promise<LambdaDeployStatus> {
     const lambdaStatus: LambdaDeployStatus = {};
 
-    if (!status.repositoryUri) {
-      throw new Error('Missing repository URI');
-    }
-
-    if (!status.imageDigest) {
-      throw new Error('Missing image digest');
-    }
-
-    if (!status.roleArn) {
-      throw new Error('Missing role ARN');
-    }
-
-    if (!status.architecture) {
-      throw new Error('Missing architecture');
-    }
-
     ui.updateBottomBar('Creating Lambda function');
-    const { functionArn } = await this.getOrCreateLambdaFunction(
-      status.repositoryUri,
-      status.imageDigest,
-      status.roleArn,
-      status.architecture,
+    const configuration = await manageResource(
+      this.functionResource(this.config.name, status),
+      options,
     );
-    lambdaStatus.functionArn = functionArn;
+    lambdaStatus.functionArn = configuration.FunctionArn;
+
+    const code = await manageResource(this.codeResource(this.config.name, status), options);
+    lambdaStatus.imageUri = code.ImageUri;
 
     ui.updateBottomBar('Setting permissions');
-    await this.setPermissions();
+    await manageResource(
+      this.permissionResource(this.config.name, 'InvokeFunctionUrl', {
+        Action: 'lambda:InvokeFunctionUrl',
+        Principal: '*',
+        FunctionUrlAuthType: 'NONE',
+      }),
+      options,
+    );
 
     ui.updateBottomBar(`Creating function URL`);
-    const { url } = await this.getOrCreateFunctionUrl();
+    const url = await manageResource(this.urlResource(this.config.name), options);
     lambdaStatus.url = url;
 
     return lambdaStatus;
   }
 
-  private async getOrCreateLambdaFunction(
-    repositoryUri: string,
-    imageDigest: string,
-    roleArn: string,
-    architecture: string,
-  ): Promise<{ functionArn: string }> {
-    const { name } = this.config;
+  private functionResource(name: string, status: DeployStatus): FunctionResource {
+    type MutableFields = {
+      roleArn: string;
+      timeout: number;
+      memorySize: number;
+    };
 
-    const desiredConfig = {
-      role: roleArn,
+    const { repositoryUri, imageDigest, roleArn, architecture } = status;
+    if (!repositoryUri) {
+      throw new Error('Missing repository URI');
+    }
+    if (!imageDigest) {
+      throw new Error('Missing image digest');
+    }
+    if (!roleArn) {
+      throw new Error('Missing role ARN');
+    }
+    if (!architecture) {
+      throw new Error('Missing architecture');
+    }
+
+    const desired: MutableFields = {
+      roleArn,
       timeout: 30,
       memorySize: 1024,
     };
 
-    const { functionArn } = await promiseRetry(
-      async (retry) => {
-        return this.lambdaClient
-          .send(new GetFunctionCommand({ FunctionName: name }))
-          .then((response) => {
-            return {
-              functionArn: response.Configuration?.FunctionArn,
-              state: response.Configuration?.State,
-              status: response.Configuration?.LastUpdateStatus,
-              actualConfig: {
-                role: response.Configuration?.Role,
-                timeout: response.Configuration?.Timeout,
-                memorySize: response.Configuration?.MemorySize,
-              },
-            };
-          })
-          .catch(async (e) => {
-            if (e.name === 'ResourceNotFoundException') {
-              const response = await this.lambdaClient
-                .send(
-                  new CreateFunctionCommand({
-                    Code: {
-                      ImageUri: `${repositoryUri}@${imageDigest}`,
-                    },
-                    FunctionName: name,
-                    Role: roleArn,
-                    Publish: false,
-                    PackageType: 'Image',
-                    Timeout: 30,
-                    MemorySize: 1024,
-                    Architectures: [architecture === 'arm64' ? 'arm64' : 'x86_64'],
-                  }),
-                )
-                .catch((createError) => {
-                  return retry(createError);
-                });
-              return {
-                functionArn: response.FunctionArn,
-                state: response.State,
-                status: response.LastUpdateStatus,
-                actualConfig: {
-                  role: response.Role,
-                  timeout: response.Timeout,
-                  memorySize: response.MemorySize,
-                },
+    const read = () =>
+      promiseRetry(
+        (retry) =>
+          this.lambdaClient
+            .send(new GetFunctionCommand({ FunctionName: name }))
+            .then((response) => {
+              if (!response.Configuration) {
+                throw new NotFoundException('Function configuration not found');
+              }
+
+              const actual: Partial<MutableFields> = {
+                roleArn: response.Configuration.Role,
+                timeout: response.Configuration.Timeout,
+                memorySize: response.Configuration.MemorySize,
               };
+
+              if (!_.isEqual(actual, desired)) {
+                return retry(
+                  new Error(`Timed out waiting for ${name} to update with configuration`),
+                );
+              }
+              if (response.Configuration.LastUpdateStatus !== 'Successful') {
+                return retry(new Error(`Timed out waiting for ${name} update to be successful.`));
+              }
+              if (response.Configuration.State !== 'Active') {
+                return retry(new Error(`Timed out waiting for ${name} to become active.`));
+              }
+
+              return response.Configuration;
+            })
+            .catch((e) => {
+              if (e.name === 'ResourceNotFoundException') {
+                throw new NotFoundException('Function not found', e);
+              }
+              throw e;
+            }),
+        { factor: 1, retries: 60 },
+      );
+
+    return {
+      client: this.lambdaClient,
+      read,
+      create: async (command) =>
+        promiseRetry((retry) => this.lambdaClient.send(command).catch(retry).then(read), {
+          factor: 1,
+          retries: 60,
+        }),
+      update: async (command) =>
+        promiseRetry((retry) => this.lambdaClient.send(command).catch(retry).then(read), {
+          factor: 1,
+          retries: 60,
+        }),
+      request: {
+        create: new CreateFunctionCommand({
+          Code: {
+            ImageUri: `${repositoryUri}@${imageDigest}`,
+          },
+          FunctionName: name,
+          Role: desired.roleArn,
+          Publish: false,
+          PackageType: 'Image',
+          Timeout: desired.timeout,
+          MemorySize: desired.memorySize,
+          Architectures: [architecture === 'arm64' ? 'arm64' : 'x86_64'],
+        }),
+        update: new UpdateFunctionConfigurationCommand({
+          FunctionName: name,
+          Role: desired.roleArn,
+          Timeout: desired.timeout,
+          MemorySize: desired.memorySize,
+        }),
+      },
+    };
+  }
+
+  private codeResource(name: string, status: DeployStatus): CodeResource {
+    type MutableFields = {
+      imageUri: string;
+    };
+
+    const { repositoryUri, imageDigest } = status;
+    if (!repositoryUri) {
+      throw new Error('Missing repository URI');
+    }
+    if (!imageDigest) {
+      throw new Error('Missing image digest');
+    }
+
+    const desired: MutableFields = {
+      imageUri: `${repositoryUri}@${imageDigest}`,
+    };
+
+    const read = () =>
+      promiseRetry(
+        (retry) =>
+          this.lambdaClient
+            .send(new GetFunctionCommand({ FunctionName: name }))
+            .then((response) => {
+              if (!response.Code) {
+                throw new NotFoundException('Function code not found');
+              }
+
+              if (!response.Configuration) {
+                throw new NotFoundException('Function configuration not found');
+              }
+
+              const actual: Partial<MutableFields> = {
+                imageUri: response.Code.ImageUri,
+              };
+
+              if (!_.isEqual(actual, desired)) {
+                return retry(
+                  new Error(`Timed out waiting for ${name} to update code configuration`),
+                );
+              }
+
+              // TODO make this a helper function
+              if (response.Configuration.LastUpdateStatus !== 'Successful') {
+                return retry(new Error(`Timed out waiting for ${name} update to be successful.`));
+              }
+              if (response.Configuration.State !== 'Active') {
+                return retry(new Error(`Timed out waiting for ${name} to become active.`));
+              }
+
+              return response.Code;
+            })
+            .catch((e) => {
+              if (e.name === 'ResourceNotFoundException') {
+                throw new NotFoundException('Function not found', e);
+              }
+              throw e;
+            }),
+        { factor: 1, retries: 60 },
+      );
+
+    return {
+      client: this.lambdaClient,
+      read,
+      create: async (command: UpdateFunctionCodeCommand) => {
+        if (!command) {
+          return read();
+        }
+        return promiseRetry((retry) => this.lambdaClient.send(command).catch(retry).then(read), {
+          factor: 1,
+          retries: 60,
+        });
+      },
+      update: read,
+      request: {
+        create: new UpdateFunctionCodeCommand({
+          FunctionName: name,
+          ImageUri: desired.imageUri,
+          Publish: true,
+        }),
+      },
+    };
+  }
+
+  private permissionResource(
+    functionName: string,
+    permissionName: string,
+    permission: Partial<AddPermissionRequest>,
+  ): PermissionResource {
+    if (!permission.Principal) {
+      throw new Error('Missing principal in permission');
+    }
+    if (!permission.Action) {
+      throw new Error('Missing action in permission');
+    }
+    const permissionRequest: AddPermissionRequest = {
+      ...permission,
+      FunctionName: functionName,
+      StatementId: permissionName,
+      Principal: permission.Principal,
+      Action: permission.Action,
+    };
+
+    const read = () => {
+      // TODO: Find API to fetch permissions
+      return Promise.resolve(permissionRequest);
+    };
+
+    return {
+      client: this.lambdaClient,
+      read,
+      create: async (command: AddPermissionCommand) => {
+        return this.lambdaClient
+          .send(command)
+          .catch((e) => {
+            if (e.name === 'ResourceConflictException') {
+              return read();
             }
             throw e;
           })
-          .then(async (response) => {
-            if (_.isEqual(response.actualConfig, desiredConfig)) {
-              return response;
-            }
-
-            const updated = await this.lambdaClient.send(
-              new UpdateFunctionConfigurationCommand({
-                FunctionName: name,
-                Role: roleArn,
-                Timeout: 30,
-                MemorySize: 1024,
-              }),
-            );
-            return {
-              functionArn: updated.FunctionArn,
-              state: updated.State,
-              status: updated.LastUpdateStatus,
-              actualConfig: {
-                role: updated.Role,
-                timeout: updated.Timeout,
-                memorySize: updated.MemorySize,
-              },
-            };
-          })
-          .then((response) => {
-            if (!_.isEqual(response.actualConfig, desiredConfig)) {
-              return retry(
-                new Error(
-                  `Timed out waiting for ${name} to update with configuration ${desiredConfig}`,
-                ),
-              );
-            }
-            if (response.status !== 'Successful') {
-              return retry(new Error(`Timed out waiting for ${name} update to be successful.`));
-            }
-            if (response.state !== 'Active') {
-              return retry(new Error(`Timed out waiting for ${name} to become active.`));
-            }
-            return response;
-          });
+          .then(read);
       },
-      { factor: 1, retries: 60 },
-    );
-
-    if (!functionArn) {
-      throw new Error('Failed to create function');
-    }
-
-    const imageUri = `${repositoryUri}@${imageDigest}`;
-
-    await this.lambdaClient
-      .send(
-        new UpdateFunctionCodeCommand({
-          FunctionName: name,
-          ImageUri: imageUri,
-          Publish: true,
+      update: read,
+      request: {
+        create: new AddPermissionCommand({
+          ...permissionRequest,
+          FunctionName: functionName,
+          StatementId: permissionName,
         }),
-      )
-      .then((response) => response.RevisionId);
+      },
+    };
+  }
 
-    await promiseRetry(
-      async (retry) => {
+  private urlResource(name: string): UrlResource {
+    const read = () =>
+      this.lambdaClient
+        .send(new GetFunctionUrlConfigCommand({ FunctionName: name }))
+        .then((response) => {
+          if (!response.FunctionUrl) {
+            throw new NotFoundException('Function URL not found');
+          }
+          return response.FunctionUrl;
+        })
+        .catch((e) => {
+          if (e.name === 'ResourceNotFoundException') {
+            throw new NotFoundException('Function URL not found', e);
+          }
+          throw e;
+        });
+
+    return {
+      client: this.lambdaClient,
+      read,
+      create: async (command: CreateFunctionUrlConfigCommand) => {
         return this.lambdaClient
-          .send(new GetFunctionCommand({ FunctionName: name }))
-          .then((response) => {
-            if (response.Configuration?.State !== 'Active') {
-              return retry(new Error(`Timed out waiting for ${name} to become active.`));
+          .send(command)
+          .catch((e) => {
+            if (e.name === 'ResourceConflictException') {
+              return read();
             }
-            if (response.Configuration.LastUpdateStatus !== 'Successful') {
-              return retry(new Error(`Timed out waiting for ${name} to update successfully.`));
-            }
-            if (response.Code?.ImageUri !== imageUri) {
-              return retry(
-                new Error(`Timed out waiting for ${name} to update with correct image URI.`),
-              );
-            }
-            return response.Code?.ResolvedImageUri;
-          });
+            throw e;
+          })
+          .then(read);
       },
-      { factor: 1, retries: 60 },
-    );
-
-    return { functionArn };
-  }
-
-  private async setPermissions(): Promise<void> {
-    const { name } = this.config;
-    if (!name) {
-      throw new Error('Missing name');
-    }
-
-    await this.lambdaClient
-      .send(
-        new AddPermissionCommand({
-          Action: 'lambda:InvokeFunctionUrl',
+      update: read,
+      request: {
+        create: new CreateFunctionUrlConfigCommand({
+          AuthType: 'NONE', // TODO: Make configurable
           FunctionName: name,
-          Principal: '*',
-          StatementId: 'InvokeFunctionUrl',
-          FunctionUrlAuthType: 'NONE',
+          InvokeMode: 'BUFFERED', // TODO: Make configurable
         }),
-      )
-      .catch(() => {
-        // TODO: decide what to do here...
-      });
-  }
-
-  private async getOrCreateFunctionUrl(): Promise<{ url: string }> {
-    const { name } = this.config;
-    if (!name) {
-      throw new Error('Missing name');
-    }
-    const functionUrl = await this.lambdaClient
-      .send(
-        new GetFunctionUrlConfigCommand({
-          FunctionName: this.config.name,
-        }),
-      )
-      .then((response) => {
-        return response.FunctionUrl;
-      })
-      .catch(async (e) => {
-        if (e.name === 'ResourceNotFoundException') {
-          return this.lambdaClient
-            .send(
-              new CreateFunctionUrlConfigCommand({
-                AuthType: 'NONE',
-                FunctionName: this.config.name,
-                InvokeMode: 'BUFFERED',
-              }),
-            )
-            .then((response) => {
-              return response.FunctionUrl;
-            });
-        }
-        throw e;
-      });
-
-    if (!functionUrl) {
-      throw new Error('Failed to create function url');
-    }
-
-    return { url: functionUrl };
+      },
+    };
   }
 
   get trustRelationship(): TrustRelationship {
