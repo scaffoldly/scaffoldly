@@ -160,6 +160,12 @@ export class LambdaService implements IamConsumer {
         { factor: 1, retries: 60 },
       );
 
+    // TODO: pull from CMD on docker image
+    const { start: SLY_SERVE } = this.config.scripts;
+    if (!SLY_SERVE) {
+      throw new Error('Missing start script in scaffoldly config');
+    }
+
     return {
       client: this.lambdaClient,
       read,
@@ -178,6 +184,10 @@ export class LambdaService implements IamConsumer {
           Code: {
             ImageUri: `${repositoryUri}@${imageDigest}`,
           },
+          ImageConfig: {
+            EntryPoint: status.entrypoint,
+            Command: [],
+          },
           FunctionName: name,
           Role: desired.roleArn,
           Publish: false,
@@ -185,12 +195,28 @@ export class LambdaService implements IamConsumer {
           Timeout: desired.timeout,
           MemorySize: desired.memorySize,
           Architectures: [architecture === 'arm64' ? 'arm64' : 'x86_64'],
+          Environment: {
+            Variables: {
+              SLY_CONFIG: this.config.encode(),
+              SLY_SERVE,
+            },
+          },
         }),
         update: new UpdateFunctionConfigurationCommand({
           FunctionName: name,
           Role: desired.roleArn,
           Timeout: desired.timeout,
           MemorySize: desired.memorySize,
+          Environment: {
+            Variables: {
+              SLY_CONFIG: this.config.encode(),
+              SLY_SERVE,
+            },
+          },
+          ImageConfig: {
+            EntryPoint: status.entrypoint,
+            Command: [],
+          },
         }),
       },
     };

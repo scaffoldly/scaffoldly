@@ -4,28 +4,21 @@ FROM base as build
 WORKDIR /var/task
 ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV PATH="/var/task:$PATH"
-ENV CONFIG="scaffoldly@1.0.12-0:5LkXRYAYERdGK9GPoFQEmkcPjjJpgzg4r11hAh9aQbDoQ1sxizxw6RbLgAfufr4oQ9qs3d6Jejdh9tptXcRMWw8x71Fk6AhW6uvCdSPn9KDqcLgsAgTXEwJ5UGb26eaGPhahGFMieuWjVLqToWsyJ9ij2nXeZwnfhHPLtwXTFpbnKVtkMgLhqzAs6rD43hYnSud4GV4vWyKhknhfM1RczYx5e9SgracXKCqdTSgZKgYxC8PECHjJ3EyALnDRxW49c6Axz8pgXAVkxWiEhE8cVXNzMt6SG5qVESGQMQeL2YGWsiZmW"
 ENV NODE_ENV="production"
 ENV HOSTNAME="0.0.0.0"
 ENV SLY_DEBUG="true"
 COPY . /var/task/
-COPY README.md /var/task/README.md
-COPY node_modules /var/task/node_modules
 RUN next build
 
 FROM base as package
-ENTRYPOINT ["/var/task/.serve","/var/task/.entrypoint"]
 WORKDIR /var/task
 ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV PATH="/var/task:$PATH"
-ENV SERVE_CMD="serve out"
-ENV CONFIG="scaffoldly@1.0.12-0:5LkXRYAYERdGK9GPoFQEmkcPjjJpgzg4r11hAh9aQbDoQ1sxizxw6RbLgAfufr4oQ9qs3d6Jejdh9tptXcRMWw8x71Fk6AhW6uvCdSPn9KDqcLgsAgTXEwJ5UGb26eaGPhahGFMieuWjVLqToWsyJ9ij2nXeZwnfhHPLtwXTFpbnKVtkMgLhqzAs6rD43hYnSud4GV4vWyKhknhfM1RczYx5e9SgracXKCqdTSgZKgYxC8PECHjJ3EyALnDRxW49c6Axz8pgXAVkxWiEhE8cVXNzMt6SG5qVESGQMQeL2YGWsiZmW"
 ENV NODE_ENV="production"
 ENV HOSTNAME="0.0.0.0"
 ENV SLY_DEBUG="true"
 COPY .serve* /var/task/.serve
 COPY .entrypoint* /var/task/.entrypoint
-COPY --from=build /var/task/README.md /var/task/README.md
-COPY --from=build /var/task/LICENSE* /var/task/LICENSE
 COPY --from=build /var/task/out/ /var/task/out/
 COPY --from=build /var/task/node_modules /var/task/node_modules
+CMD ["serve", "out"]

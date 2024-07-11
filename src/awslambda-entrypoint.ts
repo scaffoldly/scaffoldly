@@ -8,7 +8,7 @@ import { RuntimeEvent, EndpointProxyRequest, EndpointResponse } from './awslambd
 import packageJson from '../package.json';
 import { decode } from './config';
 
-const { CONFIG, AWS_LAMBDA_RUNTIME_API } = process.env;
+const { SLY_CONFIG, AWS_LAMBDA_RUNTIME_API } = process.env;
 
 export const run = async (): Promise<void> => {
   if (process.argv.includes('--version')) {
@@ -20,13 +20,13 @@ export const run = async (): Promise<void> => {
     throw new Error('No AWS_LAMBDA_RUNTIME_API specified');
   }
 
-  if (!CONFIG) {
-    throw new Error('No config specified');
+  if (!SLY_CONFIG) {
+    throw new Error('No SLY_CONFIG specified');
   }
 
-  log('Bootstraping', { CONFIG, AWS_LAMBDA_RUNTIME_API });
+  log('Bootstraping', { SLY_CONFIG, AWS_LAMBDA_RUNTIME_API });
 
-  const config = decode(CONFIG);
+  const config = decode(SLY_CONFIG);
 
   const { handler } = config;
 

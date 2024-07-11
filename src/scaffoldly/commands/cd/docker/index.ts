@@ -9,6 +9,7 @@ export type DockerDeployStatus = {
   imageName?: string;
   imageDigest?: string;
   architecture?: string;
+  entrypoint?: string[];
 };
 
 export class DockerService {
@@ -26,12 +27,13 @@ export class DockerService {
     const dockerStatus: DockerDeployStatus = {};
 
     ui.updateBottomBar(`Building ${status.repositoryUri}`);
-    const { imageName } = await this.dockerService.build(
+    const { imageName, entrypoint } = await this.dockerService.build(
       this.config,
       'build',
       status.repositoryUri,
     );
     dockerStatus.imageName = imageName;
+    dockerStatus.entrypoint = entrypoint;
 
     const authConfig = await consumer.authConfig;
 

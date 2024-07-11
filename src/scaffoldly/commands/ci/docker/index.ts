@@ -1,7 +1,7 @@
 import Docker, { AuthConfig, ImageBuildOptions } from 'dockerode';
 import tar, { Pack } from 'tar-fs';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
-import { Script, ScaffoldlyConfig, encode } from '../../../../config';
+import { Script, ScaffoldlyConfig } from '../../../../config';
 import { join, sep } from 'path';
 
 type Path = string;
@@ -24,6 +24,7 @@ type DockerFileSpec = {
   run?: string[];
   paths?: string[];
   entrypoint?: string[];
+  cmd?: string;
 };
 
 type DockerEvent =
@@ -88,8 +89,8 @@ export class DockerService {
     config: ScaffoldlyConfig,
     mode: Script,
     repositoryUri?: string,
-  ): Promise<{ imageName: string }> {
-    const { spec } = await this.createSpec(config, mode);
+  ): Promise<{ imageName: string; entrypoint: string[] }> {
+    const { spec, entrypoint } = await this.createSpec(config, mode);
 
     const imageName = repositoryUri
       ? `${repositoryUri}:${config.version}`
@@ -169,13 +170,13 @@ export class DockerService {
       );
     });
 
-    return { imageName };
+    return { imageName, entrypoint };
   }
 
   async createSpec(
     config: ScaffoldlyConfig,
     mode: Script,
-  ): Promise<{ spec: DockerFileSpec; stream?: Pack }> {
+  ): Promise<{ spec: DockerFileSpec; entrypoint: string[]; stream?: Pack }> {
     const { runtime, bin = {} } = config;
 
     const entrypointScript = join('node_modules', 'scaffoldly', 'dist', 'awslambda-entrypoint.js');
@@ -213,17 +214,23 @@ export class DockerService {
         },
       ],
       env: {
-        CONFIG: encode(config),
         NODE_ENV: environment, // TODO Env File Interpolation
         HOSTNAME: '0.0.0.0',
         SLY_DEBUG: 'true',
       },
       paths: [join(workdir, 'node_modules', '.bin'), workdir],
-      entrypoint: [join(workdir, serveBin), join(workdir, entrypointBin)],
     };
 
-    const { files = [], devFiles = ['.'] } = config;
-    const buildFiles: Copy[] = [...devFiles, ...files].map((file) => {
+    let { devFiles, files: additionalBuildFiles } = config;
+    const { files } = config;
+
+    if (devFiles.includes('.')) {
+      // Already including the full source directiory, no need to copy more
+      devFiles = ['.'];
+      additionalBuildFiles = [];
+    }
+
+    const buildFiles: Copy[] = [...devFiles, ...additionalBuildFiles].map((file) => {
       const copy: Copy = {
         src: file,
         dest: file,
@@ -236,7 +243,7 @@ export class DockerService {
     }
 
     if (mode === 'build') {
-      const { build } = config.scripts || {};
+      const { build } = config.scripts;
       if (!build) {
         throw new Error('Missing build entrypoint');
       }
@@ -286,10 +293,10 @@ export class DockerService {
         return c;
       });
 
-      spec.env = { ...{ SERVE_CMD: config.scripts?.start }, ...spec.env };
+      spec.cmd = config.scripts?.start;
     }
 
-    return { spec };
+    return { spec, entrypoint: [join(workdir, serveBin), join(workdir, entrypointBin)] };
   }
 
   render = (spec: DockerFileSpec, mode: Script): string => {
@@ -300,7 +307,7 @@ export class DockerService {
       lines.push('');
     }
 
-    const { copy, workdir, env = {}, entrypoint, run, paths = [] } = spec;
+    const { copy, workdir, env = {}, entrypoint, run, paths = [], cmd } = spec;
 
     const from = spec.as ? `${spec.from} as ${spec.as}` : spec.from;
 
@@ -362,6 +369,15 @@ export class DockerService {
 
     if (run) {
       lines.push(`RUN ${run.join(' && ')}`);
+    }
+
+    if (cmd) {
+      lines.push(
+        `CMD [${cmd
+          .split(' ')
+          .map((c) => `"${c}"`)
+          .join(', ')}]`,
+      );
     }
 
     const dockerfile = lines.join('\n');

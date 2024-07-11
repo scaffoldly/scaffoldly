@@ -1,18 +1,15 @@
 import { join } from 'path';
-import { ScaffoldlyConfig } from '../../config';
+import { PackageJson, ScaffoldlyConfig } from '../../config';
 import { readFileSync } from 'fs';
 
-export type PackageJsonBin = { [key: string]: string };
-
-export type PackageJson = {
-  name?: string;
-  version?: string;
-  bin?: PackageJsonBin;
-  files?: string[];
-  scaffoldly?: ScaffoldlyConfig;
-};
-
 export class Command {
+  private _config: ScaffoldlyConfig;
+
+  constructor() {
+    const packageJson = this.packageJson;
+    this._config = new ScaffoldlyConfig({ packageJson });
+  }
+
   get cwd(): string {
     return process.cwd();
   }
@@ -24,53 +21,6 @@ export class Command {
   }
 
   get config(): ScaffoldlyConfig {
-    const packageJson = this.packageJson;
-
-    const { name: packageJsonName, version, files = [], bin, scaffoldly: config } = packageJson;
-
-    if (!config) {
-      throw new Error('Missing `scaffoldly` in package.json');
-    }
-
-    if (!packageJsonName) {
-      throw new Error('Missing `name` in package.json');
-    }
-
-    if (!version) {
-      throw new Error('Missing `version` in package.json');
-    }
-
-    if (config.name) {
-      config.name = `${packageJsonName}-${config.name}`;
-    }
-
-    if (!config.name) {
-      config.name = packageJsonName;
-    }
-
-    if (!config.version) {
-      config.version = version;
-    }
-
-    config.bin = bin;
-    config.files = this.prepareFiles(files, config);
-
-    return config;
-  }
-
-  protected prepareFiles(files: string[], config: ScaffoldlyConfig): string[] {
-    return [
-      ...new Set(
-        [...['README.md', 'LICENSE'], ...files, ...(config.files || [])].reduce((acc, file) => {
-          if (file.startsWith('!')) {
-            return acc;
-          }
-
-          acc.push(file);
-
-          return acc;
-        }, [] as string[]),
-      ),
-    ];
+    return this._config;
   }
 }
