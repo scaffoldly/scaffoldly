@@ -15,7 +15,7 @@ type Copy = {
 };
 
 type DockerFileSpec = {
-  base?: DockerFileSpec;
+  bases?: DockerFileSpec[];
   from: string;
   as?: string;
   workdir?: string;
@@ -180,6 +180,12 @@ export class DockerService {
   ): Promise<{ spec: DockerFileSpec; entrypoint: string[]; stream?: Pack }> {
     const { runtime, bin = {}, services } = config;
 
+    const serviceSpecs = await Promise.all(
+      services.map((s, sIx) => this.createSpec(s, mode, ix + sIx + 1)),
+    );
+
+    console.log('!! serviceSpecs', serviceSpecs);
+
     const entrypointScript = join('node_modules', 'scaffoldly', 'dist', 'awslambda-entrypoint.js');
     const entrypointBin = `.entrypoint`;
 
@@ -195,10 +201,13 @@ export class DockerService {
     const workdir = '/var/task';
 
     const spec: DockerFileSpec = {
-      base: {
-        from: runtime,
-        as: `base-${ix}`,
-      },
+      bases: [
+        {
+          from: runtime,
+          as: `base-${ix}`,
+        },
+        ...serviceSpecs.map((s) => s.spec.bases || []).flat(),
+      ],
       from: `base-${ix}`,
       as: `package-${ix}`,
       workdir,
@@ -239,23 +248,20 @@ export class DockerService {
       return copy;
     });
 
-    if (mode === 'develop') {
+    if (mode === 'develop' && config.scripts.develop) {
       spec.copy = buildFiles;
     }
 
-    if (mode === 'build') {
-      const { build } = config.scripts;
-      if (!build) {
-        throw new Error('Missing build entrypoint');
-      }
-
-      spec.base = {
-        ...spec,
-        as: `build-${ix}`,
-        entrypoint: undefined,
-        copy: buildFiles,
-        run: [build],
-      };
+    if (mode === 'build' && config.scripts.build) {
+      spec.bases = [
+        {
+          ...spec,
+          as: `build-${ix}`,
+          entrypoint: undefined,
+          copy: buildFiles,
+          run: [config.scripts.build],
+        },
+      ];
 
       const copy = files.map(
         (file) =>
@@ -303,9 +309,11 @@ export class DockerService {
   render = (spec: DockerFileSpec, mode: Script): string => {
     const lines = [];
 
-    if (spec.base) {
-      lines.push(this.render(spec.base, mode));
-      lines.push('');
+    if (spec.bases) {
+      for (const base of spec.bases) {
+        lines.push(this.render(base, mode));
+        lines.push('');
+      }
     }
 
     const { copy, workdir, env = {}, entrypoint, run, paths = [], cmd } = spec;

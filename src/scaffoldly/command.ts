@@ -11,7 +11,7 @@ import { ApiHelper } from './helpers/apiHelper';
 import { NOT_LOGGED_IN } from './messages';
 import { ErrorWithReturnCode, RETURN_CODE_NOT_LOGGED_IN } from './errors';
 import { outputStream } from '../scaffoldly';
-import { BottomBar, isDebug, isHeadless } from './ui';
+import { BottomBar, isHeadless } from './ui';
 import Prompt from 'inquirer/lib/ui/prompt';
 import { DevCommand } from './commands/ci/dev';
 import { BuildCommand } from './commands/ci/build';
@@ -180,9 +180,6 @@ export class Command {
           }
         } else {
           ui.updateBottomBar('');
-          if (isDebug()) {
-            console.error(`Error: ${msg}`, error);
-          }
           throw error;
         }
       });

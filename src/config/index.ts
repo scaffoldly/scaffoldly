@@ -95,6 +95,12 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
       this._files = packageJson.files;
 
       if (serviceConfig) {
+        // We're in a sub-service, don't pull in  nested services
+        this.scaffoldly = {
+          ...this.scaffoldly,
+          runtime: serviceConfig.runtime || this.runtime,
+          services: [],
+        };
         this.serviceConfig = serviceConfig;
         this._name = `${packageJson.name}-${serviceConfig.name}`;
       }
@@ -190,7 +196,8 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
       scripts = this.serviceConfig?.scripts;
     }
     if (!scripts) {
-      throw new Error('Missing `scripts` in scaffoldly config');
+      scripts = {};
+      // throw new Error('Missing `scripts` in scaffoldly config');
     }
     return scripts;
   }
@@ -201,7 +208,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
       return new ScaffoldlyConfig({
         packageJson: this.packageJson,
         serviceConfig: {
-          name: service.name || `${ix}`,
+          name: service.name || `${ix + 1}`,
           runtime: service.runtime || this.runtime,
           handler: service.handler || this.handler,
           devFiles: service.devFiles || this.devFiles,

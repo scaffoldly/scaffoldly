@@ -2,3 +2,6 @@ node_modules
 externals
 build
 *.log
+
+# TEMP Ignore until cleaning up this repo for the public
+tests/integration/monorepo-go-next*
