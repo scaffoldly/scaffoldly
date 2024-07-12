@@ -176,8 +176,9 @@ export class DockerService {
   async createSpec(
     config: ScaffoldlyConfig,
     mode: Script,
+    ix = 0,
   ): Promise<{ spec: DockerFileSpec; entrypoint: string[]; stream?: Pack }> {
-    const { runtime, bin = {} } = config;
+    const { runtime, bin = {}, services } = config;
 
     const entrypointScript = join('node_modules', 'scaffoldly', 'dist', 'awslambda-entrypoint.js');
     const entrypointBin = `.entrypoint`;
@@ -196,10 +197,10 @@ export class DockerService {
     const spec: DockerFileSpec = {
       base: {
         from: runtime,
-        as: 'base',
+        as: `base-${ix}`,
       },
-      from: 'base',
-      as: 'package',
+      from: `base-${ix}`,
+      as: `package-${ix}`,
       workdir,
       copy: [
         {
@@ -250,7 +251,7 @@ export class DockerService {
 
       spec.base = {
         ...spec,
-        as: 'build',
+        as: `build-${ix}`,
         entrypoint: undefined,
         copy: buildFiles,
         run: [build],
@@ -259,7 +260,7 @@ export class DockerService {
       const copy = files.map(
         (file) =>
           ({
-            from: 'build',
+            from: `build-${ix}`,
             src: file,
             dest: join(workdir, file),
           } as Copy),
@@ -268,13 +269,13 @@ export class DockerService {
       Object.entries(bin).forEach(([key, value]) => {
         const [dir] = splitPath(value);
         copy.push({
-          from: 'build',
+          from: `build-${ix}`,
           src: `${join(workdir, dir)}`,
           noGlob: true,
           dest: `${workdir}${sep}`,
         });
         copy.push({
-          from: 'build',
+          from: `build-${ix}`,
           src: value,
           dest: join(workdir, key),
         });
