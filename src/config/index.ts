@@ -28,18 +28,19 @@ export interface IScaffoldlyConfig extends IServiceConfig {
   get bin(): PackageJsonBin; // Get copied to workdir root
   get scripts(): { [key in Script]?: string };
   // get src(): string; // Defaults to "."
-  get services(): IServiceConfig[];
+  get services(): Partial<IServiceConfig>[];
   // http: bool // Defaults to true
   // routes // Required when services is defined
   // standalone: bool // Creates a completely separate container, defaults to true
 }
 
 export interface IServiceConfig {
-  name?: string;
-  runtime?: string;
-  handler?: string;
-  devFiles?: string[];
-  srcRoot?: string;
+  name: string;
+  runtime: string;
+  handler: string;
+  devFiles: string[];
+  src: string;
+  scripts: { [key in Script]?: string };
 }
 
 export type PackageJsonBin = { [key: string]: string };
@@ -47,7 +48,11 @@ export type PackageJsonBin = { [key: string]: string };
 export type Script = 'develop' | 'build' | 'start';
 
 export class ScaffoldlyConfig implements IScaffoldlyConfig {
+  packageJson?: PackageJson;
+
   scaffoldly: Partial<IScaffoldlyConfig>;
+
+  serviceConfig?: IServiceConfig;
 
   private _name?: string;
 
@@ -57,9 +62,16 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
 
   private _files?: string[];
 
-  constructor(configs: { packageJson?: PackageJson; encodedConfig?: string } = {}) {
+  constructor(
+    configs: {
+      packageJson?: PackageJson;
+      encodedConfig?: string;
+      serviceConfig?: IServiceConfig;
+    } = {},
+  ) {
     // TODO Support Devcontainer JSON
-    const { packageJson, encodedConfig } = configs;
+    const { packageJson, encodedConfig, serviceConfig } = configs;
+    this.packageJson = packageJson;
 
     if (encodedConfig) {
       const decodedConfig = decode(encodedConfig);
@@ -81,6 +93,12 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
       this._version = packageJson.version;
       this._bin = packageJson.bin;
       this._files = packageJson.files;
+
+      if (serviceConfig) {
+        this.serviceConfig = serviceConfig;
+        this._name = `${packageJson.name}-${serviceConfig.name}`;
+      }
+
       return;
     }
 
@@ -88,7 +106,10 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
   }
 
   get name(): string {
-    const { _name: name } = this;
+    let { _name: name } = this;
+    if (!name) {
+      name = this.serviceConfig?.name;
+    }
     if (!name) {
       throw new Error('Missing `name`');
     }
@@ -104,16 +125,22 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
   }
 
   get runtime(): string {
-    const { runtime } = this.scaffoldly;
+    let { runtime } = this.scaffoldly;
+    if (!runtime) {
+      runtime = this.serviceConfig?.runtime;
+    }
     if (!runtime) {
       // TODO: Find runtime from one of the services
-      throw new Error('Missing `runtime` in scaffoldly config');
+      throw new Error('Missing `runtime`');
     }
     return runtime;
   }
 
   get handler(): string {
-    const { handler } = this.scaffoldly;
+    let { handler } = this.scaffoldly;
+    if (!handler) {
+      handler = this.serviceConfig?.handler;
+    }
     if (!handler) {
       // TODO: Find runtime from one of the services
       throw new Error('Missing `handler` in scaffoldly config');
@@ -131,11 +158,25 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
   get devFiles(): string[] {
     let { devFiles } = this.scaffoldly;
     if (!devFiles) {
+      devFiles = this.serviceConfig?.devFiles;
+    }
+    if (!devFiles) {
       // TODO: Find devFiles from one of the services
       // TODO: Combine all devFiles from all services?
       devFiles = ['.'];
     }
     return devFiles;
+  }
+
+  get src(): string {
+    let { src } = this.scaffoldly;
+    if (!src) {
+      src = this.serviceConfig?.src;
+    }
+    if (!src) {
+      src = '.';
+    }
+    return src;
   }
 
   get bin(): PackageJsonBin {
@@ -144,16 +185,39 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
   }
 
   get scripts(): { [key in Script]?: string } {
-    const { scripts } = this.scaffoldly;
+    let { scripts } = this.scaffoldly;
+    if (!scripts) {
+      scripts = this.serviceConfig?.scripts;
+    }
     if (!scripts) {
       throw new Error('Missing `scripts` in scaffoldly config');
     }
     return scripts;
   }
 
-  get services(): IServiceConfig[] {
+  get services(): ScaffoldlyConfig[] {
     const { services = [] } = this.scaffoldly;
-    return services;
+    return services.map((service, ix) => {
+      return new ScaffoldlyConfig({
+        packageJson: this.packageJson,
+        serviceConfig: {
+          name: service.name || `${ix}`,
+          runtime: service.runtime || this.runtime,
+          handler: service.handler || this.handler,
+          devFiles: service.devFiles || this.devFiles,
+          src: service.src || this.src,
+          scripts: service.scripts || this.scripts,
+        },
+      });
+    });
+  }
+
+  getService(identifier: string | number): ScaffoldlyConfig {
+    const service = this.services.find((s, ix) => s.name === identifier || ix === identifier);
+    if (!service) {
+      throw new Error(`Service ${identifier} not found`);
+    }
+    return service;
   }
 
   encode = (): string => {
