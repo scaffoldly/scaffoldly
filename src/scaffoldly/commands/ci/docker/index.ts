@@ -4,6 +4,7 @@ import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { Script, ScaffoldlyConfig, DEFAULT_SRC_ROOT } from '../../../../config';
 import { join, sep } from 'path';
 import { isDebug } from '../../../ui';
+import { bind } from 'lodash';
 
 type Path = string;
 
@@ -13,6 +14,7 @@ type Copy = {
   dest: string;
   noGlob?: boolean;
   resolve?: boolean;
+  binFile?: string;
 };
 
 type DockerFileSpec = {
@@ -268,28 +270,15 @@ export class DockerService {
           } as Copy),
       );
 
-      const binDirs = [...new Set(Object.values(bin).map((value) => splitPath(value)[0]))];
-      binDirs.forEach((binDir) => {
+      Object.entries(bin).forEach(([key, value]) => {
+        const [binDir, binFile] = splitPath(value);
         copy.push({
           from: `build-${ix}`,
           src: binDir,
           dest: join(workdir, binDir),
+          binFile,
         });
       });
-      // Object.entries(bin).forEach(([key, value]) => {
-      //   const [dir] = splitPath(value);
-      //   copy.push({
-      //     from: `build-${ix}`,
-      //     src: `${join(workdir, dir)}`,
-      //     noGlob: true,
-      //     dest: `${workdir}${sep}`,
-      //   });
-      //   copy.push({
-      //     from: `build-${ix}`,
-      //     src: value,
-      //     dest: join(workdir, key),
-      //   });
-      // });
 
       spec.copy = [...(spec.copy || []), ...copy].map((c) => {
         const srcGlobIx = c.src.indexOf('*');
@@ -316,6 +305,21 @@ export class DockerService {
         .filter((c) => !!c);
       spec.copy = copy;
 
+      // Object.entries(bin).forEach(([key, value]) => {
+      //   const [dir] = splitPath(value);
+      //   copy.push({
+      //     from: `build-${ix}`,
+      //     src: `${join(workdir, dir)}`,
+      //     noGlob: true,
+      //     dest: `${workdir}${sep}`,
+      //   });
+      //   copy.push({
+      //     from: `build-${ix}`,
+      //     src: value,
+      //     dest: join(workdir, key),
+      //   });
+      // });
+
       spec = {
         bases: [spec],
         from: `base-${ix}`,
@@ -331,9 +335,28 @@ export class DockerService {
             dest: entrypointBin,
             resolve: true,
           },
-          ...copy.map((c) => {
-            return { ...c, from: `package-${ix}` } as Copy;
-          }),
+          ...copy
+            .map((c) => {
+              if (c.binFile) {
+                // console.log(`!!! c`, c);
+                // const [dir] = splitPath(c.binFile);
+                return [
+                  {
+                    from: `package-${ix}`,
+                    src: join(workdir, c.src, c.binFile),
+                    noGlob: true,
+                    dest: `${workdir}${sep}`,
+                  },
+                  {
+                    from: `package-${ix}`,
+                    src: join(c.src, c.binFile),
+                    dest: join(workdir, c.binFile),
+                  },
+                ] as Copy[];
+              }
+              return [{ ...c, from: `package-${ix}` } as Copy];
+            })
+            .flat(),
         ],
         cmd: config.scripts?.start,
       };
