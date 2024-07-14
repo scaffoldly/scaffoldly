@@ -83,7 +83,7 @@ export class DockerService {
   }
 
   private handleDockerEvent(type: 'Pull' | 'Build' | 'Push', event: DockerEvent) {
-    // console.log('!!! event', event);
+    console.log('!!! event', event);
     if ('error' in event) {
       throw new Error(
         `Image ${type} Failed: ${event.error || event.errorDetail?.message || 'Unknown Error'}`,
@@ -158,8 +158,8 @@ export class DockerService {
     const buildStream = await this.docker.buildImage(stream, {
       dockerfile: dockerfilePath.replace(this.cwd, DEFAULT_SRC_ROOT),
       t: imageName,
-      forcerm: true,
-      version: '2', // FYI: Not in the type
+      // forcerm: true,
+      // version: '2', // FYI: Not in the type
     } as ImageBuildOptions);
 
     await new Promise<DockerEvent[]>((resolve, reject) => {
