@@ -1,6 +1,9 @@
 import { base58 } from '@scure/base';
 import pkg from '../../package.json';
 
+export const DEFAULT_SRC_ROOT = `.`;
+export const DEFAULT_ROUTE = '/*';
+
 export const decode = (config: string): ScaffoldlyConfig => {
   if (config.startsWith(`${pkg.name}@${pkg.version}:`)) {
     return JSON.parse(
@@ -27,8 +30,10 @@ export interface IScaffoldlyConfig extends IServiceConfig {
   get devFiles(): string[]; // Get copied to workdir/{file} during dev
   get bin(): PackageJsonBin; // Get copied to workdir root
   get scripts(): { [key in Script]?: string };
-  // get src(): string; // Defaults to "."
+  get src(): string; // Defaults to "."
   get services(): Partial<IServiceConfig>[];
+  get routes(): { [key: string]: string } | undefined;
+  getService(identifier: string | number): IScaffoldlyConfig;
   // http: bool // Defaults to true
   // routes // Required when services is defined
   // standalone: bool // Creates a completely separate container, defaults to true
@@ -80,6 +85,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
       this._version = decodedConfig.version;
       this._bin = decodedConfig.bin;
       this._files = decodedConfig.files;
+
       return;
     }
 
@@ -95,11 +101,12 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
       this._files = packageJson.files;
 
       if (serviceConfig) {
-        // We're in a sub-service, don't pull in  nested services
+        // We're in a sub-service, don't pull in  nested services or routes
         this.scaffoldly = {
           ...this.scaffoldly,
           runtime: serviceConfig.runtime || this.runtime,
           services: [],
+          routes: undefined,
         };
         this.serviceConfig = serviceConfig;
         this._name = `${packageJson.name}-${serviceConfig.name}`;
@@ -169,7 +176,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
     if (!devFiles) {
       // TODO: Find devFiles from one of the services
       // TODO: Combine all devFiles from all services?
-      devFiles = ['.'];
+      devFiles = [DEFAULT_SRC_ROOT];
     }
     return devFiles;
   }
@@ -180,7 +187,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
       src = this.serviceConfig?.src;
     }
     if (!src) {
-      src = '.';
+      src = DEFAULT_SRC_ROOT;
     }
     return src;
   }
@@ -219,7 +226,12 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
     });
   }
 
-  getService(identifier: string | number): ScaffoldlyConfig {
+  get routes(): { [key: string]: string } | undefined {
+    const { routes } = this.scaffoldly;
+    return routes;
+  }
+
+  getService(identifier: string | number): IScaffoldlyConfig {
     const service = this.services.find((s, ix) => s.name === identifier || ix === identifier);
     if (!service) {
       throw new Error(`Service ${identifier} not found`);

@@ -1,8 +1,9 @@
 import Docker, { AuthConfig, ImageBuildOptions } from 'dockerode';
 import tar, { Pack } from 'tar-fs';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
-import { Script, ScaffoldlyConfig } from '../../../../config';
+import { Script, ScaffoldlyConfig, DEFAULT_SRC_ROOT } from '../../../../config';
 import { join, sep } from 'path';
+import { isDebug } from '../../../ui';
 
 type Path = string;
 
@@ -78,6 +79,7 @@ export class DockerService {
   }
 
   private handleDockerEvent(type: 'Pull' | 'Build' | 'Push', event: DockerEvent) {
+    console.log('!!! event', event);
     if ('error' in event) {
       throw new Error(
         `Image ${type} Failed: ${event.error || event.errorDetail?.message || 'Unknown Error'}`,
@@ -150,7 +152,7 @@ export class DockerService {
     });
 
     const buildStream = await this.docker.buildImage(stream, {
-      dockerfile: dockerfilePath.replace(this.cwd, './'),
+      dockerfile: dockerfilePath.replace(this.cwd, DEFAULT_SRC_ROOT),
       t: imageName,
       forcerm: true,
       version: '2', // FYI: Not in the type
@@ -178,14 +180,11 @@ export class DockerService {
     mode: Script,
     ix = 0,
   ): Promise<{ spec: DockerFileSpec; entrypoint: string[]; stream?: Pack }> {
-    const { runtime, bin = {}, services } = config;
+    const { runtime, bin = {}, services, src } = config;
 
     const serviceSpecs = await Promise.all(
       services.map((s, sIx) => this.createSpec(s, mode, ix + sIx + 1)),
     );
-
-    console.log('!! serviceSpecs', serviceSpecs);
-
     const entrypointScript = join('node_modules', 'scaffoldly', 'dist', 'awslambda-entrypoint.js');
     const entrypointBin = `.entrypoint`;
 
@@ -198,9 +197,9 @@ export class DockerService {
 
     const environment = mode === 'develop' ? 'development' : 'production';
 
-    const workdir = '/var/task';
+    const workdir = join(sep, 'var', 'task');
 
-    const spec: DockerFileSpec = {
+    let spec: DockerFileSpec = {
       bases: [
         {
           from: runtime,
@@ -211,22 +210,10 @@ export class DockerService {
       from: `base-${ix}`,
       as: `package-${ix}`,
       workdir,
-      copy: [
-        {
-          src: serveScript,
-          dest: serveBin,
-          resolve: true,
-        },
-        {
-          src: entrypointScript,
-          dest: entrypointBin,
-          resolve: true,
-        },
-      ],
       env: {
         NODE_ENV: environment, // TODO Env File Interpolation
         HOSTNAME: '0.0.0.0',
-        SLY_DEBUG: 'true',
+        SLY_DEBUG: isDebug() ? 'true' : undefined,
       },
       paths: [join(workdir, 'node_modules', '.bin'), workdir],
     };
@@ -234,9 +221,9 @@ export class DockerService {
     let { devFiles, files: additionalBuildFiles } = config;
     const { files } = config;
 
-    if (devFiles.includes('.')) {
+    if (devFiles.includes(DEFAULT_SRC_ROOT)) {
       // Already including the full source directiory, no need to copy more
-      devFiles = ['.'];
+      devFiles = [join(DEFAULT_SRC_ROOT, src)];
       additionalBuildFiles = [];
     }
 
@@ -303,6 +290,28 @@ export class DockerService {
       spec.cmd = config.scripts?.start;
     }
 
+    if (mode === 'build' && ix === 0) {
+      spec = {
+        bases: [spec],
+        from: `package-${ix}`,
+        workdir,
+        copy: [
+          {
+            src: serveScript,
+            dest: serveBin,
+            resolve: true,
+          },
+          {
+            src: entrypointScript,
+            dest: entrypointBin,
+            resolve: true,
+          },
+          // TODO: copy everything from package stages
+        ],
+        cmd: spec.cmd,
+      };
+    }
+
     return { spec, entrypoint: [join(workdir, serveBin), join(workdir, entrypointBin)] };
   }
 
@@ -329,7 +338,9 @@ export class DockerService {
     }
 
     for (const [key, value] of Object.entries(env)) {
-      lines.push(`ENV ${key}="${value}"`);
+      if (value) {
+        lines.push(`ENV ${key}="${value}"`);
+      }
     }
 
     if (copy) {
@@ -341,8 +352,8 @@ export class DockerService {
             return;
           }
 
-          if (c.src === '.') {
-            lines.push(`COPY . ${workdir}/`);
+          if (c.src === DEFAULT_SRC_ROOT) {
+            lines.push(`COPY ${c.src} ${workdir}/`);
             return;
           }
 
@@ -356,7 +367,7 @@ export class DockerService {
         .filter((c) => !!c.from)
         .forEach((c) => {
           let { src } = c;
-          if (src === '.' && workdir) {
+          if (src === DEFAULT_SRC_ROOT && workdir) {
             src = workdir;
           }
 
