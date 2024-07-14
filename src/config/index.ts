@@ -1,5 +1,6 @@
 import { base58 } from '@scure/base';
 import pkg from '../../package.json';
+import { join } from 'path';
 
 export const DEFAULT_SRC_ROOT = `.`;
 export const DEFAULT_ROUTE = '/*';
@@ -43,7 +44,9 @@ export interface IServiceConfig {
   name: string;
   runtime: string;
   handler: string;
-  devFiles: string[];
+  bin?: PackageJsonBin;
+  files?: string[];
+  devFiles?: string[];
   src: string;
   scripts: { [key in Script]?: string };
 }
@@ -110,6 +113,17 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
         };
         this.serviceConfig = serviceConfig;
         this._name = `${packageJson.name}-${serviceConfig.name}`;
+        this._files = [
+          ...(packageJson.files || []),
+          ...(serviceConfig.files || []).map((f) => join(serviceConfig.src, f)),
+        ];
+        this._bin = {
+          ...(packageJson.bin || {}),
+          ...Object.entries(serviceConfig.bin || {}).reduce((acc, [key, value]) => {
+            acc[key] = join(serviceConfig.src, value);
+            return acc;
+          }, serviceConfig.bin || {}),
+        };
       }
 
       return;
@@ -163,11 +177,13 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
 
   get files(): string[] {
     const { _files: files = [] } = this;
+
     // TODO: add README and LICENSE, exclude entries that start with "!"
     // TODO: .scaffoldlyignore or gitignore parser, find out how yarn/npm does it
     return files;
   }
 
+  // TODO: maybe get rid of this
   get devFiles(): string[] {
     let { devFiles } = this.scaffoldly;
     if (!devFiles) {
@@ -218,9 +234,11 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
           name: service.name || `${ix + 1}`,
           runtime: service.runtime || this.runtime,
           handler: service.handler || this.handler,
-          devFiles: service.devFiles || this.devFiles,
           src: service.src || this.src,
           scripts: service.scripts || this.scripts,
+          files: service.files || [],
+          devFiles: service.devFiles,
+          bin: service.bin || {},
         },
       });
     });

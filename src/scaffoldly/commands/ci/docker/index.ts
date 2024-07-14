@@ -22,7 +22,10 @@ type DockerFileSpec = {
   workdir?: string;
   copy?: Copy[];
   env?: { [key: string]: string | undefined };
-  run?: string[];
+  run?: {
+    workdir?: string;
+    cmds: string[];
+  };
   paths?: string[];
   entrypoint?: string[];
   cmd?: string;
@@ -79,7 +82,7 @@ export class DockerService {
   }
 
   private handleDockerEvent(type: 'Pull' | 'Build' | 'Push', event: DockerEvent) {
-    console.log('!!! event', event);
+    // console.log('!!! event', event);
     if ('error' in event) {
       throw new Error(
         `Image ${type} Failed: ${event.error || event.errorDetail?.message || 'Unknown Error'}`,
@@ -185,6 +188,7 @@ export class DockerService {
     const serviceSpecs = await Promise.all(
       services.map((s, sIx) => this.createSpec(s, mode, ix + sIx + 1)),
     );
+
     const entrypointScript = join('node_modules', 'scaffoldly', 'dist', 'awslambda-entrypoint.js');
     const entrypointBin = `.entrypoint`;
 
@@ -205,7 +209,7 @@ export class DockerService {
           from: runtime,
           as: `base-${ix}`,
         },
-        ...serviceSpecs.map((s) => s.spec.bases || []).flat(),
+        ...serviceSpecs.map((s) => s.spec),
       ],
       from: `base-${ix}`,
       as: `package-${ix}`,
@@ -221,10 +225,11 @@ export class DockerService {
     let { devFiles, files: additionalBuildFiles } = config;
     const { files } = config;
 
+    console.log(`!!! devFiles for ${config.name}`, devFiles);
     if (devFiles.includes(DEFAULT_SRC_ROOT)) {
       // Already including the full source directiory, no need to copy more
       devFiles = [join(DEFAULT_SRC_ROOT, src)];
-      additionalBuildFiles = [];
+      additionalBuildFiles = files;
     }
 
     const buildFiles: Copy[] = [...devFiles, ...additionalBuildFiles].map((file) => {
@@ -246,7 +251,11 @@ export class DockerService {
           as: `build-${ix}`,
           entrypoint: undefined,
           copy: buildFiles,
-          run: [config.scripts.build],
+          workdir,
+          run: {
+            workdir: src === DEFAULT_SRC_ROOT ? workdir : join(workdir, src),
+            cmds: [config.scripts.build],
+          },
         },
       ];
 
@@ -259,20 +268,28 @@ export class DockerService {
           } as Copy),
       );
 
-      Object.entries(bin).forEach(([key, value]) => {
-        const [dir] = splitPath(value);
+      const binDirs = [...new Set(Object.values(bin).map((value) => splitPath(value)[0]))];
+      binDirs.forEach((binDir) => {
         copy.push({
           from: `build-${ix}`,
-          src: `${join(workdir, dir)}`,
-          noGlob: true,
-          dest: `${workdir}${sep}`,
-        });
-        copy.push({
-          from: `build-${ix}`,
-          src: value,
-          dest: join(workdir, key),
+          src: binDir,
+          dest: join(workdir, binDir),
         });
       });
+      // Object.entries(bin).forEach(([key, value]) => {
+      //   const [dir] = splitPath(value);
+      //   copy.push({
+      //     from: `build-${ix}`,
+      //     src: `${join(workdir, dir)}`,
+      //     noGlob: true,
+      //     dest: `${workdir}${sep}`,
+      //   });
+      //   copy.push({
+      //     from: `build-${ix}`,
+      //     src: value,
+      //     dest: join(workdir, key),
+      //   });
+      // });
 
       spec.copy = [...(spec.copy || []), ...copy].map((c) => {
         const srcGlobIx = c.src.indexOf('*');
@@ -286,14 +303,22 @@ export class DockerService {
 
         return c;
       });
-
-      spec.cmd = config.scripts?.start;
     }
 
     if (mode === 'build' && ix === 0) {
+      const copy = (spec.bases || [])
+        .map((base) => {
+          return (base.copy || []).map((c) => {
+            return { ...c, from: base.as } as Copy;
+          });
+        })
+        .flat()
+        .filter((c) => !!c);
+      spec.copy = copy;
+
       spec = {
         bases: [spec],
-        from: `package-${ix}`,
+        from: `base-${ix}`,
         workdir,
         copy: [
           {
@@ -306,9 +331,11 @@ export class DockerService {
             dest: entrypointBin,
             resolve: true,
           },
-          // TODO: copy everything from package stages
+          ...copy.map((c) => {
+            return { ...c, from: `package-${ix}` } as Copy;
+          }),
         ],
-        cmd: spec.cmd,
+        cmd: config.scripts?.start,
       };
     }
 
@@ -343,23 +370,24 @@ export class DockerService {
       }
     }
 
+    const copyLines = new Set<string>();
     if (copy) {
       copy
         .filter((c) => !c.from)
         .forEach((c) => {
           if (c.resolve && workdir) {
-            lines.push(`COPY ${c.dest}* ${join(workdir, c.dest)}`);
+            copyLines.add(`COPY ${c.dest}* ${join(workdir, c.dest)}`);
             return;
           }
 
           if (c.src === DEFAULT_SRC_ROOT) {
-            lines.push(`COPY ${c.src} ${workdir}/`);
+            copyLines.add(`COPY ${c.src} ${workdir}/`);
             return;
           }
 
           const exists = existsSync(join(this.cwd, c.src));
           if (exists && workdir) {
-            lines.push(`COPY ${c.src} ${join(workdir, c.dest)}`);
+            copyLines.add(`COPY ${c.src} ${join(workdir, c.dest)}`);
           }
         });
 
@@ -372,7 +400,7 @@ export class DockerService {
           }
 
           if (c.noGlob) {
-            lines.push(`COPY --from=${c.from} ${src} ${c.dest}`);
+            copyLines.add(`COPY --from=${c.from} ${src} ${c.dest}`);
             return;
           }
 
@@ -382,13 +410,17 @@ export class DockerService {
             if (!exists) {
               source = `${source}*`;
             }
-            lines.push(`COPY --from=${c.from} ${source} ${c.dest}`);
+            copyLines.add(`COPY --from=${c.from} ${source} ${c.dest}`);
           }
         });
     }
+    lines.push(...copyLines);
 
     if (run) {
-      lines.push(`RUN ${run.join(' && ')}`);
+      if (run.workdir) {
+        lines.push(`WORKDIR ${run.workdir}`);
+      }
+      lines.push(`RUN ${run.cmds.join(' && ')}`);
     }
 
     if (cmd) {
