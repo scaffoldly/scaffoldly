@@ -4,7 +4,6 @@ import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { Script, ScaffoldlyConfig, DEFAULT_SRC_ROOT } from '../../../../config';
 import { join, sep } from 'path';
 import { isDebug } from '../../../ui';
-import { bind } from 'lodash';
 
 type Path = string;
 
@@ -270,8 +269,8 @@ export class DockerService {
           } as Copy),
       );
 
-      Object.entries(bin).forEach(([key, value]) => {
-        const [binDir, binFile] = splitPath(value);
+      Object.values(bin).forEach((b) => {
+        const [binDir, binFile] = splitPath(b);
         copy.push({
           from: `build-${ix}`,
           src: binDir,
