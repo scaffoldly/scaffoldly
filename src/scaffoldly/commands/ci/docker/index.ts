@@ -3,6 +3,7 @@ import tar, { Pack } from 'tar-fs';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { Script, ScaffoldlyConfig, DEFAULT_SRC_ROOT } from '../../../../config';
 import { join, sep } from 'path';
+import { ui } from '../../../command';
 import { isDebug } from '../../../ui';
 
 type Path = string;
@@ -83,7 +84,13 @@ export class DockerService {
   }
 
   private handleDockerEvent(type: 'Pull' | 'Build' | 'Push', event: DockerEvent) {
-    console.log('!!! event', event);
+    // console.log('!!! event', event);
+    if ('stream' in event && typeof event.stream === 'string' && event.stream.startsWith('Step')) {
+      ui.updateBottomBarSubtext(event.stream);
+    }
+    if ('status' in event && typeof event.status === 'string') {
+      ui.updateBottomBarSubtext(event.status);
+    }
     if ('error' in event) {
       throw new Error(
         `Image ${type} Failed: ${event.error || event.errorDetail?.message || 'Unknown Error'}`,
@@ -226,7 +233,6 @@ export class DockerService {
     let { devFiles, files: additionalBuildFiles } = config;
     const { files } = config;
 
-    console.log(`!!! devFiles for ${config.name}`, devFiles);
     if (devFiles.includes(DEFAULT_SRC_ROOT)) {
       // Already including the full source directiory, no need to copy more
       devFiles = [join(DEFAULT_SRC_ROOT, src)];
@@ -337,8 +343,6 @@ export class DockerService {
           ...copy
             .map((c) => {
               if (c.binFile) {
-                // console.log(`!!! c`, c);
-                // const [dir] = splitPath(c.binFile);
                 return [
                   {
                     from: `package-${ix}`,

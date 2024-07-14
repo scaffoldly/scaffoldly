@@ -61,9 +61,9 @@ export class BottomBar {
       this.interval = setInterval(() => {
         let message = `${PRIMARY_LOADING[count % PRIMARY_LOADING.length]} ${text}...`;
         if (this.subtext) {
-          message = `${message}\n${
-            SECONDARY_LOADING[count % SECONDARY_LOADING.length]
-          } ${this.subtext.substring(0, 30)}`;
+          message = `${message}\n   ${SECONDARY_LOADING[count % SECONDARY_LOADING.length]} ${
+            this.subtext
+          }`;
         }
         this.bottomBar.updateBottomBar(message);
         count++;
