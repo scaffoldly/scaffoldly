@@ -16,9 +16,9 @@ ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV PATH="/var/task:$PATH"
 ENV NODE_ENV="production"
 ENV HOSTNAME="0.0.0.0"
+COPY --from=build-0 /var/task/.next/standalone* /var/task/.next/standalone
 COPY --from=build-0 /var/task/.next/static* /var/task/.next/static
 COPY --from=build-0 /var/task/public /var/task/public
-COPY --from=build-0 /var/task/.next/standalone* /var/task/.next/standalone
 
 FROM base-0
 WORKDIR /var/task
