@@ -302,12 +302,17 @@ export class DockerService {
     if (mode === 'build' && ix === 0) {
       const copy = [spec, ...(spec.bases || [])]
         .map((s) => {
+          console.log('!!! s.copy', s.copy);
           return (s.copy || []).map((c) => {
             return { ...c, from: s.as } as Copy;
           });
         })
         .flat()
         .filter((c) => !!c && c.src !== DEFAULT_SRC_ROOT);
+
+      spec.copy = copy;
+
+      console.log('!!! final copy', copy);
 
       spec = {
         ...spec,
@@ -327,6 +332,7 @@ export class DockerService {
           },
           ...(copy || [])
             .map((c) => {
+              console.log('!!! c', c);
               if (c.binFile) {
                 return [
                   {
