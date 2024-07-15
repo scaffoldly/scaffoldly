@@ -27,7 +27,7 @@
     "typescript": "^5"
   },
   "files": [
-    "out/*",
+    "out",
     "node_modules"
   ],
   "scaffoldly": {

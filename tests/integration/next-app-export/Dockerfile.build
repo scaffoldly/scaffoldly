@@ -6,7 +6,7 @@ ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV PATH="/var/task:$PATH"
 ENV NODE_ENV="production"
 ENV HOSTNAME="0.0.0.0"
-ENV SLY_DEBUG="true"
+COPY node_modules /var/task/node_modules
 COPY . /var/task/
 RUN next build
 
@@ -16,9 +16,17 @@ ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV PATH="/var/task:$PATH"
 ENV NODE_ENV="production"
 ENV HOSTNAME="0.0.0.0"
-ENV SLY_DEBUG="true"
+COPY --from=build-0 /var/task/out* /var/task/out
+COPY --from=build-0 /var/task/node_modules /var/task/node_modules
+
+FROM base-0
+WORKDIR /var/task
+ENV PATH="/var/task/node_modules/.bin:$PATH"
+ENV PATH="/var/task:$PATH"
+ENV NODE_ENV="production"
+ENV HOSTNAME="0.0.0.0"
 COPY .serve* /var/task/.serve
 COPY .entrypoint* /var/task/.entrypoint
-COPY --from=build-0 /var/task/out/ /var/task/out/
-COPY --from=build-0 /var/task/node_modules /var/task/node_modules
+COPY --from=package-0 /var/task/out* /var/task/out
+COPY --from=package-0 /var/task/node_modules /var/task/node_modules
 CMD ["serve", "out"]
