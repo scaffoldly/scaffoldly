@@ -1,26 +1,35 @@
-FROM node:20-alpine as base
+FROM node:20-alpine as base-0
 
-FROM base as build
+FROM base-0 as build-0
 WORKDIR /var/task
 ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV PATH="/var/task:$PATH"
 ENV NODE_ENV="production"
 ENV HOSTNAME="0.0.0.0"
-ENV SLY_DEBUG="true"
+COPY public /var/task/public
 COPY . /var/task/
 RUN next build
 
-FROM base as package
+FROM base-0 as package-0
 WORKDIR /var/task
 ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV PATH="/var/task:$PATH"
 ENV NODE_ENV="production"
 ENV HOSTNAME="0.0.0.0"
-ENV SLY_DEBUG="true"
+COPY --from=build-0 /var/task/.next/static* /var/task/.next/static
+COPY --from=build-0 /var/task/public /var/task/public
+COPY --from=build-0 /var/task/.next/standalone* /var/task/.next/standalone
+
+FROM base-0
+WORKDIR /var/task
+ENV PATH="/var/task/node_modules/.bin:$PATH"
+ENV PATH="/var/task:$PATH"
+ENV NODE_ENV="production"
+ENV HOSTNAME="0.0.0.0"
 COPY .serve* /var/task/.serve
 COPY .entrypoint* /var/task/.entrypoint
-COPY --from=build /var/task/.next/static* /var/task/.next/static
-COPY --from=build /var/task/public /var/task/public
-COPY --from=build /var/task/.next/standalone /var/task/
-COPY --from=build /var/task/.next/standalone/server.js* /var/task/server.js
+COPY --from=package-0 /var/task/.next/static* /var/task/.next/static
+COPY --from=package-0 /var/task/public /var/task/public
+COPY --from=package-0 /var/task/.next/standalone/server.js /var/task
+COPY --from=package-0 /var/task/.next/standalone* /var/task
 CMD ["node", "server.js"]

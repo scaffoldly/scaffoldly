@@ -239,7 +239,7 @@ export class DockerService {
       additionalBuildFiles = files;
     }
 
-    const buildFiles: Copy[] = [...devFiles, ...additionalBuildFiles].map((file) => {
+    const buildFiles: Copy[] = [...additionalBuildFiles, ...devFiles].map((file) => {
       const copy: Copy = {
         src: file,
         dest: file,
@@ -260,7 +260,7 @@ export class DockerService {
           copy: buildFiles,
           workdir,
           run: {
-            workdir: src === DEFAULT_SRC_ROOT ? workdir : join(workdir, src),
+            workdir: src !== DEFAULT_SRC_ROOT ? join(workdir, src) : undefined,
             cmds: [config.scripts.build],
           },
         },
@@ -271,7 +271,7 @@ export class DockerService {
           ({
             from: `build-${ix}`,
             src: file,
-            dest: join(workdir, file),
+            dest: file,
           } as Copy),
       );
 
@@ -280,7 +280,7 @@ export class DockerService {
         copy.push({
           from: `build-${ix}`,
           src: binDir,
-          dest: join(workdir, binDir),
+          dest: binDir,
           binFile,
         });
       });
@@ -300,35 +300,20 @@ export class DockerService {
     }
 
     if (mode === 'build' && ix === 0) {
-      const copy = (spec.bases || [])
-        .map((base) => {
-          return (base.copy || []).map((c) => {
-            return { ...c, from: base.as } as Copy;
+      const copy = [spec, ...(spec.bases || [])]
+        .map((s) => {
+          return (s.copy || []).map((c) => {
+            return { ...c, from: s.as } as Copy;
           });
         })
         .flat()
-        .filter((c) => !!c);
-      spec.copy = copy;
-
-      // Object.entries(bin).forEach(([key, value]) => {
-      //   const [dir] = splitPath(value);
-      //   copy.push({
-      //     from: `build-${ix}`,
-      //     src: `${join(workdir, dir)}`,
-      //     noGlob: true,
-      //     dest: `${workdir}${sep}`,
-      //   });
-      //   copy.push({
-      //     from: `build-${ix}`,
-      //     src: value,
-      //     dest: join(workdir, key),
-      //   });
-      // });
+        .filter((c) => !!c && c.src !== DEFAULT_SRC_ROOT);
 
       spec = {
+        ...spec,
         bases: [spec],
+        as: undefined,
         from: `base-${ix}`,
-        workdir,
         copy: [
           {
             src: serveScript,
@@ -340,7 +325,7 @@ export class DockerService {
             dest: entrypointBin,
             resolve: true,
           },
-          ...copy
+          ...(copy || [])
             .map((c) => {
               if (c.binFile) {
                 return [
@@ -348,12 +333,12 @@ export class DockerService {
                     from: `package-${ix}`,
                     src: join(workdir, c.src, c.binFile),
                     noGlob: true,
-                    dest: `${workdir}${sep}`,
+                    dest: DEFAULT_SRC_ROOT,
                   },
                   {
                     from: `package-${ix}`,
-                    src: join(c.src, c.binFile),
-                    dest: join(workdir, c.binFile),
+                    src: c.src,
+                    dest: DEFAULT_SRC_ROOT,
                   },
                 ] as Copy[];
               }
@@ -407,7 +392,7 @@ export class DockerService {
           }
 
           if (c.src === DEFAULT_SRC_ROOT) {
-            copyLines.add(`COPY ${c.src} ${workdir}/`);
+            copyLines.add(`COPY ${c.src} ${workdir}${sep}`);
             return;
           }
 
@@ -425,8 +410,8 @@ export class DockerService {
             src = workdir;
           }
 
-          if (c.noGlob) {
-            copyLines.add(`COPY --from=${c.from} ${src} ${c.dest}`);
+          if (c.noGlob && workdir) {
+            copyLines.add(`COPY --from=${c.from} ${src} ${join(workdir, c.dest)}`);
             return;
           }
 
@@ -436,7 +421,7 @@ export class DockerService {
             if (!exists) {
               source = `${source}*`;
             }
-            copyLines.add(`COPY --from=${c.from} ${source} ${c.dest}`);
+            copyLines.add(`COPY --from=${c.from} ${source} ${join(workdir, c.dest)}`);
           }
         });
     }
