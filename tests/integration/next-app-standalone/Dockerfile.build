@@ -1,33 +1,40 @@
-FROM node:20-alpine as base
+FROM node:20-alpine as base-0
 
-FROM base as builder
+FROM base-0 as build-0
 WORKDIR /var/task
-ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV PATH="/var/task:$PATH"
-ENV CONFIG="scaffoldly@1.0.8:mcYsjWZqUojMB4aPyGkF4z44LKQn5pcGP2GPLUK3Gmk9dnNd4eA8cuuVbF8dqV1hvWbV2nWSZSkSBA5R2eLGnH3Yt374btsZpokCHWwBd6ZiTnwvKzWN1854VW1PH6gdQXTu1CATr2g8eoL7LULKRhLzkbm13eDDCbWmJouPWff2vQYPC8TUWMFv5MMyCAdbsES74TmSNpgVHnGXy4o1yrbpAtV7TwSh84pyEGYbYTgUWyQCWBW3ceAuhPwFK7DC77crZS4KhYUTH6SX2dq42Ba7QormZgi4g5NwpzNUawpUkvFmkjebtbDcSjnK2Q8ghUqnQSwxSbUumtZDjZuYAmrJLR4SfdLM2ymUEU7QxCejc61GggpKNcEkUZHjQJt5J"
+ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV NODE_ENV="production"
 ENV HOSTNAME="0.0.0.0"
 ENV SLY_DEBUG="true"
-COPY . /var/task/
-COPY README.md /var/task/README.md
+COPY node_modules /var/task/node_modules
 COPY public /var/task/public
+COPY . /var/task/
 RUN next build
 
-FROM base as runner
-ENTRYPOINT ["/var/task/serve","/var/task/entrypoint"]
+FROM base-0 as package-0
 WORKDIR /var/task
-ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV PATH="/var/task:$PATH"
-ENV SERVE_CMD="node server.js"
-ENV CONFIG="scaffoldly@1.0.8:mcYsjWZqUojMB4aPyGkF4z44LKQn5pcGP2GPLUK3Gmk9dnNd4eA8cuuVbF8dqV1hvWbV2nWSZSkSBA5R2eLGnH3Yt374btsZpokCHWwBd6ZiTnwvKzWN1854VW1PH6gdQXTu1CATr2g8eoL7LULKRhLzkbm13eDDCbWmJouPWff2vQYPC8TUWMFv5MMyCAdbsES74TmSNpgVHnGXy4o1yrbpAtV7TwSh84pyEGYbYTgUWyQCWBW3ceAuhPwFK7DC77crZS4KhYUTH6SX2dq42Ba7QormZgi4g5NwpzNUawpUkvFmkjebtbDcSjnK2Q8ghUqnQSwxSbUumtZDjZuYAmrJLR4SfdLM2ymUEU7QxCejc61GggpKNcEkUZHjQJt5J"
+ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV NODE_ENV="production"
 ENV HOSTNAME="0.0.0.0"
 ENV SLY_DEBUG="true"
-COPY serve* /var/task/serve
-COPY entrypoint* /var/task/entrypoint
-COPY --from=builder /var/task/README.md /var/task/README.md
-COPY --from=builder /var/task/LICENSE* /var/task/LICENSE
-COPY --from=builder /var/task/.next/static* /var/task/.next/static
-COPY --from=builder /var/task/public /var/task/public
-COPY --from=builder /var/task/.next/standalone /var/task/
-COPY --from=builder /var/task/.next/standalone/server.js* /var/task/server.js
+COPY --from=build-0 /var/task/.next/standalone* /var/task/.next/standalone
+COPY --from=build-0 /var/task/.next* /var/task/.next
+COPY --from=build-0 /var/task/node_modules /var/task/node_modules
+COPY --from=build-0 /var/task/public /var/task/public
+
+FROM base-0
+WORKDIR /var/task
+ENV PATH="/var/task:$PATH"
+ENV PATH="/var/task/node_modules/.bin:$PATH"
+ENV NODE_ENV="production"
+ENV HOSTNAME="0.0.0.0"
+ENV SLY_DEBUG="true"
+COPY .serve* /var/task/.serve
+COPY .entrypoint* /var/task/.entrypoint
+COPY --from=package-0 /var/task/.next* /var/task/.next
+COPY --from=package-0 /var/task/node_modules /var/task/node_modules
+COPY --from=package-0 /var/task/public /var/task/public
+COPY --from=package-0 /var/task/.next/standalone/* /var/task/
+CMD ( node server.js )

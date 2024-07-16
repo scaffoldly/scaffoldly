@@ -1,0 +1,57 @@
+{
+  "name": "monorepo-go-next",
+  "version": "1.0.0",
+  "scripts": {
+    "postinstall": "./install.sh",
+    "build": "scaffoldly build",
+    "deploy": "scaffoldly deploy"
+  },
+  "dependencies": {
+    "scaffoldly": "file:../../.."
+  },
+  "devDependencies": {
+    "protoc-gen-grpc-web": "^1.5.0",
+    "protoc-gen-js": "^3.21.2"
+  },
+  "files": [
+    "proto"
+  ],
+  "scaffoldly": {
+    "runtime": "node:20-alpine",
+    "handler": "localhost:3000",
+    "routes": {
+      "/proto*": "localhost:8080"
+    },
+    "services": [
+      {
+        "src": "backend",
+        "runtime": "golang:1.21",
+        "handler": "localhost:8080",
+        "bin": {
+          "backend": "bin/backend"
+        },
+        "scripts": {
+          "dev": "TODO",
+          "build": "CGO_ENABLED=0 make",
+          "start": "backend"
+        }
+      },
+      {
+        "src": "web",
+        "runtime": "node:20-alpine",
+        "handler": "localhost:3000",
+        "files": [
+          ".next",
+          "public",
+          "node_modules",
+          "package.json"
+        ],
+        "scripts": {
+          "dev": "yarn dev",
+          "build": "yarn build",
+          "start": "yarn start"
+        }
+      }
+    ]
+  }
+}

@@ -1,7 +1,7 @@
 import { ErrorWithReturnCode } from './scaffoldly/errors';
 import { Command } from './scaffoldly/command';
 import { Console } from 'console';
-import { isHeadless } from './scaffoldly/ui';
+import { isDebug, isHeadless } from './scaffoldly/ui';
 
 // Disables (node:64080) ExperimentalWarning: The Fetch API is an experimental feature. This feature could change at any time
 process.emitWarning = () => {};
@@ -23,11 +23,15 @@ export const run = async (): Promise<void> => {
     await command.run(process.argv);
     process.exit(0);
   } catch (e) {
+    if (e instanceof Error) {
+      if (isDebug()) {
+        console.error(e);
+      } else {
+        console.error(`Error: ${e.message}\n\nRun with --debug for more information.`);
+      }
+    }
     if (e instanceof ErrorWithReturnCode) {
       process.exit(e.returnCode);
-    }
-    if (e instanceof Error) {
-      console.error('Error: ', e.message);
     }
     process.exit(-1);
   }

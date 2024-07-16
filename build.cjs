@@ -28,6 +28,7 @@ const build = async () => {
       loader: {
         '.node': 'file', // TODO: This is a hack to prevent esbuild from trying to bundle .node files
       },
+      logLevel: 'debug',
     });
   } catch (error) {
     console.error('Build failed:', error);

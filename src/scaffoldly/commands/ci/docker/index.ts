@@ -1,9 +1,10 @@
 import Docker, { AuthConfig, ImageBuildOptions } from 'dockerode';
 import tar, { Pack } from 'tar-fs';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
-import { Script, ScaffoldlyConfig, encode } from '../../../../config';
+import { Script, ScaffoldlyConfig, DEFAULT_SRC_ROOT, DockerCommands } from '../../../../config';
 import { join, sep } from 'path';
 import { ui } from '../../../command';
+import { isDebug } from '../../../ui';
 
 type Path = string;
 
@@ -13,18 +14,26 @@ type Copy = {
   dest: string;
   noGlob?: boolean;
   resolve?: boolean;
+  bin?: {
+    file: string;
+    dir: string;
+  };
 };
 
 type DockerFileSpec = {
-  base?: DockerFileSpec;
+  bases?: DockerFileSpec[];
   from: string;
   as?: string;
   workdir?: string;
   copy?: Copy[];
   env?: { [key: string]: string | undefined };
-  run?: string[];
+  run?: {
+    workdir?: string;
+    cmds: string[];
+  };
   paths?: string[];
   entrypoint?: string[];
+  cmd?: DockerCommands;
 };
 
 type DockerEvent =
@@ -78,7 +87,17 @@ export class DockerService {
   }
 
   private handleDockerEvent(type: 'Pull' | 'Build' | 'Push', event: DockerEvent) {
-    ui.updateBottomBar(`${type}ing Image`);
+    if ('stream' in event && typeof event.stream === 'string') {
+      if (isDebug()) {
+        ui.updateBottomBarSubtext(event.stream);
+      } else if (event.stream.startsWith('Step ')) {
+        ui.updateBottomBarSubtext(event.stream);
+      }
+    }
+    if ('status' in event && typeof event.status === 'string') {
+      ui.updateBottomBarSubtext(event.status);
+    }
+
     if ('error' in event) {
       throw new Error(
         `Image ${type} Failed: ${event.error || event.errorDetail?.message || 'Unknown Error'}`,
@@ -90,8 +109,8 @@ export class DockerService {
     config: ScaffoldlyConfig,
     mode: Script,
     repositoryUri?: string,
-  ): Promise<{ imageName: string }> {
-    const { spec } = await this.createSpec(config, mode);
+  ): Promise<{ imageName: string; entrypoint: string[]; cmd: DockerCommands }> {
+    const { spec, entrypoint, cmd } = await this.createSpec(config, mode);
 
     const imageName = repositoryUri
       ? `${repositoryUri}:${config.version}`
@@ -115,7 +134,9 @@ export class DockerService {
     const { copy = [] } = spec;
 
     copy
-      .filter((c) => c.resolve)
+      .filter((c) => {
+        return c.resolve;
+      })
       .forEach((c) => {
         // This will remove the symlink and add the actual file
         const content = readFileSync(join(this.cwd, c.src));
@@ -151,10 +172,10 @@ export class DockerService {
     });
 
     const buildStream = await this.docker.buildImage(stream, {
-      dockerfile: dockerfilePath.replace(this.cwd, './'),
+      dockerfile: dockerfilePath.replace(this.cwd, DEFAULT_SRC_ROOT),
       t: imageName,
-      forcerm: true,
-      version: '2', // FYI: Not in the type
+      // forcerm: true,
+      // version: '2', // FYI: Not in the type
     } as ImageBuildOptions);
 
     await new Promise<DockerEvent[]>((resolve, reject) => {
@@ -171,20 +192,25 @@ export class DockerService {
       );
     });
 
-    return { imageName };
+    return { imageName, entrypoint, cmd };
   }
 
   async createSpec(
     config: ScaffoldlyConfig,
     mode: Script,
-  ): Promise<{ spec: DockerFileSpec; stream?: Pack }> {
-    const { runtime, bin = {} } = config;
+    ix = 0,
+  ): Promise<{ spec: DockerFileSpec; entrypoint: string[]; cmd: DockerCommands; stream?: Pack }> {
+    const { runtime, bin = {}, services, src } = config;
+
+    const serviceSpecs = await Promise.all(
+      services.map((s, sIx) => this.createSpec(s, mode, ix + sIx + 1)),
+    );
 
     const entrypointScript = join('node_modules', 'scaffoldly', 'dist', 'awslambda-entrypoint.js');
-    const entrypointBin = 'entrypoint';
+    const entrypointBin = `.entrypoint`;
 
     const serveScript = join('node_modules', 'scaffoldly', 'scripts', 'awslambda', 'serve.sh');
-    const serveBin = 'serve';
+    const serveBin = `.serve`;
 
     if (!runtime) {
       throw new Error('Missing runtime');
@@ -192,106 +218,201 @@ export class DockerService {
 
     const environment = mode === 'develop' ? 'development' : 'production';
 
-    const workdir = '/var/task';
+    const workdir = join(sep, 'var', 'task');
 
-    const spec: DockerFileSpec = {
-      base: {
-        from: runtime,
-        as: 'base',
-      },
-      from: 'base',
-      as: 'runner',
-      workdir,
-      copy: [
+    const paths = [join(workdir, src)];
+
+    Object.entries(bin).forEach(([script, path]) => {
+      if (!path) return;
+      const scriptPath = join(src, script);
+      const [binDir] = splitPath(path);
+      if (scriptPath === path) {
+        paths.push(join(workdir, binDir));
+      }
+    });
+
+    let spec: DockerFileSpec = {
+      bases: [
         {
-          src: serveScript,
-          dest: serveBin,
-          resolve: true,
+          from: runtime,
+          as: `base-${ix}`,
         },
-        {
-          src: entrypointScript,
-          dest: entrypointBin,
-          resolve: true,
-        },
+        ...serviceSpecs.map((s) => s.spec),
       ],
+      from: `base-${ix}`,
+      as: `package-${ix}`,
+      workdir,
       env: {
-        CONFIG: encode(config),
         NODE_ENV: environment, // TODO Env File Interpolation
         HOSTNAME: '0.0.0.0',
-        SLY_DEBUG: 'true',
+        SLY_DEBUG: isDebug() ? 'true' : undefined,
       },
-      paths: [join(workdir, 'node_modules', '.bin'), workdir],
-      entrypoint: [join(workdir, serveBin), join(workdir, entrypointBin)],
     };
 
-    const { files = [], devFiles = ['.'] } = config;
-    const buildFiles: Copy[] = [...devFiles, ...files].map(
-      (file) =>
-        ({
-          src: file,
-          dest: file,
-        } as Copy),
-    );
+    let { devFiles, files: additionalBuildFiles } = config;
+    const { files } = config;
 
-    if (mode === 'develop') {
+    // HACK: include node_modules/.bin in path
+    //       this is a hack because it seems like there's a better way to infer this
+    if (files.includes('node_modules') || devFiles.includes('node_modules')) {
+      paths.push(join(workdir, src, 'node_modules', '.bin'));
+    }
+
+    spec.paths = paths;
+
+    if (devFiles.includes(DEFAULT_SRC_ROOT)) {
+      // Already including the full source directiory, no need to copy more
+      devFiles = [join(DEFAULT_SRC_ROOT, src)];
+      additionalBuildFiles = files;
+    }
+
+    const buildFiles: Copy[] = [...additionalBuildFiles, ...devFiles].map((file) => {
+      const copy: Copy = {
+        src: file,
+        dest: file,
+      };
+      return copy;
+    });
+
+    if (mode === 'develop' && config.scripts.develop) {
       spec.copy = buildFiles;
     }
 
-    if (mode === 'build') {
-      const { build } = config.scripts || {};
-      if (!build) {
-        throw new Error('Missing build entrypoint');
-      }
-
-      spec.base = {
-        ...spec,
-        as: 'builder',
-        entrypoint: undefined,
-        copy: buildFiles,
-        run: [build],
-      };
+    if (mode === 'build' && config.scripts.build) {
+      spec.bases = [
+        {
+          ...spec,
+          as: `build-${ix}`,
+          entrypoint: undefined,
+          copy: buildFiles,
+          workdir,
+          run: {
+            workdir: src !== DEFAULT_SRC_ROOT ? join(workdir, src) : undefined,
+            cmds: [config.scripts.build],
+          },
+        },
+      ];
 
       const copy = files.map(
         (file) =>
           ({
-            from: 'builder',
+            from: `build-${ix}`,
             src: file,
-            dest: join(workdir, file),
+            dest: file,
           } as Copy),
       );
 
-      Object.entries(bin).forEach(([key, value]) => {
-        const [dir] = splitPath(value);
+      Object.entries(bin).forEach(([script, path]) => {
+        if (!path) return;
+        const scriptPath = join(src, script);
+        const [binDir, binFile] = splitPath(path);
         copy.push({
-          from: 'builder',
-          src: `${join(workdir, dir)}`,
-          noGlob: true,
-          dest: `${workdir}${sep}`,
-        });
-        copy.push({
-          from: 'builder',
-          src: value,
-          dest: join(workdir, key),
+          from: `build-${ix}`,
+          src: binDir,
+          dest: binDir,
+          bin: {
+            file: binFile,
+            dir: scriptPath === path ? binDir : src,
+          },
+          resolve: false,
         });
       });
 
-      spec.copy = [...(spec.copy || []), ...copy];
+      spec.copy = [...(spec.copy || []), ...copy].map((c) => {
+        const srcGlobIx = c.src.indexOf('*');
+        if (srcGlobIx !== -1) {
+          c.src = c.src.slice(0, srcGlobIx);
+        }
+        const destGlobIx = c.dest.indexOf('*');
+        if (destGlobIx !== -1) {
+          c.dest = c.dest.slice(0, destGlobIx);
+        }
 
-      spec.env = { ...{ SERVE_CMD: config.scripts?.start }, ...spec.env };
+        return c;
+      });
     }
 
-    return { spec };
+    if (mode === 'build' && ix === 0) {
+      const copy = [spec, ...(spec.bases || [])]
+        .map((s) => {
+          return (s.copy || []).map((c) => {
+            let from = s.as;
+            if (c.bin) {
+              from = c.from;
+            }
+            return { ...c, from } as Copy;
+          });
+        })
+        .flat()
+        .filter((c) => !!c && c.src !== DEFAULT_SRC_ROOT);
+
+      spec.copy = copy.filter((c) => !!c.bin || c.from !== spec.as);
+
+      if (spec.paths) {
+        paths.push(...spec.paths);
+      }
+
+      copy.forEach((c) => {
+        if (c.bin) {
+          paths.push(join(workdir, c.bin.dir));
+        }
+      });
+
+      spec = {
+        ...spec,
+        bases: [spec],
+        as: undefined,
+        from: `base-${ix}`,
+        paths,
+        copy: [
+          {
+            src: serveScript,
+            dest: serveBin,
+            resolve: true,
+          },
+          {
+            src: entrypointScript,
+            dest: entrypointBin,
+            resolve: true,
+          },
+          ...(copy || [])
+            .map((c) => {
+              if (c.bin) {
+                return [
+                  {
+                    from: `package-${ix}`,
+                    src: `${c.src}${sep}`,
+                    dest: `${c.bin.dir}${sep}`,
+                    bin: c.bin,
+                  },
+                ] as Copy[];
+              }
+              return [{ ...c, from: `package-${ix}` } as Copy];
+            })
+            .flat(),
+        ],
+        cmd: config.cmd,
+      };
+    }
+
+    return {
+      spec,
+      entrypoint: [join(workdir, serveBin), join(workdir, entrypointBin)],
+      cmd: config.cmd,
+    };
   }
 
   render = (spec: DockerFileSpec, mode: Script): string => {
     const lines = [];
 
-    if (spec.base) {
-      lines.push(this.render(spec.base, mode));
-      lines.push('');
+    if (spec.bases) {
+      for (const base of spec.bases) {
+        lines.push(this.render(base, mode));
+        lines.push('');
+      }
     }
 
-    const { copy, workdir, env = {}, entrypoint, run, paths = [] } = spec;
+    const { copy, workdir, env = {}, entrypoint, run, paths = [], cmd } = spec;
 
     const from = spec.as ? `${spec.from} as ${spec.as}` : spec.from;
 
@@ -299,31 +420,34 @@ export class DockerService {
     if (entrypoint) lines.push(`ENTRYPOINT [${entrypoint.map((ep) => `"${ep}"`).join(',')}]`);
     if (workdir) lines.push(`WORKDIR ${workdir}`);
 
-    for (const path of paths) {
+    for (const path of new Set(paths)) {
       lines.push(`ENV PATH="${path}:$PATH"`);
     }
 
     for (const [key, value] of Object.entries(env)) {
-      lines.push(`ENV ${key}="${value}"`);
+      if (value) {
+        lines.push(`ENV ${key}="${value}"`);
+      }
     }
 
+    const copyLines = new Set<string>();
     if (copy) {
       copy
         .filter((c) => !c.from)
         .forEach((c) => {
           if (c.resolve && workdir) {
-            lines.push(`COPY ${c.dest}* ${join(workdir, c.dest)}`);
+            copyLines.add(`COPY ${c.dest}* ${join(workdir, c.dest)}`);
             return;
           }
 
-          if (c.src === '.') {
-            lines.push(`COPY . ${workdir}/`);
+          if (c.src === DEFAULT_SRC_ROOT) {
+            copyLines.add(`COPY ${c.src} ${workdir}${sep}`);
             return;
           }
 
           const exists = existsSync(join(this.cwd, c.src));
           if (exists && workdir) {
-            lines.push(`COPY ${c.src} ${join(workdir, c.dest)}`);
+            copyLines.add(`COPY ${c.src} ${join(workdir, c.dest)}`);
           }
         });
 
@@ -331,28 +455,36 @@ export class DockerService {
         .filter((c) => !!c.from)
         .forEach((c) => {
           let { src } = c;
-          if (src === '.' && workdir) {
+          if (src === DEFAULT_SRC_ROOT && workdir) {
             src = workdir;
           }
 
-          if (c.noGlob) {
-            lines.push(`COPY --from=${c.from} ${src} ${c.dest}`);
+          if (c.noGlob && workdir) {
+            copyLines.add(`COPY --from=${c.from} ${src} ${join(workdir, c.dest)}`);
             return;
           }
 
           const exists = existsSync(join(this.cwd, src));
           if (workdir) {
             let source = join(workdir, src);
-            if (!exists) {
+            if (!exists || c.bin) {
               source = `${source}*`;
             }
-            lines.push(`COPY --from=${c.from} ${source} ${c.dest}`);
+            copyLines.add(`COPY --from=${c.from} ${source} ${join(workdir, c.dest)}`);
           }
         });
     }
+    lines.push(...copyLines);
 
     if (run) {
-      lines.push(`RUN ${run.join(' && ')}`);
+      if (run.workdir) {
+        lines.push(`WORKDIR ${run.workdir}`);
+      }
+      lines.push(`RUN ${run.cmds.join(' && ')}`);
+    }
+
+    if (cmd) {
+      lines.push(`CMD ${cmd.toString()}`);
     }
 
     const dockerfile = lines.join('\n');
