@@ -2,6 +2,8 @@ import { join } from 'path';
 import { PackageJson, ScaffoldlyConfig } from '../../config';
 import { readFileSync } from 'fs';
 
+export type Cwd = string;
+
 export class Command {
   private _config: ScaffoldlyConfig;
 
@@ -10,7 +12,7 @@ export class Command {
     this._config = new ScaffoldlyConfig({ packageJson });
   }
 
-  get cwd(): string {
+  get cwd(): Cwd {
     return process.cwd();
   }
 

@@ -22,6 +22,9 @@ import _ from 'lodash';
 import { DeployStatus } from '.';
 import { NotFoundException } from './errors';
 import { CloudResource, manageResource, ResourceOptions } from '..';
+import { config as dotenv } from 'dotenv';
+import { Cwd } from '../..';
+import { join } from 'path';
 
 export type LambdaDeployStatus = {
   functionArn?: string;
@@ -60,7 +63,7 @@ export type UrlResource = CloudResource<
 export class LambdaService implements IamConsumer {
   lambdaClient: LambdaClient;
 
-  constructor(private config: ScaffoldlyConfig) {
+  constructor(private cwd: Cwd, private config: ScaffoldlyConfig) {
     this.lambdaClient = new LambdaClient();
   }
 
@@ -167,6 +170,13 @@ export class LambdaService implements IamConsumer {
       throw new Error('Missing SLY_SERVE');
     }
 
+    const env = {
+      SLY_ROUTES,
+      SLY_SERVE,
+    };
+
+    dotenv({ path: join(this.cwd, '.env'), processEnv: env });
+
     return {
       client: this.lambdaClient,
       read,
@@ -197,10 +207,7 @@ export class LambdaService implements IamConsumer {
           MemorySize: desired.memorySize,
           Architectures: [architecture === 'arm64' ? 'arm64' : 'x86_64'],
           Environment: {
-            Variables: {
-              SLY_ROUTES,
-              SLY_SERVE,
-            },
+            Variables: env,
           },
         }),
         update: new UpdateFunctionConfigurationCommand({
@@ -209,10 +216,7 @@ export class LambdaService implements IamConsumer {
           Timeout: desired.timeout,
           MemorySize: desired.memorySize,
           Environment: {
-            Variables: {
-              SLY_ROUTES,
-              SLY_SERVE,
-            },
+            Variables: env,
           },
           ImageConfig: {
             EntryPoint: status.entrypoint,

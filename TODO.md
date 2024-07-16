@@ -4,6 +4,8 @@
 
 - Secrets
 
+- Turn entrypoint into compiled binary
+
 - update pull to pull all bases
 
 - Clean up docker cache?? Find out why its so fat and slow on dev containers
