@@ -4,32 +4,35 @@ FROM golang:1.21 as base-1
 
 FROM base-1 as build-1
 WORKDIR /var/task
-ENV PATH="/var/task/node_modules/.bin:$PATH"
-ENV PATH="/var/task:$PATH"
+ENV PATH="/var/task/backend/node_modules/.bin:$PATH"
+ENV PATH="/var/task/backend:$PATH"
 ENV NODE_ENV="production"
 ENV HOSTNAME="0.0.0.0"
+ENV SLY_DEBUG="true"
 COPY proto /var/task/proto
 COPY backend /var/task/backend
 WORKDIR /var/task/backend
-RUN make
+RUN CGO_ENABLED=0 make
 
 FROM base-1 as package-1
 WORKDIR /var/task
-ENV PATH="/var/task/node_modules/.bin:$PATH"
-ENV PATH="/var/task:$PATH"
+ENV PATH="/var/task/backend/node_modules/.bin:$PATH"
+ENV PATH="/var/task/backend:$PATH"
 ENV NODE_ENV="production"
 ENV HOSTNAME="0.0.0.0"
+ENV SLY_DEBUG="true"
 COPY --from=build-1 /var/task/proto /var/task/proto
-COPY --from=build-1 /var/task/backend/bin /var/task/backend/bin
+COPY --from=build-1 /var/task/backend/bin* /var/task/backend/bin
 
 FROM node:20-alpine as base-2
 
 FROM base-2 as build-2
 WORKDIR /var/task
-ENV PATH="/var/task/node_modules/.bin:$PATH"
-ENV PATH="/var/task:$PATH"
+ENV PATH="/var/task/web/node_modules/.bin:$PATH"
+ENV PATH="/var/task/web:$PATH"
 ENV NODE_ENV="production"
 ENV HOSTNAME="0.0.0.0"
+ENV SLY_DEBUG="true"
 COPY proto /var/task/proto
 COPY web/public /var/task/web/public
 COPY web/node_modules /var/task/web/node_modules
@@ -40,10 +43,11 @@ RUN yarn build
 
 FROM base-2 as package-2
 WORKDIR /var/task
-ENV PATH="/var/task/node_modules/.bin:$PATH"
-ENV PATH="/var/task:$PATH"
+ENV PATH="/var/task/web/node_modules/.bin:$PATH"
+ENV PATH="/var/task/web:$PATH"
 ENV NODE_ENV="production"
 ENV HOSTNAME="0.0.0.0"
+ENV SLY_DEBUG="true"
 COPY --from=build-2 /var/task/proto /var/task/proto
 COPY --from=build-2 /var/task/web/.next* /var/task/web/.next
 COPY --from=build-2 /var/task/web/public /var/task/web/public
@@ -54,10 +58,12 @@ FROM base-0 as package-0
 WORKDIR /var/task
 ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV PATH="/var/task:$PATH"
+ENV PATH="/var/task/backend:$PATH"
 ENV NODE_ENV="production"
 ENV HOSTNAME="0.0.0.0"
+ENV SLY_DEBUG="true"
 COPY --from=package-1 /var/task/proto /var/task/proto
-COPY --from=build-1 /var/task/backend/bin /var/task/backend/bin
+COPY --from=build-1 /var/task/backend/bin* /var/task/backend/bin
 COPY --from=package-2 /var/task/proto /var/task/proto
 COPY --from=package-2 /var/task/web/.next* /var/task/web/.next
 COPY --from=package-2 /var/task/web/public /var/task/web/public
@@ -68,14 +74,16 @@ FROM base-0
 WORKDIR /var/task
 ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV PATH="/var/task:$PATH"
+ENV PATH="/var/task/backend:$PATH"
 ENV NODE_ENV="production"
 ENV HOSTNAME="0.0.0.0"
+ENV SLY_DEBUG="true"
 COPY .serve* /var/task/.serve
 COPY .entrypoint* /var/task/.entrypoint
 COPY --from=package-0 /var/task/proto /var/task/proto
-COPY --from=package-0 /var/task/backend/bin/backend /var/task
-COPY --from=package-0 /var/task/backend/bin /var/task
+COPY --from=package-0 /var/task/backend/bin/* /var/task/backend/
 COPY --from=package-0 /var/task/web/.next* /var/task/web/.next
 COPY --from=package-0 /var/task/web/public /var/task/web/public
 COPY --from=package-0 /var/task/web/node_modules /var/task/web/node_modules
 COPY --from=package-0 /var/task/web/package.json /var/task/web/package.json
+CMD ( cd backend && backend ) & ( cd web && yarn start )

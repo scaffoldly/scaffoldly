@@ -14,6 +14,7 @@ export const hasOutput = (): boolean => {
 
 const PRIMARY_LOADING = ['🕛', '🕐', '🕑', '🕒', '🕓', '🕔', '🕕', '🕖', '🕗', '🕘', '🕙', '🕚'];
 const SECONDARY_LOADING = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+const SECONDARY_SPACES = '   ';
 
 export class BottomBar {
   headless = false;
@@ -33,10 +34,28 @@ export class BottomBar {
   }
 
   public updateBottomBarSubtext(text: string): void {
+    if (text === '\\n') {
+      return;
+    }
+
+    if (text && isDebug()) {
+      console.log(`${SECONDARY_SPACES}${text.trim()}`);
+      return;
+    }
+
     this.subtext = text;
   }
 
   public updateBottomBar(text: string): void {
+    if (text === '\\n') {
+      return;
+    }
+
+    if (text && isDebug()) {
+      console.log(text.trim());
+      return;
+    }
+
     if (this.interval) {
       clearInterval(this.interval);
       this.subtext = undefined;
@@ -61,9 +80,9 @@ export class BottomBar {
       this.interval = setInterval(() => {
         let message = `${PRIMARY_LOADING[count % PRIMARY_LOADING.length]} ${text}...`;
         if (this.subtext) {
-          message = `${message}\n   ${SECONDARY_LOADING[count % SECONDARY_LOADING.length]} ${
-            this.subtext
-          }`;
+          message = `${message}\n${SECONDARY_SPACES}${
+            SECONDARY_LOADING[count % SECONDARY_LOADING.length]
+          } ${this.subtext}`;
         }
         this.bottomBar.updateBottomBar(message);
         count++;

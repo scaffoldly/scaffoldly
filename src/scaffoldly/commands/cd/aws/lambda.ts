@@ -160,10 +160,10 @@ export class LambdaService implements IamConsumer {
         { factor: 1, retries: 60 },
       );
 
-    // TODO: pull from CMD on docker image
-    const { start: SLY_SERVE } = this.config.scripts;
+    const SLY_SERVE = status.cmd?.toString();
+
     if (!SLY_SERVE) {
-      throw new Error('Missing start script in scaffoldly config');
+      throw new Error('Missing SLY_SERVE');
     }
 
     return {

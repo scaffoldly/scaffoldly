@@ -1,6 +1,6 @@
 import { DockerService as DockerCiService } from '../../ci/docker';
 import { ResourceOptions } from '..';
-import { ScaffoldlyConfig } from '../../../../config';
+import { DockerCommands, ScaffoldlyConfig } from '../../../../config';
 import { DeployStatus } from '../aws';
 import { ui } from '../../../command';
 import { RegistryAuthConsumer } from '../aws/ecr';
@@ -10,6 +10,7 @@ export type DockerDeployStatus = {
   imageDigest?: string;
   architecture?: string;
   entrypoint?: string[];
+  cmd?: DockerCommands;
 };
 
 export class DockerService {
@@ -27,13 +28,14 @@ export class DockerService {
     const dockerStatus: DockerDeployStatus = {};
 
     ui.updateBottomBar(`Building ${status.repositoryUri}`);
-    const { imageName, entrypoint } = await this.dockerService.build(
+    const { imageName, entrypoint, cmd } = await this.dockerService.build(
       this.config,
       'build',
       status.repositoryUri,
     );
     dockerStatus.imageName = imageName;
     dockerStatus.entrypoint = entrypoint;
+    dockerStatus.cmd = cmd;
 
     const authConfig = await consumer.authConfig;
 

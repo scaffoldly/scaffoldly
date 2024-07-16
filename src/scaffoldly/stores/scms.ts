@@ -101,14 +101,14 @@ export class Scms {
     ui.updateBottomBar('Fetching GitHub identity...');
 
     try {
-      const { data: user } = await octokit.users.getAuthenticated();
+      const { data: user } = await octokit.rest.users.getAuthenticated();
       return user.login;
     } catch (e) {
       // No-op
     }
 
     try {
-      const { data: repos } = await octokit.apps.listReposAccessibleToInstallation();
+      const { data: repos } = await octokit.rest.apps.listReposAccessibleToInstallation();
       if (repos.total_count === 1) {
         return repos.repositories[0].full_name;
       }

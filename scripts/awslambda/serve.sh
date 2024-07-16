@@ -7,10 +7,8 @@ if [ -z "$SLY_SERVE" ]; then
   exit 1
 fi
 
-( $SLY_SERVE ) &
-PID=$!
+eval "$SLY_SERVE &"
 
-# Print the PID
-echo "[awslambda-entrypoint] Started '${SLY_SERVE}' with PID $PID"
+echo "[awslambda-entrypoint] Started '${SLY_SERVE}'"
 
 exec "$@"

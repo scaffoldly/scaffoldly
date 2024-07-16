@@ -14,6 +14,38 @@ export const decode = (config: string): ScaffoldlyConfig => {
   throw new Error(`Invalid config: ${config}`);
 };
 
+export class DockerCommands {
+  commands: DockerCommand[];
+
+  constructor() {
+    this.commands = [];
+  }
+
+  add = (cmd: DockerCommand): DockerCommands => {
+    this.commands.push(cmd);
+    return this;
+  };
+
+  toString = (): string => {
+    return this.commands.map((cmd) => cmd.toString()).join(' & ');
+  };
+}
+
+export class DockerCommand {
+  cmd: string;
+
+  workdir?: string;
+
+  constructor(cmd: string, workdir?: string) {
+    this.cmd = cmd;
+    this.workdir = workdir;
+  }
+
+  toString = (): string => {
+    return this.workdir ? `( cd ${this.workdir} && ${this.cmd} )` : `( ${this.cmd} )`;
+  };
+}
+
 export type PackageJson = {
   name?: string;
   version?: string;
@@ -21,6 +53,8 @@ export type PackageJson = {
   files?: string[];
   scaffoldly?: IScaffoldlyConfig;
 };
+
+export type Routes = { [key: string]: string | undefined };
 
 export interface IScaffoldlyConfig extends IServiceConfig {
   get name(): string;
@@ -33,7 +67,7 @@ export interface IScaffoldlyConfig extends IServiceConfig {
   get scripts(): { [key in Script]?: string };
   get src(): string; // Defaults to "."
   get services(): Partial<IServiceConfig>[];
-  get routes(): { [key: string]: string } | undefined;
+  get routes(): Routes | undefined;
   getService(identifier: string | number): IScaffoldlyConfig;
   // http: bool // Defaults to true
   // routes // Required when services is defined
@@ -244,9 +278,31 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
     });
   }
 
-  get routes(): { [key: string]: string } | undefined {
+  get routes(): Routes | undefined {
     const { routes } = this.scaffoldly;
     return routes;
+  }
+
+  get cmd(): DockerCommands {
+    const cmds = new DockerCommands();
+    if (this.scripts.start) {
+      cmds.add(
+        new DockerCommand(this.scripts.start, this.src !== DEFAULT_SRC_ROOT ? this.src : undefined),
+      );
+    }
+
+    this.services.forEach((service) => {
+      if (service.scripts.start) {
+        cmds.add(
+          new DockerCommand(
+            service.scripts.start,
+            service.src !== DEFAULT_SRC_ROOT ? service.src : undefined,
+          ),
+        );
+      }
+    });
+
+    return cmds;
   }
 
   getService(identifier: string | number): IScaffoldlyConfig {

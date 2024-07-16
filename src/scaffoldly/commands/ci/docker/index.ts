@@ -1,7 +1,7 @@
 import Docker, { AuthConfig, ImageBuildOptions } from 'dockerode';
 import tar, { Pack } from 'tar-fs';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
-import { Script, ScaffoldlyConfig, DEFAULT_SRC_ROOT } from '../../../../config';
+import { Script, ScaffoldlyConfig, DEFAULT_SRC_ROOT, DockerCommands } from '../../../../config';
 import { join, sep } from 'path';
 import { ui } from '../../../command';
 import { isDebug } from '../../../ui';
@@ -14,7 +14,10 @@ type Copy = {
   dest: string;
   noGlob?: boolean;
   resolve?: boolean;
-  binFile?: string;
+  bin?: {
+    file: string;
+    dir: string;
+  };
 };
 
 type DockerFileSpec = {
@@ -30,7 +33,7 @@ type DockerFileSpec = {
   };
   paths?: string[];
   entrypoint?: string[];
-  cmd?: string;
+  cmd?: DockerCommands;
 };
 
 type DockerEvent =
@@ -84,13 +87,17 @@ export class DockerService {
   }
 
   private handleDockerEvent(type: 'Pull' | 'Build' | 'Push', event: DockerEvent) {
-    // console.log('!!! event', event);
-    if ('stream' in event && typeof event.stream === 'string' && event.stream.startsWith('Step')) {
-      ui.updateBottomBarSubtext(event.stream);
+    if ('stream' in event && typeof event.stream === 'string') {
+      if (isDebug()) {
+        ui.updateBottomBarSubtext(event.stream);
+      } else if (event.stream.startsWith('Step ')) {
+        ui.updateBottomBarSubtext(event.stream);
+      }
     }
     if ('status' in event && typeof event.status === 'string') {
       ui.updateBottomBarSubtext(event.status);
     }
+
     if ('error' in event) {
       throw new Error(
         `Image ${type} Failed: ${event.error || event.errorDetail?.message || 'Unknown Error'}`,
@@ -102,8 +109,8 @@ export class DockerService {
     config: ScaffoldlyConfig,
     mode: Script,
     repositoryUri?: string,
-  ): Promise<{ imageName: string; entrypoint: string[] }> {
-    const { spec, entrypoint } = await this.createSpec(config, mode);
+  ): Promise<{ imageName: string; entrypoint: string[]; cmd: DockerCommands }> {
+    const { spec, entrypoint, cmd } = await this.createSpec(config, mode);
 
     const imageName = repositoryUri
       ? `${repositoryUri}:${config.version}`
@@ -183,14 +190,14 @@ export class DockerService {
       );
     });
 
-    return { imageName, entrypoint };
+    return { imageName, entrypoint, cmd };
   }
 
   async createSpec(
     config: ScaffoldlyConfig,
     mode: Script,
     ix = 0,
-  ): Promise<{ spec: DockerFileSpec; entrypoint: string[]; stream?: Pack }> {
+  ): Promise<{ spec: DockerFileSpec; entrypoint: string[]; cmd: DockerCommands; stream?: Pack }> {
     const { runtime, bin = {}, services, src } = config;
 
     const serviceSpecs = await Promise.all(
@@ -227,7 +234,7 @@ export class DockerService {
         HOSTNAME: '0.0.0.0',
         SLY_DEBUG: isDebug() ? 'true' : undefined,
       },
-      paths: [join(workdir, 'node_modules', '.bin'), workdir],
+      paths: [join(workdir, src, 'node_modules', '.bin'), join(workdir, src)],
     };
 
     let { devFiles, files: additionalBuildFiles } = config;
@@ -276,12 +283,16 @@ export class DockerService {
       );
 
       Object.values(bin).forEach((b) => {
+        if (!b) return;
         const [binDir, binFile] = splitPath(b);
         copy.push({
           from: `build-${ix}`,
           src: binDir,
           dest: binDir,
-          binFile,
+          bin: {
+            file: binFile,
+            dir: src,
+          },
         });
       });
 
@@ -304,7 +315,7 @@ export class DockerService {
         .map((s) => {
           return (s.copy || []).map((c) => {
             let from = s.as;
-            if (c.binFile) {
+            if (c.bin) {
               from = c.from;
             }
             return { ...c, from } as Copy;
@@ -313,13 +324,21 @@ export class DockerService {
         .flat()
         .filter((c) => !!c && c.src !== DEFAULT_SRC_ROOT);
 
-      spec.copy = copy.filter((c) => !!c.binFile || c.from !== spec.as);
+      spec.copy = copy.filter((c) => !!c.bin || c.from !== spec.as);
+
+      const paths = spec.paths || [];
+      copy.forEach((c) => {
+        if (c.bin) {
+          paths.push(join(workdir, c.bin.dir));
+        }
+      });
 
       spec = {
         ...spec,
         bases: [spec],
         as: undefined,
         from: `base-${ix}`,
+        paths,
         copy: [
           {
             src: serveScript,
@@ -333,18 +352,19 @@ export class DockerService {
           },
           ...(copy || [])
             .map((c) => {
-              if (c.binFile) {
+              if (c.bin) {
                 return [
+                  // {
+                  //   from: `package-${ix}`,
+                  //   src: join(workdir, c.src, c.bin.file),
+                  //   noGlob: true,
+                  //   dest: join(c.bin.dir, c.bin.file),
+                  // }, // Probably redundant
                   {
                     from: `package-${ix}`,
-                    src: join(workdir, c.src, c.binFile),
-                    noGlob: true,
-                    dest: DEFAULT_SRC_ROOT,
-                  },
-                  {
-                    from: `package-${ix}`,
-                    src: c.src,
-                    dest: DEFAULT_SRC_ROOT,
+                    src: `${c.src}${sep}`,
+                    dest: `${c.bin.dir}${sep}`,
+                    bin: c.bin,
                   },
                 ] as Copy[];
               }
@@ -352,11 +372,15 @@ export class DockerService {
             })
             .flat(),
         ],
-        cmd: config.scripts?.start,
+        cmd: config.cmd,
       };
     }
 
-    return { spec, entrypoint: [join(workdir, serveBin), join(workdir, entrypointBin)] };
+    return {
+      spec,
+      entrypoint: [join(workdir, serveBin), join(workdir, entrypointBin)],
+      cmd: config.cmd,
+    };
   }
 
   render = (spec: DockerFileSpec, mode: Script): string => {
@@ -424,7 +448,7 @@ export class DockerService {
           const exists = existsSync(join(this.cwd, src));
           if (workdir) {
             let source = join(workdir, src);
-            if (!exists) {
+            if (!exists || c.bin) {
               source = `${source}*`;
             }
             copyLines.add(`COPY --from=${c.from} ${source} ${join(workdir, c.dest)}`);
@@ -441,12 +465,7 @@ export class DockerService {
     }
 
     if (cmd) {
-      lines.push(
-        `CMD [${cmd
-          .split(' ')
-          .map((c) => `"${c}"`)
-          .join(', ')}]`,
-      );
+      lines.push(`CMD ${cmd.toString()}`);
     }
 
     const dockerfile = lines.join('\n');

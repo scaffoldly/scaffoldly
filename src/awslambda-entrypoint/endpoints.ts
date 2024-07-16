@@ -1,10 +1,10 @@
-import axios, { AxiosResponseHeaders, RawAxiosResponseHeaders } from 'axios';
+// eslint-disable-next-line import/named
+import axios, { AxiosResponse, AxiosResponseHeaders, RawAxiosResponseHeaders } from 'axios';
 import net from 'net';
-import { EndpointProxyRequest, EndpointResponse, SpawnResult } from './types';
-import { info, log } from './log';
-import { ChildProcess, spawn } from 'child_process';
+import { EndpointProxyRequest, EndpointResponse } from './types';
+import { log } from './log';
 import { APIGatewayProxyEventV2 } from 'aws-lambda';
-import { ScaffoldlyConfig } from '../config';
+import { Routes } from '../config';
 
 function convertHeaders(
   headers: RawAxiosResponseHeaders | AxiosResponseHeaders,
@@ -68,41 +68,35 @@ const waitForEndpoint = async (
   });
 };
 
-export const endpointSpawn = async (
-  config: ScaffoldlyConfig,
-  env?: NodeJS.ProcessEnv,
-): Promise<SpawnResult> => {
-  let childProcess: ChildProcess | undefined = undefined;
-
-  const { scripts, handler = process.env._HANDLER } = config;
-  if (!handler) {
-    throw new Error('No handler found in config');
+export const findHandler = (routes?: Routes, rawPath?: string): string | undefined => {
+  if (!routes) {
+    return undefined;
   }
-
-  const { start: bin } = scripts || {};
-  if (!bin) {
-    throw new Error('No start script found in config');
+  if (!rawPath) {
+    return undefined;
   }
-
-  info(`Running: \`${bin}\``);
-
-  const cmds = bin.split(' ');
-  childProcess = spawn(cmds[0], cmds.slice(1), {
-    detached: true,
-    stdio: 'inherit',
-    env: env,
+  const found = Object.entries(routes).find(([path, handler]) => {
+    if (!handler) {
+      return false;
+    }
+    try {
+      const re = new RegExp(path);
+      return re.test(rawPath);
+    } catch (e) {
+      throw new Error(`Invalid route path regex: ${path}`);
+    }
   });
 
-  log('Started child process', { cmds, pid: childProcess.pid });
+  if (!found) {
+    return undefined;
+  }
 
-  return {
-    childProcess,
-    handler,
-  };
+  return found[1];
 };
 
 export const endpointProxy = async ({
   requestId,
+  routes,
   handler,
   event,
   deadline,
@@ -125,7 +119,15 @@ export const endpointProxy = async ({
 
   const method = requestContext.http.method;
 
-  log('Waiting for endpoint to start', { handler, deadline });
+  if (!handler) {
+    handler = findHandler(routes, rawPath) || handler;
+  }
+
+  if (!handler) {
+    throw new Error(`No handler found for ${rawPath} for routes ${JSON.stringify(routes)}`);
+  }
+
+  log('Waiting for endpoint to start', { handler, routes, deadline });
   const { endpoint, timeout } = await waitForEndpoint(handler, deadline);
 
   if (!timeout) {

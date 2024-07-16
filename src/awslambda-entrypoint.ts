@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { pollForEvents } from './awslambda-entrypoint/events';
-import { endpointSpawn, endpointProxy } from './awslambda-entrypoint/endpoints';
+import { endpointProxy } from './awslambda-entrypoint/endpoints';
 import { log } from './awslambda-entrypoint/log';
 import { getRuntimeEvent, postRuntimeEventResponse } from './awslambda-entrypoint/runtime';
 import { RuntimeEvent, EndpointProxyRequest, EndpointResponse } from './awslambda-entrypoint/types';
@@ -28,18 +28,17 @@ export const run = async (): Promise<void> => {
 
   const config = decode(SLY_CONFIG);
 
-  const { handler } = config;
+  const { handler, routes } = config;
 
   if (!handler) {
     throw new Error('No handler found in config');
   }
 
   log('Polling for events', { config });
-  await pollForEvents(AWS_LAMBDA_RUNTIME_API, handler);
+  await pollForEvents(AWS_LAMBDA_RUNTIME_API, handler, routes);
 };
 
 export {
-  endpointSpawn,
   endpointProxy,
   getRuntimeEvent,
   postRuntimeEventResponse,
