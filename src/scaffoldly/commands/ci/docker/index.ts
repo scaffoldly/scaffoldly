@@ -247,11 +247,18 @@ export class DockerService {
         HOSTNAME: '0.0.0.0',
         SLY_DEBUG: isDebug() ? 'true' : undefined,
       },
-      paths,
     };
 
     let { devFiles, files: additionalBuildFiles } = config;
     const { files } = config;
+
+    // HACK: include node_modules/.bin in path
+    //       this is a hack because it seems like there's a better way to infer this
+    if (files.includes('node_modules') || devFiles.includes('node_modules')) {
+      paths.push(join(workdir, src, 'node_modules', '.bin'));
+    }
+
+    spec.paths = paths;
 
     if (devFiles.includes(DEFAULT_SRC_ROOT)) {
       // Already including the full source directiory, no need to copy more

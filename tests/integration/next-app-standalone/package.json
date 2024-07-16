@@ -29,7 +29,8 @@
     "server.js": ".next/standalone/server.js"
   },
   "files": [
-    ".next/static",
+    ".next",
+    "node_modules",
     "public"
   ],
   "scaffoldly": {

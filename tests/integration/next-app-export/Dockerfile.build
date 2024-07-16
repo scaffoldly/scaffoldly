@@ -2,8 +2,8 @@ FROM node:20-alpine as base-0
 
 FROM base-0 as build-0
 WORKDIR /var/task
-ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV PATH="/var/task:$PATH"
+ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV NODE_ENV="production"
 ENV HOSTNAME="0.0.0.0"
 COPY node_modules /var/task/node_modules
@@ -12,8 +12,8 @@ RUN next build
 
 FROM base-0 as package-0
 WORKDIR /var/task
-ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV PATH="/var/task:$PATH"
+ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV NODE_ENV="production"
 ENV HOSTNAME="0.0.0.0"
 COPY --from=build-0 /var/task/out* /var/task/out
@@ -21,12 +21,12 @@ COPY --from=build-0 /var/task/node_modules /var/task/node_modules
 
 FROM base-0
 WORKDIR /var/task
-ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV PATH="/var/task:$PATH"
+ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV NODE_ENV="production"
 ENV HOSTNAME="0.0.0.0"
 COPY .serve* /var/task/.serve
 COPY .entrypoint* /var/task/.entrypoint
 COPY --from=package-0 /var/task/out* /var/task/out
 COPY --from=package-0 /var/task/node_modules /var/task/node_modules
-CMD ["serve", "out"]
+CMD ( serve out )
