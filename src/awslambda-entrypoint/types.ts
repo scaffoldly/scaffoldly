@@ -15,8 +15,7 @@ export type RuntimeEvent = {
 
 export type EndpointProxyRequest = {
   requestId: string;
-  routes?: Routes;
-  handler: string;
+  routes: Routes;
   event: string;
   deadline: number;
 };

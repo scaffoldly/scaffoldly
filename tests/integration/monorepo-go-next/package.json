@@ -18,6 +18,7 @@
   ],
   "scaffoldly": {
     "runtime": "node:20-alpine",
+    "handler": "localhost:3000",
     "routes": {
       "/proto*": "localhost:8080"
     },

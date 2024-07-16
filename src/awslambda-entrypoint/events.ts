@@ -4,21 +4,16 @@ import { endpointProxy } from './endpoints';
 import { getRuntimeEvent, postRuntimeEventResponse } from './runtime';
 import { Routes } from '../config';
 
-export const pollForEvents = async (
-  runtimeApi: string,
-  handler: string,
-  routes?: Routes,
-): Promise<void> => {
+export const pollForEvents = async (runtimeApi: string, routes: Routes): Promise<void> => {
   log('Waiting for next event from Lambda Runtime API', { runtimeApi });
 
   const { requestId, event, deadline } = await getRuntimeEvent(runtimeApi);
 
-  log('Proxying request', { handler });
+  log('Proxying request', { routes });
 
   const request: EndpointProxyRequest = {
     requestId,
     routes,
-    handler,
     event,
     deadline,
   };
@@ -28,5 +23,5 @@ export const pollForEvents = async (
 
   log('Response sent to Lambda Runtime API', { runtimeApi, requestId });
 
-  return pollForEvents(runtimeApi, handler);
+  return pollForEvents(runtimeApi, routes);
 };

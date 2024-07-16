@@ -5,6 +5,7 @@ import { EndpointProxyRequest, EndpointResponse } from './types';
 import { log } from './log';
 import { APIGatewayProxyEventV2 } from 'aws-lambda';
 import { Routes } from '../config';
+import { pathToRegexp } from 'path-to-regexp';
 
 function convertHeaders(
   headers: RawAxiosResponseHeaders | AxiosResponseHeaders,
@@ -68,26 +69,24 @@ const waitForEndpoint = async (
   });
 };
 
-export const findHandler = (routes?: Routes, rawPath?: string): string | undefined => {
-  if (!routes) {
-    return undefined;
-  }
+export const findHandler = (routes: Routes, rawPath?: string): string | undefined => {
   if (!rawPath) {
     return undefined;
   }
+
   const found = Object.entries(routes).find(([path, handler]) => {
     if (!handler) {
       return false;
     }
+
     try {
-      const re = new RegExp(path);
-      return re.test(rawPath);
+      return !!pathToRegexp(path).exec(rawPath);
     } catch (e) {
       throw new Error(`Invalid route path regex: ${path}`);
     }
   });
 
-  if (!found) {
+  if (!found || !found[1]) {
     return undefined;
   }
 
@@ -97,7 +96,6 @@ export const findHandler = (routes?: Routes, rawPath?: string): string | undefin
 export const endpointProxy = async ({
   requestId,
   routes,
-  handler,
   event,
   deadline,
 }: EndpointProxyRequest): Promise<EndpointResponse> => {
@@ -119,15 +117,13 @@ export const endpointProxy = async ({
 
   const method = requestContext.http.method;
 
-  if (!handler) {
-    handler = findHandler(routes, rawPath) || handler;
-  }
+  const handler = findHandler(routes, rawPath);
 
   if (!handler) {
-    throw new Error(`No handler found for ${rawPath} for routes ${JSON.stringify(routes)}`);
+    throw new Error(`No handler found for ${rawPath} in routes ${JSON.stringify(routes)}`);
   }
 
-  log('Waiting for endpoint to start', { handler, routes, deadline });
+  log('Waiting for endpoint', { handler, routes, deadline });
   const { endpoint, timeout } = await waitForEndpoint(handler, deadline);
 
   if (!timeout) {

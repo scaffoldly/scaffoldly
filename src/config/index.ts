@@ -67,11 +67,8 @@ export interface IScaffoldlyConfig extends IServiceConfig {
   get scripts(): { [key in Script]?: string };
   get src(): string; // Defaults to "."
   get services(): Partial<IServiceConfig>[];
-  get routes(): Routes | undefined;
+  get routes(): Routes;
   getService(identifier: string | number): IScaffoldlyConfig;
-  // http: bool // Defaults to true
-  // routes // Required when services is defined
-  // standalone: bool // Creates a completely separate container, defaults to true
 }
 
 export interface IServiceConfig {
@@ -278,8 +275,14 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
     });
   }
 
-  get routes(): Routes | undefined {
-    const { routes } = this.scaffoldly;
+  get routes(): Routes {
+    let { routes } = this.scaffoldly;
+    if (!routes) {
+      routes = {};
+    }
+    if (!routes[DEFAULT_ROUTE]) {
+      routes[DEFAULT_ROUTE] = this.handler;
+    }
     return routes;
   }
 

@@ -86,6 +86,7 @@
     "nexe": "^4.0.0-rc.6",
     "octokit": "3",
     "open": "^8.4.0",
+    "path-to-regexp": "^7.1.0",
     "pinst": "^3.0.0",
     "prettier": "^2.4.1",
     "promise-retry": "^2.0.1",

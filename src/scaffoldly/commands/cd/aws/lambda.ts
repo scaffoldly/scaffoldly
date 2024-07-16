@@ -161,6 +161,7 @@ export class LambdaService implements IamConsumer {
       );
 
     const SLY_SERVE = status.cmd?.toString();
+    const SLY_ROUTES = JSON.stringify(this.config.routes);
 
     if (!SLY_SERVE) {
       throw new Error('Missing SLY_SERVE');
@@ -197,7 +198,7 @@ export class LambdaService implements IamConsumer {
           Architectures: [architecture === 'arm64' ? 'arm64' : 'x86_64'],
           Environment: {
             Variables: {
-              SLY_CONFIG: this.config.encode(),
+              SLY_ROUTES,
               SLY_SERVE,
             },
           },
@@ -209,7 +210,7 @@ export class LambdaService implements IamConsumer {
           MemorySize: desired.memorySize,
           Environment: {
             Variables: {
-              SLY_CONFIG: this.config.encode(),
+              SLY_ROUTES,
               SLY_SERVE,
             },
           },
