@@ -134,7 +134,9 @@ export class DockerService {
     const { copy = [] } = spec;
 
     copy
-      .filter((c) => c.resolve)
+      .filter((c) => {
+        return c.resolve;
+      })
       .forEach((c) => {
         // This will remove the symlink and add the actual file
         const content = readFileSync(join(this.cwd, c.src));
@@ -218,6 +220,17 @@ export class DockerService {
 
     const workdir = join(sep, 'var', 'task');
 
+    const paths = [join(workdir, src)];
+
+    Object.entries(bin).forEach(([script, path]) => {
+      if (!path) return;
+      const scriptPath = join(src, script);
+      const [binDir] = splitPath(path);
+      if (scriptPath === path) {
+        paths.push(join(workdir, binDir));
+      }
+    });
+
     let spec: DockerFileSpec = {
       bases: [
         {
@@ -234,7 +247,7 @@ export class DockerService {
         HOSTNAME: '0.0.0.0',
         SLY_DEBUG: isDebug() ? 'true' : undefined,
       },
-      paths: [join(workdir, src, 'node_modules', '.bin'), join(workdir, src)],
+      paths,
     };
 
     let { devFiles, files: additionalBuildFiles } = config;
@@ -282,17 +295,19 @@ export class DockerService {
           } as Copy),
       );
 
-      Object.values(bin).forEach((b) => {
-        if (!b) return;
-        const [binDir, binFile] = splitPath(b);
+      Object.entries(bin).forEach(([script, path]) => {
+        if (!path) return;
+        const scriptPath = join(src, script);
+        const [binDir, binFile] = splitPath(path);
         copy.push({
           from: `build-${ix}`,
           src: binDir,
           dest: binDir,
           bin: {
             file: binFile,
-            dir: src,
+            dir: scriptPath === path ? binDir : src,
           },
+          resolve: false,
         });
       });
 
@@ -326,7 +341,10 @@ export class DockerService {
 
       spec.copy = copy.filter((c) => !!c.bin || c.from !== spec.as);
 
-      const paths = spec.paths || [];
+      if (spec.paths) {
+        paths.push(...spec.paths);
+      }
+
       copy.forEach((c) => {
         if (c.bin) {
           paths.push(join(workdir, c.bin.dir));
@@ -354,12 +372,6 @@ export class DockerService {
             .map((c) => {
               if (c.bin) {
                 return [
-                  // {
-                  //   from: `package-${ix}`,
-                  //   src: join(workdir, c.src, c.bin.file),
-                  //   noGlob: true,
-                  //   dest: join(c.bin.dir, c.bin.file),
-                  // }, // Probably redundant
                   {
                     from: `package-${ix}`,
                     src: `${c.src}${sep}`,
@@ -401,7 +413,7 @@ export class DockerService {
     if (entrypoint) lines.push(`ENTRYPOINT [${entrypoint.map((ep) => `"${ep}"`).join(',')}]`);
     if (workdir) lines.push(`WORKDIR ${workdir}`);
 
-    for (const path of paths) {
+    for (const path of new Set(paths)) {
       lines.push(`ENV PATH="${path}:$PATH"`);
     }
 

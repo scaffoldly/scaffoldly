@@ -4,7 +4,6 @@ FROM golang:1.21 as base-1
 
 FROM base-1 as build-1
 WORKDIR /var/task
-ENV PATH="/var/task/backend/node_modules/.bin:$PATH"
 ENV PATH="/var/task/backend:$PATH"
 ENV NODE_ENV="production"
 ENV HOSTNAME="0.0.0.0"
@@ -16,7 +15,6 @@ RUN CGO_ENABLED=0 make
 
 FROM base-1 as package-1
 WORKDIR /var/task
-ENV PATH="/var/task/backend/node_modules/.bin:$PATH"
 ENV PATH="/var/task/backend:$PATH"
 ENV NODE_ENV="production"
 ENV HOSTNAME="0.0.0.0"
@@ -28,7 +26,6 @@ FROM node:20-alpine as base-2
 
 FROM base-2 as build-2
 WORKDIR /var/task
-ENV PATH="/var/task/web/node_modules/.bin:$PATH"
 ENV PATH="/var/task/web:$PATH"
 ENV NODE_ENV="production"
 ENV HOSTNAME="0.0.0.0"
@@ -43,7 +40,6 @@ RUN yarn build
 
 FROM base-2 as package-2
 WORKDIR /var/task
-ENV PATH="/var/task/web/node_modules/.bin:$PATH"
 ENV PATH="/var/task/web:$PATH"
 ENV NODE_ENV="production"
 ENV HOSTNAME="0.0.0.0"
@@ -56,7 +52,6 @@ COPY --from=build-2 /var/task/web/package.json /var/task/web/package.json
 
 FROM base-0 as package-0
 WORKDIR /var/task
-ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/backend:$PATH"
 ENV NODE_ENV="production"
@@ -72,7 +67,6 @@ COPY --from=package-2 /var/task/web/package.json /var/task/web/package.json
 
 FROM base-0
 WORKDIR /var/task
-ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/backend:$PATH"
 ENV NODE_ENV="production"
