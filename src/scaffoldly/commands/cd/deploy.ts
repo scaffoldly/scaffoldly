@@ -11,7 +11,7 @@ export class DeployCommand extends CdCommand {
   constructor() {
     super();
     this.dockerService = new DockerService(this.cwd);
-    this.awsService = new AwsService(this.config, this.dockerService);
+    this.awsService = new AwsService(this.cwd, this.config, this.dockerService);
   }
 
   async handle(): Promise<void> {

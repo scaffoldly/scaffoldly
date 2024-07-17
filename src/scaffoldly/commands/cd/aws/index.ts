@@ -6,6 +6,7 @@ import { IamDeployStatus, IamService } from './iam';
 import { EcrDeployStatus, EcrService } from './ecr';
 import { ui } from '../../../command';
 import { DockerDeployStatus, DockerService } from '../docker';
+import { Cwd } from '../..';
 
 export type DeployStatus = DockerDeployStatus &
   EcrDeployStatus &
@@ -21,11 +22,11 @@ export class AwsService {
 
   lambdaService: LambdaService;
 
-  constructor(private config: ScaffoldlyConfig, dockerService: DockerCiService) {
+  constructor(private cwd: Cwd, private config: ScaffoldlyConfig, dockerService: DockerCiService) {
     this.dockerService = new DockerService(this.config, dockerService);
     this.iamService = new IamService(this.config);
     this.ecrService = new EcrService(this.config);
-    this.lambdaService = new LambdaService(this.config);
+    this.lambdaService = new LambdaService(this.cwd, this.config);
   }
 
   async deploy(): Promise<void> {

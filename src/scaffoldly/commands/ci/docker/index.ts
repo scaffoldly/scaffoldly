@@ -200,7 +200,7 @@ export class DockerService {
     mode: Script,
     ix = 0,
   ): Promise<{ spec: DockerFileSpec; entrypoint: string[]; cmd: DockerCommands; stream?: Pack }> {
-    const { runtime, bin = {}, services, src } = config;
+    const { runtime, bin = {}, services, src, workdir } = config;
 
     const serviceSpecs = await Promise.all(
       services.map((s, sIx) => this.createSpec(s, mode, ix + sIx + 1)),
@@ -217,8 +217,6 @@ export class DockerService {
     }
 
     const environment = mode === 'develop' ? 'development' : 'production';
-
-    const workdir = join(sep, 'var', 'task');
 
     const paths = [join(workdir, src)];
 

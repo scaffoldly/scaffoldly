@@ -1,6 +1,6 @@
 import { base58 } from '@scure/base';
 import pkg from '../../package.json';
-import { join } from 'path';
+import { join, sep } from 'path';
 
 export const DEFAULT_SRC_ROOT = `.`;
 export const DEFAULT_ROUTE = '/*';
@@ -66,6 +66,7 @@ export interface IScaffoldlyConfig extends IServiceConfig {
   get bin(): PackageJsonBin; // Get copied to workdir root
   get scripts(): { [key in Script]?: string };
   get src(): string; // Defaults to "."
+  get workdir(): string; // Defaults to /var/task
   get services(): Partial<IServiceConfig>[];
   get routes(): Routes;
   getService(identifier: string | number): IScaffoldlyConfig;
@@ -306,6 +307,14 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
     });
 
     return cmds;
+  }
+
+  get workdir(): string {
+    let { workdir } = this.scaffoldly;
+    if (!workdir) {
+      workdir = join(sep, 'var', 'task');
+    }
+    return workdir;
   }
 
   getService(identifier: string | number): IScaffoldlyConfig {
