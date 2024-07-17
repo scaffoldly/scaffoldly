@@ -136,11 +136,11 @@ export class IamService {
       update: (command) => this.iamClient.send(command).then(read),
       request: {
         create: new CreateRoleCommand({
-          RoleName: this.config.name,
+          RoleName: name,
           AssumeRolePolicyDocument: JSON.stringify(trustRelationship),
         }),
         update: new UpdateAssumeRolePolicyCommand({
-          RoleName: this.config.name,
+          RoleName: name,
           PolicyDocument: JSON.stringify(trustRelationship),
         }),
       },

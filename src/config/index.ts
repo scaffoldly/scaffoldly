@@ -1,11 +1,10 @@
 import { base58 } from '@scure/base';
 import pkg from '../../package.json';
 import { join, sep } from 'path';
-
 export const DEFAULT_SRC_ROOT = `.`;
 export const DEFAULT_ROUTE = '/*';
 
-export const decode = (config: string): ScaffoldlyConfig => {
+export const decode = <T>(config: string): T => {
   if (config.startsWith(`${pkg.name}@${pkg.version}:`)) {
     return JSON.parse(
       new TextDecoder().decode(base58.decode(config.split(`${pkg.name}@${pkg.version}:`)[1])),
@@ -14,35 +13,45 @@ export const decode = (config: string): ScaffoldlyConfig => {
   throw new Error(`Invalid config: ${config}`);
 };
 
-export class DockerCommands {
-  commands: DockerCommand[];
+export const encode = <T>(config: T): string => {
+  return `${pkg.name}@${pkg.version}:${base58.encode(
+    new TextEncoder().encode(JSON.stringify(config)),
+  )}`;
+};
+
+export type ServeCommand = {
+  cmd: string;
+  workdir?: string;
+};
+
+export class ServeCommands {
+  serveCommands: ServeCommand[];
 
   constructor() {
-    this.commands = [];
+    this.serveCommands = [];
   }
 
-  add = (cmd: DockerCommand): DockerCommands => {
-    this.commands.push(cmd);
+  add = (serveCommand: ServeCommand): ServeCommands => {
+    this.serveCommands.push(serveCommand);
     return this;
   };
 
   toString = (): string => {
-    return this.commands.map((cmd) => cmd.toString()).join(' & ');
+    return this.serveCommands
+      .map((serveCommand) => {
+        return serveCommand.workdir
+          ? `( cd ${serveCommand.workdir} && ${serveCommand.cmd} )`
+          : `( ${serveCommand.cmd} )`;
+      })
+      .join(' & ');
   };
-}
 
-export class DockerCommand {
-  cmd: string;
+  encode = (): string => {
+    return encode(this.serveCommands);
+  };
 
-  workdir?: string;
-
-  constructor(cmd: string, workdir?: string) {
-    this.cmd = cmd;
-    this.workdir = workdir;
-  }
-
-  toString = (): string => {
-    return this.workdir ? `( cd ${this.workdir} && ${this.cmd} )` : `( ${this.cmd} )`;
+  static decode = (config: string): ServeCommand[] => {
+    return decode(config);
   };
 }
 
@@ -69,6 +78,7 @@ export interface IScaffoldlyConfig extends IServiceConfig {
   get workdir(): string; // Defaults to /var/task
   get services(): Partial<IServiceConfig>[];
   get routes(): Routes;
+  get secrets(): string[];
   getService(identifier: string | number): IScaffoldlyConfig;
 }
 
@@ -87,7 +97,11 @@ export type PackageJsonBin = { [key: string]: string };
 
 export type Script = 'develop' | 'build' | 'start';
 
-export class ScaffoldlyConfig implements IScaffoldlyConfig {
+export interface SecretConsumer {
+  get secretValue(): Uint8Array;
+}
+
+export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
   packageJson?: PackageJson;
 
   scaffoldly: Partial<IScaffoldlyConfig>;
@@ -114,7 +128,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
     this.packageJson = packageJson;
 
     if (encodedConfig) {
-      const decodedConfig = decode(encodedConfig);
+      const decodedConfig = decode<ScaffoldlyConfig>(encodedConfig);
       this.scaffoldly = decodedConfig;
       this._name = decodedConfig.name;
       this._version = decodedConfig.version;
@@ -287,22 +301,21 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
     return routes;
   }
 
-  get cmd(): DockerCommands {
-    const cmds = new DockerCommands();
+  get serveCommands(): ServeCommands {
+    const cmds = new ServeCommands();
     if (this.scripts.start) {
-      cmds.add(
-        new DockerCommand(this.scripts.start, this.src !== DEFAULT_SRC_ROOT ? this.src : undefined),
-      );
+      cmds.add({
+        cmd: this.scripts.start,
+        workdir: this.src !== DEFAULT_SRC_ROOT ? this.src : undefined,
+      });
     }
 
     this.services.forEach((service) => {
       if (service.scripts.start) {
-        cmds.add(
-          new DockerCommand(
-            service.scripts.start,
-            service.src !== DEFAULT_SRC_ROOT ? service.src : undefined,
-          ),
-        );
+        cmds.add({
+          cmd: service.scripts.start,
+          workdir: service.src !== DEFAULT_SRC_ROOT ? service.src : undefined,
+        });
       }
     });
 
@@ -315,6 +328,25 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
       workdir = join(sep, 'var', 'task');
     }
     return workdir;
+  }
+
+  get secrets(): string[] {
+    const { secrets = [] } = this.scaffoldly;
+    return secrets;
+  }
+
+  get secretValue(): Uint8Array {
+    const env = this.secrets.reduce((acc, secret) => {
+      const value = process.env[secret];
+      if (!value) {
+        console.warn(`WARN: Secret ${secret} not found in environment`);
+        return acc;
+      }
+      acc[secret] = value;
+      return acc;
+    }, {} as Record<string, string>);
+
+    return Buffer.from(JSON.stringify(env), 'utf-8');
   }
 
   getService(identifier: string | number): IScaffoldlyConfig {

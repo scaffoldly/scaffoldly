@@ -1,7 +1,7 @@
 import Docker, { AuthConfig, ImageBuildOptions } from 'dockerode';
 import tar, { Pack } from 'tar-fs';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
-import { Script, ScaffoldlyConfig, DEFAULT_SRC_ROOT, DockerCommands } from '../../../../config';
+import { Script, ScaffoldlyConfig, DEFAULT_SRC_ROOT, ServeCommands } from '../../../../config';
 import { join, sep } from 'path';
 import { ui } from '../../../command';
 import { isDebug } from '../../../ui';
@@ -33,7 +33,7 @@ type DockerFileSpec = {
   };
   paths?: string[];
   entrypoint?: string[];
-  cmd?: DockerCommands;
+  cmd?: ServeCommands;
 };
 
 type DockerEvent =
@@ -109,8 +109,8 @@ export class DockerService {
     config: ScaffoldlyConfig,
     mode: Script,
     repositoryUri?: string,
-  ): Promise<{ imageName: string; entrypoint: string[]; cmd: DockerCommands }> {
-    const { spec, entrypoint, cmd } = await this.createSpec(config, mode);
+  ): Promise<{ imageName: string; entrypoint: string[] }> {
+    const { spec, entrypoint } = await this.createSpec(config, mode);
 
     const imageName = repositoryUri
       ? `${repositoryUri}:${config.version}`
@@ -192,15 +192,15 @@ export class DockerService {
       );
     });
 
-    return { imageName, entrypoint, cmd };
+    return { imageName, entrypoint };
   }
 
   async createSpec(
     config: ScaffoldlyConfig,
     mode: Script,
     ix = 0,
-  ): Promise<{ spec: DockerFileSpec; entrypoint: string[]; cmd: DockerCommands; stream?: Pack }> {
-    const { runtime, bin = {}, services, src, workdir } = config;
+  ): Promise<{ spec: DockerFileSpec; entrypoint: string[]; stream?: Pack }> {
+    const { runtime, bin = {}, services, src } = config;
 
     const serviceSpecs = await Promise.all(
       services.map((s, sIx) => this.createSpec(s, mode, ix + sIx + 1)),
@@ -209,14 +209,16 @@ export class DockerService {
     const entrypointScript = join('node_modules', 'scaffoldly', 'dist', 'awslambda-entrypoint.js');
     const entrypointBin = `.entrypoint`;
 
-    const serveScript = join('node_modules', 'scaffoldly', 'scripts', 'awslambda', 'serve.sh');
-    const serveBin = `.serve`;
+    // const serveScript = join('node_modules', 'scaffoldly', 'scripts', 'awslambda', 'serve.sh');
+    // const serveBin = `.serve`;
 
     if (!runtime) {
       throw new Error('Missing runtime');
     }
 
     const environment = mode === 'develop' ? 'development' : 'production';
+
+    const workdir = join(sep, 'var', 'task');
 
     const paths = [join(workdir, src)];
 
@@ -363,11 +365,11 @@ export class DockerService {
         from: `base-${ix}`,
         paths,
         copy: [
-          {
-            src: serveScript,
-            dest: serveBin,
-            resolve: true,
-          },
+          // {
+          //   src: serveScript,
+          //   dest: serveBin,
+          //   resolve: true,
+          // },
           {
             src: entrypointScript,
             dest: entrypointBin,
@@ -389,14 +391,14 @@ export class DockerService {
             })
             .flat(),
         ],
-        cmd: config.cmd,
+        cmd: config.serveCommands,
       };
     }
 
     return {
       spec,
-      entrypoint: [join(workdir, serveBin), join(workdir, entrypointBin)],
-      cmd: config.cmd,
+      // entrypoint: [join(workdir, serveBin), join(workdir, entrypointBin)],
+      entrypoint: [join(workdir, entrypointBin)],
     };
   }
 

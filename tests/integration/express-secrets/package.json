@@ -1,0 +1,32 @@
+{
+  "name": "express-secrets",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "deploy": "scaffoldly deploy"
+  },
+  "author": "",
+  "description": "",
+  "dependencies": {
+    "express": "^4.19.2",
+    "scaffoldly": "file:../../.."
+  },
+  "bin": {
+    "index.cjs": "src/index.cjs"
+  },
+  "files": [
+    "node_modules"
+  ],
+  "scaffoldly": {
+    "runtime": "node:20-alpine",
+    "handler": "localhost:3000",
+    "secrets": [
+      "USER"
+    ],
+    "scripts": {
+      "dev": "TODO",
+      "build": "echo 'TODO'",
+      "start": "node index.cjs"
+    }
+  }
+}
