@@ -3,8 +3,11 @@ import { Command } from '../index';
 import { IAMClient } from '@aws-sdk/client-iam';
 import { LambdaClient } from '@aws-sdk/client-lambda';
 import { NotFoundException } from './aws/errors';
+import { SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
+import { isDebug } from '../../ui';
+import { ui } from '../../command';
 
-export type CloudClient = ECRClient | IAMClient | LambdaClient;
+export type CloudClient = ECRClient | IAMClient | LambdaClient | SecretsManagerClient;
 
 export type ResourceOptions = {
   clean?: boolean;
@@ -19,6 +22,35 @@ export type CloudResource<Client extends CloudClient, Resource, CreateCommand, U
   request: {
     create: CreateCommand;
     update?: UpdateCommand;
+  };
+};
+
+const handleResource = <T>(resource: T): T => {
+  if (isDebug()) {
+    if (typeof resource !== 'object') {
+      ui.updateBottomBarSubtext(`Managed cloud resource: ${resource}`);
+      return resource;
+    }
+    ui.updateBottomBarSubtext(
+      `Managed cloud resource: ${JSON.stringify({ ...resource, $metadata: undefined })}`,
+    );
+  }
+  return resource;
+};
+
+const handleError = <T>(retry: () => Promise<T>) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (e: any): Promise<T> => {
+    if ('$metadata' in e && 'httpStatusCode' in e.$metadata && e.$metadata.httpStatusCode === 404) {
+      e = new NotFoundException(e.message, e);
+    }
+    if ('__type' in e && e.__type === 'ResourceNotFoundException') {
+      e = new NotFoundException(e.message, e);
+    }
+    if (!(e instanceof NotFoundException)) {
+      return retry();
+    }
+    throw e;
   };
 };
 
@@ -38,33 +70,15 @@ export const manageResource = async <
   }
 
   if (!request.update) {
-    return resource.create(request.create).catch((e) => {
-      if (
-        '$metadata' in e &&
-        'httpStatusCode' in e.$metadata &&
-        e.$metadata.httpStatusCode === 404
-      ) {
-        e = new NotFoundException(e.message, e);
-      }
-      if (!(e instanceof NotFoundException)) {
-        return resource.read();
-      }
-      throw e;
-    });
+    return resource
+      .create(request.create)
+      .then(handleResource)
+      .catch(handleError(() => resource.read()));
   } else {
-    return resource.update(request.update).catch((e) => {
-      if (
-        '$metadata' in e &&
-        'httpStatusCode' in e.$metadata &&
-        e.$metadata.httpStatusCode === 404
-      ) {
-        e = new NotFoundException(e.message, e);
-      }
-      if (e instanceof NotFoundException) {
-        return resource.create(request.create);
-      }
-      throw e;
-    });
+    return resource
+      .update(request.update)
+      .then(handleResource)
+      .catch(handleError(() => resource.create(request.create)));
   }
 };
 

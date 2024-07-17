@@ -53,9 +53,11 @@ export type PermissionResource = CloudResource<
   undefined
 >;
 
+type FunctionUrl = string;
+
 export type UrlResource = CloudResource<
   LambdaClient,
-  string,
+  FunctionUrl,
   CreateFunctionUrlConfigCommand,
   undefined
 >;
@@ -163,16 +165,13 @@ export class LambdaService implements IamConsumer {
         { factor: 1, retries: 60 },
       );
 
-    const SLY_SERVE = status.cmd?.toString();
-    const SLY_ROUTES = JSON.stringify(this.config.routes);
-
-    if (!SLY_SERVE) {
-      throw new Error('Missing SLY_SERVE');
-    }
+    const SLY_SERVE = this.config.serveCommands.encode();
+    const SLY_ROUTES = JSON.stringify(this.config.routes); // TODO: Properly encode this
 
     const env = {
       SLY_ROUTES,
       SLY_SERVE,
+      SLY_SECRET: status.secretName || '',
     };
 
     dotenv({ path: join(this.cwd, '.env'), processEnv: env });
@@ -428,6 +427,7 @@ export class LambdaService implements IamConsumer {
             'logs:PutLogEvents',
             'xray:PutTraceSegments',
             'xray:PutTelemetryRecords',
+            'secretsmanager:GetSecretValue', // TODO: Reduce to just the managed secret
           ],
           Resource: ['*'],
           Effect: 'Allow',

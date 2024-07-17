@@ -7,14 +7,18 @@ import { EcrDeployStatus, EcrService } from './ecr';
 import { ui } from '../../../command';
 import { DockerDeployStatus, DockerService } from '../docker';
 import { Cwd } from '../..';
+import { SecretDeployStatus, SecretService } from './secret';
 
 export type DeployStatus = DockerDeployStatus &
   EcrDeployStatus &
   IamDeployStatus &
+  SecretDeployStatus &
   LambdaDeployStatus;
 
 export class AwsService {
   dockerService: DockerService;
+
+  secretService: SecretService;
 
   iamService: IamService;
 
@@ -24,6 +28,7 @@ export class AwsService {
 
   constructor(private cwd: Cwd, private config: ScaffoldlyConfig, dockerService: DockerCiService) {
     this.dockerService = new DockerService(this.config, dockerService);
+    this.secretService = new SecretService(this.config);
     this.iamService = new IamService(this.config);
     this.ecrService = new EcrService(this.config);
     this.lambdaService = new LambdaService(this.cwd, this.config);
@@ -32,6 +37,12 @@ export class AwsService {
   async deploy(): Promise<void> {
     const options: ResourceOptions = {};
     let status: DeployStatus = {};
+
+    // Deploy Secret
+    status = {
+      ...status,
+      ...(await this.secretService.deploy(status, this.config, options)),
+    };
 
     // Deploy ECR
     status = {
