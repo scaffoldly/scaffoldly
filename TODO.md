@@ -1,10 +1,20 @@
 # Ye'ole TODO List
 
-- Environment variables
+## Core
+
+- Turn entrypoint into compiled binary
+
+## Packaging
+
+- Ability to install OS packages
+
+## Environment
+
+- Support for `.env.{something}`
 
 - Secrets
 
-- Turn entrypoint into compiled binary
+## Other
 
 - update pull to pull all bases
 
