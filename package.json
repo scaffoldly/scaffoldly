@@ -37,9 +37,6 @@
     "lambda",
     "serverless"
   ],
-  "dependencies": {
-    "esbuild": "^0.21.5"
-  },
   "peerDependencies": {},
   "devDependencies": {
     "@aws-sdk/client-ecr": "^3.43.0",
@@ -98,6 +95,9 @@
     "ts-pattern": "^5.2.0",
     "typescript": "5",
     "ws": "^8.17.1",
-    "yargs": "^17.3.0"
-  }
+    "yargs": "^17.3.0",
+    "nx": "19.5.0",
+    "@nx/eslint": "19.5.0"
+  },
+  "nx": {}
 }
