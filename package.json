@@ -1,13 +1,13 @@
 {
   "name": "scaffoldly",
   "version": "1.0.12-5",
-  "description": "The CLI for scaffoldly",
-  "repository": "git@github.com:scaffoldly/cli.git",
+  "description": "Toolchain and libraries for Scaffoldly",
+  "repository": "git@github.com:scaffoldly/scaffoldly.git",
   "author": "Scaffoldly",
   "bugs": {
-    "url": "https://github.com/scaffoldly/cli/issues"
+    "url": "https://github.com/scaffoldly/scaffoldly/issues"
   },
-  "homepage": "https://github.com/scaffoldly/cli#readme",
+  "homepage": "https://github.com/scaffoldly/scaffoldly#readme",
   "license": "SEE LICENSE IN LICENSE.md",
   "private": false,
   "scripts": {
@@ -37,9 +37,6 @@
     "lambda",
     "serverless"
   ],
-  "dependencies": {
-    "esbuild": "^0.21.5"
-  },
   "peerDependencies": {},
   "devDependencies": {
     "@aws-sdk/client-ecr": "^3.43.0",
@@ -98,6 +95,9 @@
     "ts-pattern": "^5.2.0",
     "typescript": "5",
     "ws": "^8.17.1",
-    "yargs": "^17.3.0"
-  }
+    "yargs": "^17.3.0",
+    "nx": "19.5.0",
+    "@nx/eslint": "19.5.0"
+  },
+  "nx": {}
 }

@@ -1,14 +1,20 @@
-# Scaffoldly Command Line Interface
+# Scaffoldly
 
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/scaffoldly/cli?label=version) ![GitHub issues](https://img.shields.io/github/issues/scaffoldly/cli) ![Acceptance Tests](https://img.shields.io/github/actions/workflow/status/scaffoldly/cli/acceptance-tests.yml?branch=main)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/scaffoldly/scaffoldly?label=version) ![GitHub issues](https://img.shields.io/github/issues/scaffoldly/scaffoldly) ![Acceptance Tests](https://img.shields.io/github/actions/workflow/status/scaffoldly/scaffoldly/acceptance-tests.yml?branch=main)
 
 - Website: https://scaffold.ly
-- Forums: https://github.com/scaffoldly/cli/discussions
+- Forums: https://github.com/scaffoldly/scaffoldly/discussions
 - Documentation: https://docs.scaffold.ly
 
 ## Introduction
 
-This is the CLI for [Scaffoldly](https://scaffold.ly).
+This is the [Scaffoldly](https://scaffold.ly) toolhain. The following packages are provided:
+
+- Scaffoldly CLI
+- Scaffoldly GitHub Action
+- AWS Lambda Entrypoint
+
+### CLI
 
 ```
 scaffoldly [command]

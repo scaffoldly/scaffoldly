@@ -16,9 +16,9 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           registry-url: 'https://registry.npmjs.org'
-          cache: 'yarn'
-      - run: yarn
-      - run: yarn build
+          cache: 'pnpm'
+      - run: pnpm install
+      - run: pnpm build
       - if: ${{ matrix.node == '18' }}
         uses: scaffoldly/bump-version-action@v1
         with:
@@ -26,6 +26,6 @@ jobs:
           version-file: package.json
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - if: ${{ matrix.node == '18' }}
-        run: yarn publish --access public
+        run: pnpm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
