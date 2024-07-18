@@ -1,13 +1,13 @@
 {
   "name": "scaffoldly",
   "version": "1.0.12-5",
-  "description": "The CLI for scaffoldly",
-  "repository": "git@github.com:scaffoldly/cli.git",
+  "description": "Toolchain and libraries for Scaffoldly",
+  "repository": "git@github.com:scaffoldly/scaffoldly.git",
   "author": "Scaffoldly",
   "bugs": {
-    "url": "https://github.com/scaffoldly/cli/issues"
+    "url": "https://github.com/scaffoldly/scaffoldly/issues"
   },
-  "homepage": "https://github.com/scaffoldly/cli#readme",
+  "homepage": "https://github.com/scaffoldly/scaffoldly#readme",
   "license": "SEE LICENSE IN LICENSE.md",
   "private": false,
   "scripts": {
