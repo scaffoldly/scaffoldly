@@ -78,8 +78,14 @@ export class SecretService {
     return {
       client: this.secretsManagerClient,
       read,
-      create: (command) => this.secretsManagerClient.send(command).then(read),
-      update: (command) => this.secretsManagerClient.send(command).then(read),
+      create: (command) => {
+        console.log('Creating secret', command);
+        return this.secretsManagerClient.send(command).then(read);
+      },
+      update: (command) => {
+        console.log('Updating secret', command);
+        return this.secretsManagerClient.send(command).then(read);
+      },
       request: {
         create: new CreateSecretCommand({
           Name: name,

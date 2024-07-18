@@ -28,7 +28,6 @@ ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV NODE_ENV="production"
 ENV HOSTNAME="0.0.0.0"
 ENV SLY_DEBUG="true"
-COPY .serve* /var/task/.serve
 COPY .entrypoint* /var/task/.entrypoint
 COPY --from=package-0 /var/task/node_modules /var/task/node_modules
 COPY --from=package-0 /var/task/src/* /var/task/
