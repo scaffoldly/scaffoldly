@@ -1,8 +1,8 @@
 FROM alpine:3 as base-0
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
-COPY slyinst* /var/task/slyinst
-RUN which slyinst || true && slyinst nginx nodejs && rm slyinst
+COPY inst* /var/task/inst
+RUN inst nginx nodejs && rm inst
 
 FROM base-0 as build-0
 WORKDIR /var/task

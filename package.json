@@ -16,11 +16,11 @@
     "scaffoldly": "node dist/scaffoldly.cjs",
     "awslambda-entrypoint": "node dist/awslambda-entrypoint.cjs"
   },
-  "main": "dist/cli.cjs",
+  "main": "dist/main.js",
   "bin": {
-    "scaffoldly": "dist/scaffoldly.cjs",
-    "sly": "dist/scaffoldly.cjs",
-    "awslambda-entrypoint": "dist/awslambda-entrypoint.cjs"
+    "scaffoldly": "scripts/scaffoldly.cjs",
+    "sly": "scripts/scaffoldly.cjs",
+    "awslambda-entrypoint": "scripts/awslambda-entrypoint.cjs"
   },
   "files": [
     "dist/**/*",

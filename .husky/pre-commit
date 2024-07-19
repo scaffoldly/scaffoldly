@@ -1,2 +1,2 @@
-pnpm build
+yarn build
 git add dist
