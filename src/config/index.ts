@@ -79,6 +79,7 @@ export interface IScaffoldlyConfig extends IServiceConfig {
   get services(): Partial<IServiceConfig>[];
   get routes(): Routes;
   get secrets(): string[];
+  get packages(): string[];
   getService(identifier: string | number): IScaffoldlyConfig;
 }
 
@@ -347,6 +348,11 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
     }, {} as Record<string, string>);
 
     return Buffer.from(JSON.stringify(env), 'utf-8');
+  }
+
+  get packages(): string[] {
+    const { packages = [] } = this.scaffoldly;
+    return packages;
   }
 
   getService(identifier: string | number): IScaffoldlyConfig {

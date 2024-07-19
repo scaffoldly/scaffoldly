@@ -4,6 +4,7 @@ import {
   CreateSecretCommand,
   UpdateSecretCommand,
   DescribeSecretCommand,
+  PutSecretValueCommand,
 } from '@aws-sdk/client-secrets-manager';
 import { CloudResource, manageResource, ResourceOptions } from '..';
 import { NotFoundException } from './errors';
@@ -72,26 +73,26 @@ export class SecretService {
           }
           // TODO: Check consistency of the secret's value?
           return response.Name;
+        })
+        .catch((e) => {
+          if (e.name === 'NotFoundException') {
+            throw new NotFoundException('Secret not found', e);
+          }
+          throw e;
         });
     };
 
     return {
       client: this.secretsManagerClient,
       read,
-      create: (command) => {
-        console.log('Creating secret', command);
-        return this.secretsManagerClient.send(command).then(read);
-      },
-      update: (command) => {
-        console.log('Updating secret', command);
-        return this.secretsManagerClient.send(command).then(read);
-      },
+      create: async (command) => this.secretsManagerClient.send(command).then(read),
+      update: (command) => this.secretsManagerClient.send(command).then(read),
       request: {
         create: new CreateSecretCommand({
           Name: name,
           SecretBinary: value,
         }),
-        update: new UpdateSecretCommand({
+        update: new PutSecretValueCommand({
           SecretId: name,
           SecretBinary: value,
         }),

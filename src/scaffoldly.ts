@@ -25,7 +25,7 @@ export const run = async (): Promise<void> => {
   } catch (e) {
     if (e instanceof Error) {
       if (isDebug()) {
-        console.error(e);
+        console.error(e.message);
       } else {
         console.error(`Error: ${e.message}\n\nRun with --debug for more information.`);
       }

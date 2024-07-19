@@ -38,23 +38,19 @@ const handleResource = <T>(resource: T): T => {
   return resource;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const handleError = <T>(retry: Promise<T>): ((e: any) => Promise<T>) => {
+const handleError = <T>(action: 'create' | 'update', retry: Promise<T>) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (e: any): Promise<T> => {
+  return async (e: any): Promise<T> => {
     if ('$metadata' in e && 'httpStatusCode' in e.$metadata && e.$metadata.httpStatusCode === 404) {
       e = new NotFoundException(e.message, e);
     }
-    if ('__type' in e && e.__type === 'ResourceNotFoundException') {
-      e = new NotFoundException(e.message, e);
+    if (action === 'create' && !(e instanceof NotFoundException)) {
+      return retry;
     }
-    if ('__type' in e && e.__type === 'RepositoryAlreadyExistsException') {
-      e = new NotFoundException(e.message, e);
+    if (action === 'update' && e instanceof NotFoundException) {
+      return retry;
     }
-    if (!(e instanceof NotFoundException)) {
-      throw e;
-    }
-    return retry;
+    throw e;
   };
 };
 
@@ -74,12 +70,19 @@ export const manageResource = async <
   }
 
   if (!request.update) {
-    return resource.create(request.create).then(handleResource).catch(handleError(resource.read()));
+    return resource
+      .create(request.create)
+      .then(handleResource)
+      .catch((e) => {
+        return handleError('create', resource.read())(e);
+      });
   } else {
     return resource
       .update(request.update)
       .then(handleResource)
-      .catch(handleError(resource.create(request.create)));
+      .catch((e) => {
+        return handleError('update', resource.create(request.create))(e);
+      });
   }
 };
 

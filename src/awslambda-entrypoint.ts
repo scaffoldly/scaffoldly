@@ -9,6 +9,7 @@ import packageJson from '../package.json';
 import { Routes, ServeCommand, ServeCommands } from './config';
 import { spawn } from 'child_process';
 import { GetSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
+// import { parse } from 'shell-quote';
 
 const { SLY_SERVE, SLY_ROUTES, SLY_SECRET, AWS_LAMBDA_RUNTIME_API } = process.env;
 

@@ -1,0 +1,36 @@
+FROM alpine:3 as base-0
+WORKDIR /var/task
+ENV PATH="/var/task:$PATH"
+COPY slyinst* /var/task/slyinst
+RUN which slyinst || true && slyinst nginx nodejs && rm slyinst
+
+FROM base-0 as build-0
+WORKDIR /var/task
+ENV PATH="/var/task:$PATH"
+ENV NODE_ENV="production"
+ENV HOSTNAME="0.0.0.0"
+ENV SLY_DEBUG="true"
+COPY nginx /var/task/nginx
+COPY html /var/task/html
+COPY . /var/task/
+RUN echo 'TODO'
+
+FROM base-0 as package-0
+WORKDIR /var/task
+ENV PATH="/var/task:$PATH"
+ENV NODE_ENV="production"
+ENV HOSTNAME="0.0.0.0"
+ENV SLY_DEBUG="true"
+COPY --from=build-0 /var/task/nginx /var/task/nginx
+COPY --from=build-0 /var/task/html /var/task/html
+
+FROM base-0
+WORKDIR /var/task
+ENV PATH="/var/task:$PATH"
+ENV NODE_ENV="production"
+ENV HOSTNAME="0.0.0.0"
+ENV SLY_DEBUG="true"
+COPY .entrypoint* /var/task/.entrypoint
+COPY --from=package-0 /var/task/nginx /var/task/nginx
+COPY --from=package-0 /var/task/html /var/task/html
+CMD ( nginx -c /var/task/nginx/nginx.conf )
