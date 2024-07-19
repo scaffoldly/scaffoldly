@@ -8,7 +8,5 @@ tests/integration/monorepo-go-next/*
 !tests/integration/monorepo-go-next/*Dockerfile*
 !tests/integration/monorepo-go-next/*package.json*
 
-
-
 .nx/cache
 .nx/workspace-data

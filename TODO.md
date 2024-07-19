@@ -10,6 +10,8 @@
 
 ## Environment
 
+- Inject .env during docker builds
+- Try envsubst in packages-alpine-nginx build
 - Support for `.env.{something}`
 
 ## Secrets

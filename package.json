@@ -16,11 +16,11 @@
     "scaffoldly": "node dist/scaffoldly.cjs",
     "awslambda-entrypoint": "node dist/awslambda-entrypoint.cjs"
   },
-  "main": "dist/cli.cjs",
+  "main": "dist/main.js",
   "bin": {
-    "scaffoldly": "dist/scaffoldly.cjs",
-    "sly": "dist/scaffoldly.cjs",
-    "awslambda-entrypoint": "dist/awslambda-entrypoint.cjs"
+    "scaffoldly": "scripts/scaffoldly.cjs",
+    "sly": "scripts/scaffoldly.cjs",
+    "awslambda-entrypoint": "scripts/awslambda-entrypoint.cjs"
   },
   "files": [
     "dist/**/*",
@@ -37,7 +37,6 @@
     "lambda",
     "serverless"
   ],
-  "peerDependencies": {},
   "devDependencies": {
     "@aws-sdk/client-ecr": "^3.43.0",
     "@aws-sdk/client-iam": "^3.43.0",
@@ -46,6 +45,7 @@
     "@aws-sdk/client-sts": "^3.43.0",
     "@babel/core": "^7.16.0",
     "@babel/eslint-parser": "^7.16.0",
+    "@nx/eslint": "19.5.0",
     "@scure/base": "^1.1.7",
     "@smithy/types": "^3.3.0",
     "@types/aws-lambda": "^8.10.140",
@@ -55,6 +55,7 @@
     "@types/lodash": "^4.17.6",
     "@types/node": "18",
     "@types/promise-retry": "^1.1.6",
+    "@types/shell-quote": "^1.7.5",
     "@types/tar-fs": "^2.0.4",
     "@types/ws": "^8.5.10",
     "@types/yargs": "^17.0.7",
@@ -82,12 +83,14 @@
     "loglevel": "^1.8.0",
     "moment": "^2.29.1",
     "nexe": "^4.0.0-rc.6",
+    "nx": "19.5.0",
     "octokit": "3",
     "open": "^8.4.0",
     "path-to-regexp": "^7.1.0",
     "pinst": "^3.0.0",
     "prettier": "^2.4.1",
     "promise-retry": "^2.0.1",
+    "shell-quote": "^1.8.1",
     "source-map": "^0.7.3",
     "tar-fs": "^3.0.6",
     "ts-loader": "^9.2.6",
@@ -95,9 +98,7 @@
     "ts-pattern": "^5.2.0",
     "typescript": "5",
     "ws": "^8.17.1",
-    "yargs": "^17.3.0",
-    "nx": "19.5.0",
-    "@nx/eslint": "19.5.0"
+    "yargs": "^17.3.0"
   },
   "nx": {}
 }

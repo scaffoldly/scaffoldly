@@ -79,6 +79,26 @@ const splitPath = (path: string): [string, string] => {
   return [parts.slice(0, -1).join(sep), parts.pop() as string];
 };
 
+const filesToResolve = (spec: DockerFileSpec): Copy[] => {
+  const files = new Set<Copy>();
+
+  if (spec.copy) {
+    spec.copy.forEach((c) => {
+      if (c.resolve) {
+        files.add(c);
+      }
+    });
+  }
+
+  if (spec.bases) {
+    spec.bases.forEach((b) => {
+      filesToResolve(b).forEach((f) => files.add(f));
+    });
+  }
+
+  return Array.from(files);
+};
+
 export class DockerService {
   docker: Docker;
 
@@ -131,24 +151,18 @@ export class DockerService {
       // },
     });
 
-    const { copy = [] } = spec;
-
-    copy
-      .filter((c) => {
-        return c.resolve;
-      })
-      .forEach((c) => {
-        // This will remove the symlink and add the actual file
-        const content = readFileSync(join(this.cwd, c.src));
-        stream.entry(
-          {
-            name: c.dest,
-            mode: 0o755,
-          },
-          content,
-          () => {},
-        );
-      });
+    filesToResolve(spec).forEach((c) => {
+      // This will remove the symlink and add the actual file
+      const content = readFileSync(join(this.cwd, c.src));
+      stream.entry(
+        {
+          name: c.dest,
+          mode: 0o755, // TODO: Make configurable
+        },
+        content,
+        () => {},
+      );
+    });
 
     const { runtime } = config;
     if (!runtime) {
@@ -206,6 +220,9 @@ export class DockerService {
       services.map((s, sIx) => this.createSpec(s, mode, ix + sIx + 1)),
     );
 
+    const installScript = join('node_modules', 'scaffoldly', 'scripts', 'install.sh');
+    const installBin = `inst`;
+
     const entrypointScript = join('node_modules', 'scaffoldly', 'dist', 'awslambda-entrypoint.js');
     const entrypointBin = `.entrypoint`;
 
@@ -236,6 +253,20 @@ export class DockerService {
         {
           from: runtime,
           as: `base-${ix}`,
+          copy: [
+            {
+              src: installScript,
+              dest: installBin,
+              resolve: true,
+            },
+          ],
+          workdir,
+          paths: [workdir],
+          run: config.packages
+            ? {
+                cmds: [`${installBin} ${config.packages.join(' ')}`, `rm ${installBin}`],
+              }
+            : undefined,
         },
         ...serviceSpecs.map((s) => s.spec),
       ],
@@ -346,7 +377,7 @@ export class DockerService {
         .flat()
         .filter((c) => !!c && c.src !== DEFAULT_SRC_ROOT);
 
-      spec.copy = copy.filter((c) => !!c.bin || c.from !== spec.as);
+      // spec.copy = copy.filter((c) => !!c.bin || c.from !== spec.as);
 
       if (spec.paths) {
         paths.push(...spec.paths);
