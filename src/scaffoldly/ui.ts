@@ -6,7 +6,9 @@ export const isHeadless = (): boolean => {
 
 export const isDebug = (): boolean => {
   console.log('!!! process.argv', process.argv);
-  return !!process.argv.find((arg) => arg === '--debug');
+  const debug = !!process.argv.find((arg) => arg === '--debug');
+  console.log('!!! isDebug', isDebug);
+  return debug;
 };
 
 export const hasOutput = (): boolean => {
