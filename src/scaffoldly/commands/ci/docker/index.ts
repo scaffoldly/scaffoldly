@@ -355,8 +355,8 @@ export class DockerService {
             return { ...c, from } as Copy;
           });
         })
-        .flat()
-        .filter((c) => !!c && c.src !== DEFAULT_SRC_ROOT);
+        .flat();
+      // .filter((c) => !!c && c.src !== DEFAULT_SRC_ROOT);
 
       // spec.copy = copy.filter((c) => !!c.bin || c.from !== spec.as);
 
