@@ -76,8 +76,8 @@ export class SecretService {
           return response.Name;
         })
         .catch((e) => {
-          console.log('!!! read error', e);
-          if (e.name === 'NotFoundException') {
+          console.log('!!! read error', e, e.name);
+          if (e.name === 'ResourceNotFoundException') {
             throw new NotFoundException('Secret not found', e);
           }
           throw e;
