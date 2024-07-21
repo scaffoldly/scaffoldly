@@ -1,8 +1,7 @@
 FROM alpine:3 as base-0
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
-COPY inst* /var/task/inst
-RUN inst nginx nodejs && rm inst
+RUN apk update && apk add --no-cache nginx nodejs && rm -rf /var/cache/apk/*
 
 FROM base-0 as build-0
 WORKDIR /var/task

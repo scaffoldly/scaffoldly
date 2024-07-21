@@ -11,6 +11,7 @@ import {
 import { join, sep } from 'path';
 import { ui } from '../../../command';
 import { isDebug } from '../../../ui';
+import { BufferedWriteStream } from './util';
 
 type Path = string;
 
@@ -33,10 +34,12 @@ type DockerFileSpec = {
   workdir?: string;
   copy?: Copy[];
   env?: { [key: string]: string | undefined };
-  run?: {
-    workdir?: string;
-    cmds: string[];
-  };
+  run?:
+    | {
+        workdir?: string;
+        cmds: string[];
+      }
+    | string[];
   paths?: string[];
   cmd?: ServeCommands;
   shell?: Shell;
@@ -175,22 +178,6 @@ export class DockerService {
       throw new Error('Missing runtime');
     }
 
-    const pullStream = await this.docker.pull(runtime);
-
-    await new Promise<DockerEvent[]>((resolve, reject) => {
-      this.docker.modem.followProgress(
-        pullStream,
-        (err, res) => (err ? reject(err) : resolve(res)),
-        (event) => {
-          try {
-            this.handleDockerEvent('Pull', event);
-          } catch (e) {
-            reject(e);
-          }
-        },
-      );
-    });
-
     const buildStream = await this.docker.buildImage(stream, {
       dockerfile: dockerfilePath.replace(this.cwd, DEFAULT_SRC_ROOT),
       t: imageName,
@@ -220,20 +207,14 @@ export class DockerService {
     mode: Script,
     ix = 0,
   ): Promise<{ spec: DockerFileSpec; entrypoint: string[]; stream?: Pack }> {
-    const { runtime, bin = {}, services, src, shell } = config;
+    const { runtime, bin = {}, services, src, shell, packages } = config;
 
     const serviceSpecs = await Promise.all(
       services.map((s, sIx) => this.createSpec(s, mode, ix + sIx + 1)),
     );
 
-    const installScript = join('node_modules', 'scaffoldly', 'scripts', 'install.sh');
-    const installBin = `inst`;
-
     const entrypointScript = join('node_modules', 'scaffoldly', 'dist', 'awslambda-entrypoint.js');
     const entrypointBin = `.entrypoint`;
-
-    // const serveScript = join('node_modules', 'scaffoldly', 'scripts', 'awslambda', 'serve.sh');
-    // const serveBin = `.serve`;
 
     if (!runtime) {
       throw new Error('Missing runtime');
@@ -259,20 +240,9 @@ export class DockerService {
         {
           from: runtime,
           as: `base-${ix}`,
-          copy: [
-            {
-              src: installScript,
-              dest: installBin,
-              resolve: true,
-            },
-          ],
           workdir,
           paths: [workdir],
-          run: config.packages
-            ? {
-                cmds: [`${installBin} ${config.packages.join(' ')}`, `rm ${installBin}`],
-              }
-            : undefined,
+          run: await this.installPackages(runtime, packages),
           shell,
         },
         ...serviceSpecs.map((s) => s.spec),
@@ -514,19 +484,23 @@ export class DockerService {
     lines.push(...copyLines);
 
     if (run) {
-      if (run.workdir) {
+      let rundir = workdir;
+      if ('workdir' in run && run.workdir) {
+        rundir = run.workdir;
         lines.push(`WORKDIR ${run.workdir}`);
       }
+
+      const cmds = Array.isArray(run) ? run : run.cmds;
 
       if (shell === 'direnv') {
         lines.push(`RUN direnv allow`);
         // TODO: infer default /bin/sh command from base image
         // TODO: does entrypoint need to be added to lambda runtime?
-        lines.push(`SHELL ["/bin/sh", "-c", "direnv exec ${run.workdir || workdir} /bin/sh"]`);
-        lines.push(`ENTRYPOINT ["/bin/sh", "-c", "direnv exec ${run.workdir || workdir} /bin/sh"]`);
+        lines.push(`SHELL ["/bin/sh", "-c", "direnv exec ${rundir} /bin/sh"]`);
+        lines.push(`ENTRYPOINT ["/bin/sh", "-c", "direnv exec ${rundir} /bin/sh"]`);
       }
 
-      lines.push(`RUN ${run.cmds.join(' && ')}`);
+      lines.push(`RUN ${cmds.join(' && ')}`);
     }
 
     if (cmd) {
@@ -577,5 +551,81 @@ export class DockerService {
     }
 
     return { imageDigest, architecture };
+  }
+
+  private installPackages = async (runtime: string, packages?: string[]): Promise<string[]> => {
+    if (!packages || !packages.length) {
+      return [];
+    }
+
+    const bin = await this.checkBin(runtime, ['apk', 'apt', 'dnf', 'yum']);
+
+    switch (bin) {
+      case 'apk':
+        return [
+          `apk update && apk add --no-cache ${packages.join(' ')} && rm -rf /var/cache/apk/*`,
+        ];
+      case 'apt':
+        return [
+          `apt update && apt install -y --no-install-recommends ${packages.join(
+            ' ',
+          )} && apt clean && rm -rf /var/lib/apt/lists/*`,
+        ];
+      case 'dnf':
+        return [`dnf install -y ${packages.join(' ')} && dnf clean all && rm -rf /var/cache/dnf`];
+      case 'yum':
+        return [`yum install -y ${packages.join(' ')} && yum clean all && rm -rf /var/cache/yum`];
+      default:
+        throw new Error(`Unable to determine find a package manager in ${runtime}`);
+    }
+  };
+
+  private async checkBin<T extends string[]>(
+    runtime: string,
+    bins: [...T],
+  ): Promise<T[number] | undefined> {
+    if (!bins || !bins.length) {
+      return undefined;
+    }
+
+    const pullStream = await this.docker.pull(runtime);
+
+    await new Promise<DockerEvent[]>((resolve, reject) => {
+      this.docker.modem.followProgress(
+        pullStream,
+        (err, res) => (err ? reject(err) : resolve(res)),
+        (event) => {
+          try {
+            this.handleDockerEvent('Pull', event);
+          } catch (e) {
+            reject(e);
+          }
+        },
+      );
+    });
+
+    const bin = bins.pop();
+
+    const [output, container] = await this.docker.run(
+      runtime,
+      [`command -v ${bin}`],
+      new BufferedWriteStream(),
+      {
+        Tty: false,
+        Entrypoint: ['/bin/sh', '-c'], // TODO: check OS to determine shell
+      },
+    );
+
+    try {
+      await container.remove();
+    } catch (e) {
+      // ignore, TODO: log error
+    }
+
+    if ('StatusCode' in output && output.StatusCode !== 0) {
+      return this.checkBin(runtime, bins);
+    }
+
+    return bin;
   }
 }
