@@ -41,8 +41,6 @@ const handleResource = <T>(resource: T): T => {
 const handleError = <T>(action: 'create' | 'update', retry: Promise<T>) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return async (e: any): Promise<T> => {
-    console.log(`!!! ${action} error`, e);
-
     if ('$metadata' in e && 'httpStatusCode' in e.$metadata && e.$metadata.httpStatusCode === 404) {
       e = new NotFoundException(e.message, e);
     }
@@ -79,7 +77,6 @@ export const manageResource = async <
       .create(request.create)
       .then(handleResource)
       .catch((e) => {
-        console.log('!!! create error', e);
         return handleError('create', resource.read())(e);
       });
   } else {
@@ -87,7 +84,6 @@ export const manageResource = async <
       .update(request.update)
       .then(handleResource)
       .catch((e) => {
-        console.log('!!! update error', e);
         return handleError('update', resource.create(request.create))(e);
       });
   }

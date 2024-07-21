@@ -68,7 +68,6 @@ export class SecretService {
       return this.secretsManagerClient
         .send(new DescribeSecretCommand({ SecretId: name }))
         .then((response) => {
-          console.log('!!! read response', response);
           if (!response.Name) {
             throw new NotFoundException('Secret not found');
           }
@@ -76,7 +75,6 @@ export class SecretService {
           return response.Name;
         })
         .catch((e) => {
-          console.log('!!! read error', e, e.name);
           if (e.name === 'ResourceNotFoundException') {
             throw new NotFoundException('Secret not found', e);
           }
