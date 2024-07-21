@@ -4,6 +4,9 @@ on:
   release:
     types: [published]
 
+permissions:
+  workflows: write
+
 jobs:
   publish:
     runs-on: ubuntu-latest
