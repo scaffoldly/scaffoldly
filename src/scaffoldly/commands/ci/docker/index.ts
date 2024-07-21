@@ -27,6 +27,12 @@ type Copy = {
   };
 };
 
+type RunCommand = {
+  workdir?: string;
+  cmds: string[];
+  prerequisite: boolean;
+};
+
 type DockerFileSpec = {
   bases?: DockerFileSpec[];
   from: string;
@@ -34,12 +40,7 @@ type DockerFileSpec = {
   workdir?: string;
   copy?: Copy[];
   env?: { [key: string]: string | undefined };
-  run?:
-    | {
-        workdir?: string;
-        cmds: string[];
-      }
-    | string[];
+  run?: RunCommand[];
   paths?: string[];
   cmd?: ServeCommands;
   shell?: Shell;
@@ -294,10 +295,13 @@ export class DockerService {
           as: `build-${ix}`,
           copy: buildFiles,
           workdir,
-          run: {
-            workdir: src !== DEFAULT_SRC_ROOT ? join(workdir, src) : undefined,
-            cmds: [config.scripts.build],
-          },
+          run: [
+            {
+              workdir: src !== DEFAULT_SRC_ROOT ? join(workdir, src) : undefined,
+              cmds: [config.scripts.build],
+              prerequisite: false,
+            },
+          ],
         },
       ];
 
@@ -437,6 +441,17 @@ export class DockerService {
       }
     }
 
+    const prereqRuns = run?.filter((r) => r.prerequisite && r.cmds.length);
+    if (prereqRuns) {
+      prereqRuns.forEach((r) => {
+        if (r.workdir) {
+          lines.push(`WORKDIR ${r.workdir}`);
+        }
+
+        lines.push(`RUN ${r.cmds.join(' && ')}`);
+      });
+    }
+
     const copyLines = new Set<string>();
     if (copy) {
       copy
@@ -484,23 +499,28 @@ export class DockerService {
     lines.push(...copyLines);
 
     if (run) {
-      let rundir = workdir;
-      if ('workdir' in run && run.workdir) {
-        rundir = run.workdir;
-        lines.push(`WORKDIR ${run.workdir}`);
-      }
+      const runs = run.filter((r) => !r.prerequisite && r.cmds.length);
 
-      const cmds = Array.isArray(run) ? run : run.cmds;
+      runs.forEach((r) => {
+        let rundir = workdir;
+        if (r.workdir) {
+          rundir = r.workdir;
+          lines.push(`WORKDIR ${r.workdir}`);
+        }
 
-      if (shell === 'direnv') {
-        lines.push(`RUN direnv allow`);
-        // TODO: infer default /bin/sh command from base image
-        // TODO: does entrypoint need to be added to lambda runtime?
-        lines.push(`SHELL ["/bin/sh", "-c", "direnv exec ${rundir} /bin/sh"]`);
-        lines.push(`ENTRYPOINT ["/bin/sh", "-c", "direnv exec ${rundir} /bin/sh"]`);
-      }
+        if (shell === 'direnv') {
+          lines.push(`RUN direnv allow`);
+          // TODO: infer default /bin/sh command from base image
+          // TODO: does entrypoint need to be added to lambda runtime?
+          lines.push(`SHELL ["/bin/sh", "-c", "direnv exec ${rundir} /bin/sh"]`);
+        }
 
-      lines.push(`RUN ${cmds.join(' && ')}`);
+        lines.push(`RUN ${r.cmds.join(' && ')}`);
+      });
+    }
+
+    if (shell === 'direnv') {
+      lines.push(`ENTRYPOINT ["/bin/sh", "-c", "direnv exec ${workdir} /bin/sh"]`);
     }
 
     if (cmd) {
@@ -553,7 +573,7 @@ export class DockerService {
     return { imageDigest, architecture };
   }
 
-  private installPackages = async (runtime: string, packages?: string[]): Promise<string[]> => {
+  private installPackages = async (runtime: string, packages?: string[]): Promise<RunCommand[]> => {
     if (!packages || !packages.length) {
       return [];
     }
@@ -563,18 +583,48 @@ export class DockerService {
     switch (bin) {
       case 'apk':
         return [
-          `apk update && apk add --no-cache ${packages.join(' ')} && rm -rf /var/cache/apk/*`,
+          {
+            prerequisite: true,
+            cmds: [
+              `apk update`,
+              `apk add --no-cache ${packages.join(' ')}`,
+              `rm -rf /var/cache/apk/*`,
+            ],
+          },
         ];
       case 'apt':
         return [
-          `apt update && apt install -y --no-install-recommends ${packages.join(
-            ' ',
-          )} && apt clean && rm -rf /var/lib/apt/lists/*`,
+          {
+            prerequisite: true,
+            cmds: [
+              `apt update`,
+              `apt install -y --no-install-recommends ${packages.join(' ')}`,
+              `apt clean && rm -rf /var/lib/apt/lists/*`,
+            ],
+          },
         ];
       case 'dnf':
-        return [`dnf install -y ${packages.join(' ')} && dnf clean all && rm -rf /var/cache/dnf`];
+        return [
+          {
+            prerequisite: true,
+            cmds: [
+              `dnf install -y ${packages.join(' ')}`,
+              `dnf clean all`,
+              `rm -rf /var/cache/dnf`,
+            ],
+          },
+        ];
       case 'yum':
-        return [`yum install -y ${packages.join(' ')} && yum clean all && rm -rf /var/cache/yum`];
+        return [
+          {
+            prerequisite: true,
+            cmds: [
+              `yum install -y ${packages.join(' ')}`,
+              `yum clean all`,
+              `rm -rf /var/cache/yum`,
+            ],
+          },
+        ];
       default:
         throw new Error(`Unable to determine find a package manager in ${runtime}`);
     }
