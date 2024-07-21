@@ -445,7 +445,7 @@ export class DockerService {
     if (prereqRuns) {
       prereqRuns.forEach((r) => {
         if (r.workdir) {
-          lines.push(`WORKDIR ${r.workdir}`);
+          r.cmds.unshift(`cd ${r.workdir}`);
         }
 
         lines.push(`RUN ${r.cmds.join(' && ')}`);
@@ -506,11 +506,11 @@ export class DockerService {
           lines.push(`RUN direnv allow`);
           // TODO: infer default /bin/sh command from base image
           // TODO: does entrypoint need to be added to lambda runtime?
-          lines.push(`SHELL [ "/bin/sh", "-c", "direnv exec ${workdir} /bin/sh" ]`);
+          lines.push(`SHELL [ "/bin/sh", "-c", "direnv exec ${workdir} /bin/sh", "-c" ]`);
         }
 
         if (r.workdir) {
-          lines.push(`WORKDIR ${r.workdir}`);
+          r.cmds.unshift(`cd ${r.workdir}`);
         }
 
         lines.push(`RUN ${r.cmds.join(' && ')}`);
