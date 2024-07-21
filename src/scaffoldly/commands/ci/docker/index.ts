@@ -350,6 +350,7 @@ export class DockerService {
       const copy = [spec, ...(spec.bases || [])]
         .map((s) => {
           return (s.copy || []).map((c) => {
+            console.log(`!!! considering copy from ${spec.as}`, c);
             let from = s.as;
             if (c.bin) {
               from = c.from;
