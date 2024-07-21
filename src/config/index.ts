@@ -19,6 +19,8 @@ export const encode = <T>(config: T): string => {
   )}`;
 };
 
+export type Shell = 'direnv';
+
 export type ServeCommand = {
   cmd: string;
   workdir?: string;
@@ -80,6 +82,7 @@ export interface IScaffoldlyConfig extends IServiceConfig {
   get routes(): Routes;
   get secrets(): string[];
   get packages(): string[];
+  get shell(): Shell | undefined;
   getService(identifier: string | number): IScaffoldlyConfig;
 }
 
@@ -353,6 +356,11 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
   get packages(): string[] {
     const { packages = [] } = this.scaffoldly;
     return packages;
+  }
+
+  get shell(): Shell | undefined {
+    const { shell } = this.scaffoldly;
+    return shell;
   }
 
   getService(identifier: string | number): IScaffoldlyConfig {

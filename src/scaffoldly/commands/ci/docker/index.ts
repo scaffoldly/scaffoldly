@@ -1,7 +1,13 @@
 import Docker, { AuthConfig, ImageBuildOptions } from 'dockerode';
 import tar, { Pack } from 'tar-fs';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
-import { Script, ScaffoldlyConfig, DEFAULT_SRC_ROOT, ServeCommands } from '../../../../config';
+import {
+  Script,
+  ScaffoldlyConfig,
+  DEFAULT_SRC_ROOT,
+  ServeCommands,
+  Shell,
+} from '../../../../config';
 import { join, sep } from 'path';
 import { ui } from '../../../command';
 import { isDebug } from '../../../ui';
@@ -32,8 +38,8 @@ type DockerFileSpec = {
     cmds: string[];
   };
   paths?: string[];
-  entrypoint?: string[];
   cmd?: ServeCommands;
+  shell?: Shell;
 };
 
 type DockerEvent =
@@ -214,7 +220,7 @@ export class DockerService {
     mode: Script,
     ix = 0,
   ): Promise<{ spec: DockerFileSpec; entrypoint: string[]; stream?: Pack }> {
-    const { runtime, bin = {}, services, src } = config;
+    const { runtime, bin = {}, services, src, shell } = config;
 
     const serviceSpecs = await Promise.all(
       services.map((s, sIx) => this.createSpec(s, mode, ix + sIx + 1)),
@@ -267,6 +273,7 @@ export class DockerService {
                 cmds: [`${installBin} ${config.packages.join(' ')}`, `rm ${installBin}`],
               }
             : undefined,
+          shell,
         },
         ...serviceSpecs.map((s) => s.spec),
       ],
@@ -278,6 +285,7 @@ export class DockerService {
         HOSTNAME: '0.0.0.0',
         SLY_DEBUG: isDebug() ? 'true' : undefined,
       },
+      shell,
     };
 
     let { devFiles, files: additionalBuildFiles } = config;
@@ -314,7 +322,6 @@ export class DockerService {
         {
           ...spec,
           as: `build-${ix}`,
-          entrypoint: undefined,
           copy: buildFiles,
           workdir,
           run: {
@@ -443,12 +450,11 @@ export class DockerService {
       }
     }
 
-    const { copy, workdir, env = {}, entrypoint, run, paths = [], cmd } = spec;
+    const { copy, workdir, env = {}, run, paths = [], cmd, shell } = spec;
 
     const from = spec.as ? `${spec.from} as ${spec.as}` : spec.from;
 
     lines.push(`FROM ${from}`);
-    if (entrypoint) lines.push(`ENTRYPOINT [${entrypoint.map((ep) => `"${ep}"`).join(',')}]`);
     if (workdir) lines.push(`WORKDIR ${workdir}`);
 
     for (const path of new Set(paths)) {
@@ -511,6 +517,15 @@ export class DockerService {
       if (run.workdir) {
         lines.push(`WORKDIR ${run.workdir}`);
       }
+
+      if (shell === 'direnv') {
+        lines.push(`RUN direnv allow`);
+        // TODO: infer default /bin/sh command from base image
+        // TODO: does entrypoint need to be added to lambda runtime?
+        lines.push(`SHELL ["/bin/sh", "-c", "direnv exec ${run.workdir || workdir} /bin/sh"]`);
+        lines.push(`ENTRYPOINT ["/bin/sh", "-c", "direnv exec ${run.workdir || workdir} /bin/sh"]`);
+      }
+
       lines.push(`RUN ${run.cmds.join(' && ')}`);
     }
 
