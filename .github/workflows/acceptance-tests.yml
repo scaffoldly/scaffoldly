@@ -30,7 +30,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - run: yarn install
+      - run: yarn
       - run: npm install -g .
       - name: Login
         run: scaffoldly login github --withToken ${{ secrets.GITHUB_TOKEN }}
