@@ -1,5 +1,8 @@
 # Scaffoldly
 
+> [!WARNING]
+> This framework is currently in active development and should be considered alpha.
+
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/scaffoldly/scaffoldly?label=version) ![GitHub issues](https://img.shields.io/github/issues/scaffoldly/scaffoldly) ![Acceptance Tests](https://img.shields.io/github/actions/workflow/status/scaffoldly/scaffoldly/acceptance-tests.yml?branch=main)
 
 - Website: https://scaffold.ly
