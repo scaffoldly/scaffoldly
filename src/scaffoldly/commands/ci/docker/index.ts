@@ -502,25 +502,19 @@ export class DockerService {
       const runs = run.filter((r) => !r.prerequisite && r.cmds.length);
 
       runs.forEach((r) => {
-        let rundir = workdir;
-        if (r.workdir) {
-          rundir = r.workdir;
-          lines.push(`WORKDIR ${r.workdir}`);
-        }
-
         if (shell === 'direnv') {
           lines.push(`RUN direnv allow`);
           // TODO: infer default /bin/sh command from base image
           // TODO: does entrypoint need to be added to lambda runtime?
-          lines.push(`SHELL ["/bin/sh", "-c", "direnv exec ${rundir} /bin/sh"]`);
+          lines.push(`SHELL [ "/bin/sh", "-c", "direnv exec ${workdir} /bin/sh" ]`);
+        }
+
+        if (r.workdir) {
+          lines.push(`WORKDIR ${r.workdir}`);
         }
 
         lines.push(`RUN ${r.cmds.join(' && ')}`);
       });
-    }
-
-    if (shell === 'direnv') {
-      lines.push(`ENTRYPOINT ["/bin/sh", "-c", "direnv exec ${workdir} /bin/sh"]`);
     }
 
     if (cmd) {
