@@ -5,6 +5,7 @@ export const isHeadless = (): boolean => {
 };
 
 export const isDebug = (): boolean => {
+  console.log('!!! process.argv', process.argv);
   return !!process.argv.find((arg) => arg === '--debug');
 };
 
