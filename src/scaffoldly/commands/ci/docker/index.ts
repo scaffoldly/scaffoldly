@@ -379,9 +379,6 @@ export class DockerService {
 
     if (mode === 'start') {
       const fromStage = fromStages[`package-${ix}`];
-      if (!fromStage) {
-        return undefined;
-      }
 
       spec.as = `runtime`;
       spec.cmd = config.serveCommands;
