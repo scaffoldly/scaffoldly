@@ -344,9 +344,6 @@ export class DockerService {
 
     if (mode === 'build') {
       const fromStage = fromStages[`install-${name}`];
-      if (!fromStage) {
-        return undefined;
-      }
 
       spec.run = [
         {
@@ -368,7 +365,7 @@ export class DockerService {
             });
             return;
           }
-          copy.push({ src: file, dest: file });
+          copy.push({ from: fromStage?.as, src: file, dest: file });
         });
       }
 
@@ -379,23 +376,22 @@ export class DockerService {
     }
 
     if (mode === 'package') {
-      const fromStage = fromStages[`build-${config.name}`];
+      const fromStage = fromStages[`build-${name}`];
+      console.log('!!! fromStages', fromStages);
 
-      const copy: Copy[] = fromStage
-        ? files.map((file) => {
-            const [from, f] = file.split(':');
-            if (from && f) {
-              const cp: Copy = {
-                from: `${mode}-${from}`,
-                src: join(src, f),
-                dest: join(src, f),
-              };
-              return cp;
-            }
-            const cp: Copy = { from: fromStage.as, src: file, dest: file };
-            return cp;
-          })
-        : [];
+      const copy = files.map((file) => {
+        const [from, f] = file.split(':');
+        if (from && f) {
+          const cp: Copy = {
+            from: `${mode}-${from}`,
+            src: join(src, f),
+            dest: join(src, f),
+          };
+          return cp;
+        }
+        const cp: Copy = { from: fromStage?.as, src: file, dest: file };
+        return cp;
+      });
 
       Object.entries(bin).forEach(([script, path]) => {
         if (!path) return;
