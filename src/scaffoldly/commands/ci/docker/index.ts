@@ -378,14 +378,13 @@ export class DockerService {
     }
 
     if (mode === 'start') {
-      const fromStage = fromStages[`package-${ix}`];
-
       spec.as = `runtime`;
       spec.cmd = config.serveCommands;
 
       const copy = Object.keys(fromStages)
         .reverse() // Earlier stages get higher precedence
         .map((key) => {
+          const fromStage = fromStages[key];
           return (fromStage?.copy || []).map((c) => {
             if (c.bin) {
               const cp: Copy = {
