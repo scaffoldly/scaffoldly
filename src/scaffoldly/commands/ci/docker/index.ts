@@ -386,10 +386,10 @@ export class DockerService {
       const copy = Object.keys(fromStages)
         .reverse() // Earlier stages get higher precedence
         .map((key) => {
-          return (fromStage.copy || []).map((c) => {
+          return (fromStage?.copy || []).map((c) => {
             if (c.bin) {
               const cp: Copy = {
-                from: fromStage.as,
+                from: fromStage?.as,
                 src: `${c.src}${sep}`,
                 dest: `${c.bin.dir}${sep}`,
                 bin: c.bin,
