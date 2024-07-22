@@ -163,16 +163,10 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
         };
         this.serviceConfig = serviceConfig;
         this._name = `${packageJson.name}-${serviceConfig.name}`;
-        this._files = [
-          ...(packageJson.files || []),
-          ...(serviceConfig.files || []).map((f) => join(serviceConfig.src, f)),
-        ];
+        this._files = [...(packageJson.files || []), ...(serviceConfig.files || [])];
         this._bin = {
           ...(packageJson.bin || {}),
-          ...Object.entries(serviceConfig.bin || {}).reduce((acc, [key, value]) => {
-            acc[key] = join(serviceConfig.src, value);
-            return acc;
-          }, serviceConfig.bin || {}),
+          ...(serviceConfig.bin || {}),
         };
       }
 
