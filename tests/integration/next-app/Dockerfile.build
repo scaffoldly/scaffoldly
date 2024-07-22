@@ -10,7 +10,7 @@ ENV SLY_DEBUG="true"
 COPY . /var/task/
 RUN next build
 
-FROM build-0 as package-0
+FROM install-0 as package-0
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"

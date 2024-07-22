@@ -265,7 +265,7 @@ export class DockerService {
     const { packages, workdir, shell, runtime, src, files, scripts, bin } = config;
 
     const spec: DockerFileSpec = {
-      from: runtime,
+      from: `install-${ix}`,
       as: `${mode}-${ix}`,
       workdir: workdir,
       shell: shell,
@@ -279,6 +279,7 @@ export class DockerService {
     };
 
     if (mode === 'install') {
+      spec.from = runtime;
       spec.run = await this.installPackages(runtime, packages);
       return spec;
     }
@@ -314,7 +315,7 @@ export class DockerService {
     }
 
     if (mode === 'package') {
-      spec.from = `build-${ix}`;
+      spec.from = `install-${ix}`;
 
       const copy = files.map((file) => {
         const cp: Copy = { from: `build-${ix}`, src: file, dest: file };
