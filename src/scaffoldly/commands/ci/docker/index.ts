@@ -318,7 +318,11 @@ export class DockerService {
           files.forEach((file) => {
             const [from, f] = file.split(':');
             if (from && f) {
-              copy.push({ from: `${mode}-${from}`, src: join(src, f), dest: join(src, f) });
+              copy.push({
+                from: `${mode}-${from}`,
+                src: join(workdir, src, f),
+                dest: join(workdir, src, f),
+              });
               return;
             }
             copy.push({ src: file, dest: file });
@@ -357,7 +361,11 @@ export class DockerService {
         files.forEach((file) => {
           const [from, f] = file.split(':');
           if (from && f) {
-            copy.push({ from: `${mode}-${from}`, src: join(src, f), dest: join(src, f) });
+            copy.push({
+              from: `${mode}-${from}`,
+              src: join(workdir, src, f),
+              dest: join(workdir, src, f),
+            });
             return;
           }
           copy.push({ src: file, dest: file });
@@ -377,7 +385,11 @@ export class DockerService {
         ? files.map((file) => {
             const [from, f] = file.split(':');
             if (from && f) {
-              const cp: Copy = { from: `${mode}-${from}`, src: join(src, f), dest: join(src, f) };
+              const cp: Copy = {
+                from: `${mode}-${from}`,
+                src: join(workdir, src, f),
+                dest: join(workdir, src, f),
+              };
               return cp;
             }
             const cp: Copy = { from: fromStage.as, src: file, dest: file };
