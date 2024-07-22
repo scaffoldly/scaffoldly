@@ -234,7 +234,7 @@ export class DockerService {
     const bases: DockerStage = await this.createStage(config, 'install', {});
     const builds: DockerStage = await this.createStage(config, 'build', bases);
     const packages: DockerStage = await this.createStage(config, 'package', builds);
-    const runtime = await this.createSpec(config, 'start', 0, packages);
+    const runtime = await this.createSpec(config, 'start', 0, { ...bases, ...builds, ...packages });
 
     if (!runtime) {
       throw new Error('Failed to create runtime spec');
