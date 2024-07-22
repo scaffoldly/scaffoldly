@@ -44,6 +44,9 @@ const handleError = <T>(action: 'create' | 'update', retry: Promise<T>) => {
     if ('$metadata' in e && 'httpStatusCode' in e.$metadata && e.$metadata.httpStatusCode === 404) {
       e = new NotFoundException(e.message, e);
     }
+    if ('__type' in e && typeof e.__type === 'string' && e.__type.endsWith('NotFoundException')) {
+      e = new NotFoundException(e.message, e);
+    }
     if (action === 'create' && !(e instanceof NotFoundException)) {
       return retry;
     }

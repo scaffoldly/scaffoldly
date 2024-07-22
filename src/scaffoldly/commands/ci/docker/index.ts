@@ -1,11 +1,20 @@
 import Docker, { AuthConfig, ImageBuildOptions } from 'dockerode';
-import tar, { Pack } from 'tar-fs';
+import tar from 'tar-fs';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
-import { Script, ScaffoldlyConfig, DEFAULT_SRC_ROOT, ServeCommands } from '../../../../config';
+import {
+  Script,
+  ScaffoldlyConfig,
+  DEFAULT_SRC_ROOT,
+  ServeCommands,
+  Shell,
+  ServiceName,
+} from '../../../../config';
 import { join, sep } from 'path';
 import { ui } from '../../../command';
 import { isDebug } from '../../../ui';
+import { BufferedWriteStream } from './util';
 
+const BASE = 'base';
 type Path = string;
 
 type Copy = {
@@ -14,26 +23,40 @@ type Copy = {
   dest: string;
   noGlob?: boolean;
   resolve?: boolean;
+  entrypoint?: boolean;
   bin?: {
     file: string;
     dir: string;
   };
+  mode?: number;
+};
+
+type RunCommand = {
+  workdir?: string;
+  cmds: string[];
+  prerequisite: boolean;
+};
+
+type DockerStage = { [key: string]: DockerFileSpec | undefined };
+
+type DockerStages = {
+  bases: DockerStage;
+  builds: DockerStage;
+  packages: DockerStage;
+  runtime: DockerFileSpec;
 };
 
 type DockerFileSpec = {
-  bases?: DockerFileSpec[];
+  // bases?: DockerFileSpec[];
   from: string;
-  as?: string;
+  as: string;
   workdir?: string;
   copy?: Copy[];
   env?: { [key: string]: string | undefined };
-  run?: {
-    workdir?: string;
-    cmds: string[];
-  };
+  run?: RunCommand[];
   paths?: string[];
-  entrypoint?: string[];
   cmd?: ServeCommands;
+  shell?: Shell;
 };
 
 type DockerEvent =
@@ -90,11 +113,11 @@ const filesToResolve = (spec: DockerFileSpec): Copy[] => {
     });
   }
 
-  if (spec.bases) {
-    spec.bases.forEach((b) => {
-      filesToResolve(b).forEach((f) => files.add(f));
-    });
-  }
+  // if (spec.bases) {
+  //   spec.bases.forEach((b) => {
+  //     filesToResolve(b).forEach((f) => files.add(f));
+  //   });
+  // }
 
   return Array.from(files);
 };
@@ -130,60 +153,53 @@ export class DockerService {
     mode: Script,
     repositoryUri?: string,
   ): Promise<{ imageName: string; entrypoint: string[] }> {
-    const { spec, entrypoint } = await this.createSpec(config, mode);
+    const stages = await this.createStages(config, mode);
+
+    console.log('!!! created stages', JSON.stringify(stages, null, 2));
+
+    // const { spec, entrypoint } = await this.createSpec(config, mode);
+
+    // console.log('!!! created spec', JSON.stringify(spec, null, 2));
 
     const imageName = repositoryUri
       ? `${repositoryUri}:${config.version}`
       : `${config.name}:${mode}`;
 
     // todo add dockerfile to tar instead of writing it to cwd
-    const dockerfile = this.render(spec, mode);
+    // const dockerfile = this.renderSpec(spec);
+    const dockerfile = this.renderStages(stages);
 
     const dockerfilePath = join(this.cwd, `Dockerfile.${mode}`) as Path;
     writeFileSync(dockerfilePath, Buffer.from(dockerfile, 'utf-8'));
 
     const stream = tar.pack(this.cwd, {
       // filter: (name) => {
-      //   if ([...staticBins].find((file) => name === join(this.cwd, file))) {
-      //     return true;
-      //   }
+      //   console.log('!!! name', name);
       //   return false;
       // },
     });
 
-    filesToResolve(spec).forEach((c) => {
-      // This will remove the symlink and add the actual file
-      const content = readFileSync(join(this.cwd, c.src));
-      stream.entry(
-        {
-          name: c.dest,
-          mode: 0o755, // TODO: Make configurable
-        },
-        content,
-        () => {},
-      );
-    });
+    stages.runtime.copy
+      ?.filter((c) => c.resolve)
+      .forEach((c) => {
+        // This will remove the symlink and add the actual file
+        const content = readFileSync(join(this.cwd, c.src));
+        stream.entry(
+          {
+            name: c.dest,
+            mode: c.mode,
+          },
+          content,
+          () => {},
+        );
+      });
+
+    const entrypoint = (stages.runtime.copy || []).filter((c) => c.entrypoint).map((c) => c.dest);
 
     const { runtime } = config;
     if (!runtime) {
       throw new Error('Missing runtime');
     }
-
-    const pullStream = await this.docker.pull(runtime);
-
-    await new Promise<DockerEvent[]>((resolve, reject) => {
-      this.docker.modem.followProgress(
-        pullStream,
-        (err, res) => (err ? reject(err) : resolve(res)),
-        (event) => {
-          try {
-            this.handleDockerEvent('Pull', event);
-          } catch (e) {
-            reject(e);
-          }
-        },
-      );
-    });
 
     const buildStream = await this.docker.buildImage(stream, {
       dockerfile: dockerfilePath.replace(this.cwd, DEFAULT_SRC_ROOT),
@@ -206,141 +222,193 @@ export class DockerService {
       );
     });
 
-    return { imageName, entrypoint };
+    return { imageName, entrypoint: entrypoint };
+  }
+
+  async createStages(config: ScaffoldlyConfig, mode: Script): Promise<DockerStages> {
+    if (mode === 'develop') {
+      // TODO
+      return { runtime: { from: 'todo', as: 'todo' }, bases: {}, builds: {}, packages: {} };
+    }
+
+    ui.updateBottomBarSubtext('Creating Install Stages');
+    const bases: DockerStage = await this.createStage(config, 'install', {});
+    ui.updateBottomBarSubtext('Creating Build Stages');
+    const builds: DockerStage = await this.createStage(config, 'build', bases);
+    ui.updateBottomBarSubtext('Creating Package Stages');
+    const packages: DockerStage = await this.createStage(config, 'package', builds);
+    ui.updateBottomBarSubtext('Creating Runtime Stage');
+    const runtime = await this.createSpec(config, 'start', BASE, packages);
+
+    if (!runtime) {
+      throw new Error('Failed to create runtime spec');
+    }
+
+    return { bases, builds, packages, runtime };
+  }
+
+  async createStage(
+    config: ScaffoldlyConfig,
+    mode: Script,
+    fromStages: DockerStage,
+  ): Promise<DockerStage> {
+    let bases: DockerStage = {};
+
+    const spec = await this.createSpec(config, mode, BASE, fromStages);
+
+    if (spec) {
+      bases[spec.as] = spec;
+    }
+
+    const { services } = config;
+
+    bases = await services.reduce(async (accP, service) => {
+      const acc = await accP;
+
+      const serviceSpec = await this.createSpec(service, mode, service.name, fromStages);
+      if (!serviceSpec) {
+        return acc;
+      }
+
+      return {
+        ...acc,
+        [serviceSpec.as]: serviceSpec,
+      };
+    }, Promise.resolve(bases));
+
+    return bases;
   }
 
   async createSpec(
     config: ScaffoldlyConfig,
     mode: Script,
-    ix = 0,
-  ): Promise<{ spec: DockerFileSpec; entrypoint: string[]; stream?: Pack }> {
-    const { runtime, bin = {}, services, src } = config;
+    name: ServiceName,
+    fromStages: DockerStage,
+  ): Promise<DockerFileSpec | undefined> {
+    const { packages, workdir, shell, runtime, src, files, scripts, bin } = config;
 
-    const serviceSpecs = await Promise.all(
-      services.map((s, sIx) => this.createSpec(s, mode, ix + sIx + 1)),
-    );
-
-    const installScript = join('node_modules', 'scaffoldly', 'scripts', 'install.sh');
-    const installBin = `inst`;
-
-    const entrypointScript = join('node_modules', 'scaffoldly', 'dist', 'awslambda-entrypoint.js');
-    const entrypointBin = `.entrypoint`;
-
-    // const serveScript = join('node_modules', 'scaffoldly', 'scripts', 'awslambda', 'serve.sh');
-    // const serveBin = `.serve`;
-
-    if (!runtime) {
-      throw new Error('Missing runtime');
-    }
-
-    const environment = mode === 'develop' ? 'development' : 'production';
-
-    const workdir = join(sep, 'var', 'task');
-
-    const paths = [join(workdir, src)];
-
-    Object.entries(bin).forEach(([script, path]) => {
-      if (!path) return;
-      const scriptPath = join(src, script);
-      const [binDir] = splitPath(path);
-      if (scriptPath === path) {
-        paths.push(join(workdir, binDir));
-      }
-    });
-
-    let spec: DockerFileSpec = {
-      bases: [
-        {
-          from: runtime,
-          as: `base-${ix}`,
-          copy: [
-            {
-              src: installScript,
-              dest: installBin,
-              resolve: true,
-            },
-          ],
-          workdir,
-          paths: [workdir],
-          run: config.packages
-            ? {
-                cmds: [`${installBin} ${config.packages.join(' ')}`, `rm ${installBin}`],
-              }
-            : undefined,
-        },
-        ...serviceSpecs.map((s) => s.spec),
-      ],
-      from: `base-${ix}`,
-      as: `package-${ix}`,
-      workdir,
+    const spec: DockerFileSpec = {
+      from: `install-${name}`,
+      as: `${mode}-${name}`,
+      workdir: workdir,
+      shell: shell,
+      cmd: undefined,
+      copy: [],
+      paths: [],
       env: {
-        NODE_ENV: environment, // TODO Env File Interpolation
-        HOSTNAME: '0.0.0.0',
         SLY_DEBUG: isDebug() ? 'true' : undefined,
       },
+      run: [],
     };
 
-    let { devFiles, files: additionalBuildFiles } = config;
-    const { files } = config;
+    if (mode === 'install') {
+      spec.from = runtime;
 
+      const runCommands = (await this.installPackages(runtime, packages)) || [];
+
+      runCommands.push({
+        cmds: scripts.install ? [scripts.install] : [],
+        prerequisite: false,
+        workdir: src !== DEFAULT_SRC_ROOT ? src : undefined,
+      });
+
+      if (scripts.install) {
+        const copy: Copy[] = [{ src, dest: src }];
+        if (src !== DEFAULT_SRC_ROOT) {
+          files.forEach((file) => {
+            const [from, f] = file.split(':');
+            if (from && f) {
+              copy.push({
+                from: `${mode}-${from}`,
+                src: join(src, f), // TODO figure out ".."
+                dest: join(src, f),
+              });
+              return;
+            }
+            copy.push({ src: file, dest: file });
+          });
+        }
+        spec.copy = copy;
+      }
+
+      spec.run = runCommands;
+
+      return spec;
+    }
+
+    const paths = [join(workdir, src)];
     // HACK: include node_modules/.bin in path
-    //       this is a hack because it seems like there's a better way to infer this
-    if (files.includes('node_modules') || devFiles.includes('node_modules')) {
+    if (files.includes('node_modules')) {
       paths.push(join(workdir, src, 'node_modules', '.bin'));
     }
 
-    spec.paths = paths;
+    if (mode === 'build') {
+      const fromStage = fromStages[`install-${name}`];
+      if (!fromStage) {
+        return undefined;
+      }
 
-    if (devFiles.includes(DEFAULT_SRC_ROOT)) {
-      // Already including the full source directiory, no need to copy more
-      devFiles = [join(DEFAULT_SRC_ROOT, src)];
-      additionalBuildFiles = files;
-    }
-
-    const buildFiles: Copy[] = [...additionalBuildFiles, ...devFiles].map((file) => {
-      const copy: Copy = {
-        src: file,
-        dest: file,
-      };
-      return copy;
-    });
-
-    if (mode === 'develop' && config.scripts.develop) {
-      spec.copy = buildFiles;
-    }
-
-    if (mode === 'build' && config.scripts.build) {
-      spec.bases = [
+      spec.run = [
         {
-          ...spec,
-          as: `build-${ix}`,
-          entrypoint: undefined,
-          copy: buildFiles,
-          workdir,
-          run: {
-            workdir: src !== DEFAULT_SRC_ROOT ? join(workdir, src) : undefined,
-            cmds: [config.scripts.build],
-          },
+          cmds: scripts.build ? [scripts.build] : [],
+          prerequisite: false,
+          workdir: src !== DEFAULT_SRC_ROOT ? src : undefined,
         },
       ];
 
-      const copy = files.map(
-        (file) =>
-          ({
-            from: `build-${ix}`,
-            src: file,
-            dest: file,
-          } as Copy),
-      );
+      const copy: Copy[] = [{ src, dest: src }];
+      if (src !== DEFAULT_SRC_ROOT) {
+        files.forEach((file) => {
+          const [from, f] = file.split(':');
+          if (from && f) {
+            copy.push({
+              from: `${mode}-${from}`,
+              src: join(src, f),
+              dest: join(src, f),
+            });
+            return;
+          }
+          copy.push({ src: file, dest: file });
+        });
+      }
+
+      spec.copy = copy;
+      spec.paths = paths;
+
+      return spec;
+    }
+
+    if (mode === 'package') {
+      const fromStage = fromStages[`build-${config.name}`];
+
+      const copy: Copy[] = fromStage
+        ? files.map((file) => {
+            const [from, f] = file.split(':');
+            if (from && f) {
+              const cp: Copy = {
+                from: `${mode}-${from}`,
+                src: join(src, f),
+                dest: join(src, f),
+              };
+              return cp;
+            }
+            const cp: Copy = { from: fromStage.as, src: file, dest: file };
+            return cp;
+          })
+        : [];
 
       Object.entries(bin).forEach(([script, path]) => {
         if (!path) return;
+        if (!fromStage) return;
+
         const scriptPath = join(src, script);
         const [binDir, binFile] = splitPath(path);
+
+        paths.push(join(workdir, src, binDir));
         copy.push({
-          from: `build-${ix}`,
-          src: binDir,
-          dest: binDir,
+          from: fromStage.as,
+          src: join(src, binDir),
+          dest: join(src, binDir),
           bin: {
             file: binFile,
             dir: scriptPath === path ? binDir : src,
@@ -349,106 +417,319 @@ export class DockerService {
         });
       });
 
-      spec.copy = [...(spec.copy || []), ...copy].map((c) => {
-        const srcGlobIx = c.src.indexOf('*');
-        if (srcGlobIx !== -1) {
-          c.src = c.src.slice(0, srcGlobIx);
-        }
-        const destGlobIx = c.dest.indexOf('*');
-        if (destGlobIx !== -1) {
-          c.dest = c.dest.slice(0, destGlobIx);
-        }
+      spec.copy = copy;
+      spec.paths = paths;
 
-        return c;
-      });
+      return spec;
     }
 
-    if (mode === 'build' && ix === 0) {
-      const copy = [spec, ...(spec.bases || [])]
-        .map((s) => {
-          return (s.copy || []).map((c) => {
-            let from = s.as;
+    if (mode === 'start') {
+      spec.as = `runtime`;
+      spec.cmd = config.serveCommands;
+
+      const copy = Object.keys(fromStages)
+        .reverse() // Earlier stages get higher precedence
+        .map((key) => {
+          const fromStage = fromStages[key];
+          return (fromStage?.copy || []).map((c) => {
             if (c.bin) {
-              from = c.from;
+              paths.push(join(workdir, c.bin.dir));
+              const cp: Copy = {
+                from: fromStage?.as,
+                src: `${c.src}${sep}`,
+                dest: `${c.bin.dir}${sep}`,
+                bin: c.bin,
+              };
+              return cp;
             }
-            return { ...c, from } as Copy;
+
+            const cp: Copy = { ...c, from: key, noGlob: true };
+            return cp;
           });
         })
-        .flat()
-        .filter((c) => !!c && c.src !== DEFAULT_SRC_ROOT);
+        .flat();
 
-      // spec.copy = copy.filter((c) => !!c.bin || c.from !== spec.as);
-
-      if (spec.paths) {
-        paths.push(...spec.paths);
-      }
-
-      copy.forEach((c) => {
-        if (c.bin) {
-          paths.push(join(workdir, c.bin.dir));
-        }
+      copy.push({
+        src: join('node_modules', 'scaffoldly', 'dist', 'awslambda-entrypoint.js'),
+        dest: `.entrypoint`,
+        resolve: true,
+        mode: 0o755,
+        entrypoint: true,
       });
 
-      spec = {
-        ...spec,
-        bases: [spec],
-        as: undefined,
-        from: `base-${ix}`,
-        paths,
-        copy: [
-          // {
-          //   src: serveScript,
-          //   dest: serveBin,
-          //   resolve: true,
-          // },
-          {
-            src: entrypointScript,
-            dest: entrypointBin,
-            resolve: true,
-          },
-          ...(copy || [])
-            .map((c) => {
-              if (c.bin) {
-                return [
-                  {
-                    from: `package-${ix}`,
-                    src: `${c.src}${sep}`,
-                    dest: `${c.bin.dir}${sep}`,
-                    bin: c.bin,
-                  },
-                ] as Copy[];
-              }
-              return [{ ...c, from: `package-${ix}` } as Copy];
-            })
-            .flat(),
-        ],
-        cmd: config.serveCommands,
-      };
+      spec.copy = copy;
+      spec.paths = paths;
+
+      return spec;
     }
 
-    return {
-      spec,
-      // entrypoint: [join(workdir, serveBin), join(workdir, entrypointBin)],
-      entrypoint: [join(workdir, entrypointBin)],
-    };
+    return undefined;
   }
 
-  render = (spec: DockerFileSpec, mode: Script): string => {
+  // async createSpec(
+  //   config: ScaffoldlyConfig,
+  //   mode: Script,
+  //   ix = 0,
+  // ): Promise<{ spec: DockerFileSpec; entrypoint: string[]; stream?: Pack }> {
+  //   const { runtime, bin = {}, services, src, shell, packages } = config;
+
+  //   // const serviceSpecs = await Promise.all(
+  //   //   services.map((s, sIx) => this.createSpec(s, mode, ix + sIx + 1)),
+  //   // );
+
+  //   const entrypointScript = join('node_modules', 'scaffoldly', 'dist', 'awslambda-entrypoint.js');
+  //   const entrypointBin = `.entrypoint`;
+
+  //   if (!runtime) {
+  //     throw new Error('Missing runtime');
+  //   }
+
+  //   const environment = mode === 'develop' ? 'development' : 'production';
+
+  //   const workdir = join(sep, 'var', 'task');
+
+  //   const paths = [join(workdir, src)];
+
+  //   Object.entries(bin).forEach(([script, path]) => {
+  //     if (!path) return;
+  //     const scriptPath = join(src, script);
+  //     const [binDir] = splitPath(path);
+  //     if (scriptPath === path) {
+  //       paths.push(join(workdir, binDir));
+  //     }
+  //   });
+
+  //   let spec: DockerFileSpec = {
+  //     bases: [
+  //       {
+  //         from: runtime,
+  //         as: `base-${ix}`,
+  //         workdir,
+  //         paths: [workdir],
+  //         run: await this.installPackages(runtime, packages),
+  //         shell,
+  //       },
+  //       ...serviceSpecs.map((s) => s.spec),
+  //     ],
+  //     from: `base-${ix}`,
+  //     as: `package-${ix}`,
+  //     workdir,
+  //     env: {
+  //       NODE_ENV: environment, // TODO Env File Interpolation
+  //       HOSTNAME: '0.0.0.0',
+  //       SLY_DEBUG: isDebug() ? 'true' : undefined,
+  //     },
+  //     shell,
+  //   };
+
+  //   let { devFiles, files: additionalBuildFiles } = config;
+  //   const { files } = config;
+
+  //   // HACK: include node_modules/.bin in path
+  //   //       this is a hack because it seems like there's a better way to infer this
+  //   if (files.includes('node_modules') || devFiles.includes('node_modules')) {
+  //     paths.push(join(workdir, src, 'node_modules', '.bin'));
+  //   }
+
+  //   spec.paths = paths;
+
+  //   if (devFiles.includes(DEFAULT_SRC_ROOT)) {
+  //     // Already including the full source directiory, no need to copy more
+  //     devFiles = [join(DEFAULT_SRC_ROOT, src)];
+  //     additionalBuildFiles = files;
+  //   }
+
+  //   const buildFiles: Copy[] = [...additionalBuildFiles, ...devFiles].map((file) => {
+  //     const copy: Copy = {
+  //       src: file,
+  //       dest: file,
+  //     };
+  //     return copy;
+  //   });
+
+  //   if (mode === 'develop' && config.scripts.develop) {
+  //     spec.copy = buildFiles;
+  //   }
+
+  //   if (mode === 'build' && config.scripts.build) {
+  //     spec.bases = [
+  //       {
+  //         ...spec,
+  //         as: `build-${ix}`,
+  //         copy: buildFiles,
+  //         workdir,
+  //         run: [
+  //           {
+  //             workdir: src !== DEFAULT_SRC_ROOT ? join(workdir, src) : undefined,
+  //             cmds: [config.scripts.build],
+  //             prerequisite: false,
+  //           },
+  //         ],
+  //       },
+  //     ];
+
+  //     const copy = files.map(
+  //       (file) =>
+  //         ({
+  //           from: `build-${ix}`,
+  //           src: file,
+  //           dest: file,
+  //         } as Copy),
+  //     );
+
+  //     Object.entries(bin).forEach(([script, path]) => {
+  //       if (!path) return;
+  //       const scriptPath = join(src, script);
+  //       const [binDir, binFile] = splitPath(path);
+  //       copy.push({
+  //         from: `build-${ix}`,
+  //         src: binDir,
+  //         dest: binDir,
+  //         bin: {
+  //           file: binFile,
+  //           dir: scriptPath === path ? binDir : src,
+  //         },
+  //         resolve: false,
+  //       });
+  //     });
+
+  //     spec.copy = [...(spec.copy || []), ...copy].map((c) => {
+  //       const srcGlobIx = c.src.indexOf('*');
+  //       if (srcGlobIx !== -1) {
+  //         c.src = c.src.slice(0, srcGlobIx);
+  //       }
+  //       const destGlobIx = c.dest.indexOf('*');
+  //       if (destGlobIx !== -1) {
+  //         c.dest = c.dest.slice(0, destGlobIx);
+  //       }
+
+  //       return c;
+  //     });
+  //   }
+
+  //   if (mode === 'build' && ix === 0) {
+  //     const copy = [spec, ...(spec.bases || [])]
+  //       .map((s) => {
+  //         console.log(`!!! checking spec ${s.as}`);
+  //         return (s.copy || []).map((c) => {
+  //           console.log(`!!!    considering copy`, c);
+  //           let from = s.as;
+  //           if (c.bin) {
+  //             from = c.from;
+  //           }
+  //           return { ...c, from } as Copy;
+  //         });
+  //       })
+  //       .flat()
+  //       .filter((c) => !!c && c.src !== DEFAULT_SRC_ROOT);
+
+  //     // spec.copy = copy.filter((c) => !!c.bin || c.from !== spec.as);
+
+  //     if (spec.paths) {
+  //       paths.push(...spec.paths);
+  //     }
+
+  //     copy.forEach((c) => {
+  //       if (c.bin) {
+  //         paths.push(join(workdir, c.bin.dir));
+  //       }
+  //     });
+
+  //     spec = {
+  //       ...spec,
+  //       bases: [spec],
+  //       as: undefined,
+  //       from: `base-${ix}`,
+  //       paths,
+  //       copy: [
+  //         // {
+  //         //   src: serveScript,
+  //         //   dest: serveBin,
+  //         //   resolve: true,
+  //         // },
+  //         {
+  //           src: entrypointScript,
+  //           dest: entrypointBin,
+  //           resolve: true,
+  //         },
+  //         ...(copy || [])
+  //           .map((c) => {
+  //             if (c.bin) {
+  //               return [
+  //                 {
+  //                   from: `package-${ix}`,
+  //                   src: `${c.src}${sep}`,
+  //                   dest: `${c.bin.dir}${sep}`,
+  //                   bin: c.bin,
+  //                 },
+  //               ] as Copy[];
+  //             }
+  //             return [{ ...c, from: `package-${ix}` } as Copy];
+  //           })
+  //           .flat(),
+  //       ],
+  //       cmd: config.serveCommands,
+  //     };
+  //   }
+
+  //   return {
+  //     spec,
+  //     // entrypoint: [join(workdir, serveBin), join(workdir, entrypointBin)],
+  //     entrypoint: [join(workdir, entrypointBin)],
+  //   };
+  // }
+
+  renderStages = (stages: DockerStages): string => {
     const lines = [];
 
-    if (spec.bases) {
-      for (const base of spec.bases) {
-        lines.push(this.render(base, mode));
-        lines.push('');
+    const { bases, builds, packages, runtime } = stages;
+
+    Object.values(bases).forEach((spec, ix) => {
+      ui.updateBottomBarSubtext(`Rendering base stage ${spec?.as}`);
+      lines.push(this.renderSpec('install', spec, ix));
+      lines.push('');
+    });
+
+    Object.values(builds).forEach((spec, ix) => {
+      ui.updateBottomBarSubtext(`Rendering build stage ${spec?.as}`);
+      lines.push(this.renderSpec('build', spec, ix));
+      lines.push('');
+    });
+
+    Object.values(packages).forEach((spec, ix) => {
+      ui.updateBottomBarSubtext(`Rendering pacakge stage ${spec?.as}`);
+      lines.push(this.renderSpec('package', spec, ix));
+      lines.push('');
+    });
+
+    ui.updateBottomBarSubtext(`Rendering runtime stage ${runtime.as}`);
+    lines.push(this.renderSpec('start', runtime, 0));
+
+    return lines.join('\n');
+  };
+
+  renderSpec = (mode: Script, spec: DockerFileSpec | undefined, ix: number): string => {
+    const lines = [];
+
+    if (!spec) {
+      if (isDebug()) {
+        return `# ${mode} stage at ${ix} skipped`;
       }
+      return '';
     }
 
-    const { copy, workdir, env = {}, entrypoint, run, paths = [], cmd } = spec;
+    // if (spec.bases) {
+    //   for (const base of spec.bases) {
+    //     lines.push(this.render(base, mode));
+    //     lines.push('');
+    //   }
+    // }
+
+    const { copy, workdir, env = {}, run, paths = [], cmd, shell } = spec;
 
     const from = spec.as ? `${spec.from} as ${spec.as}` : spec.from;
 
     lines.push(`FROM ${from}`);
-    if (entrypoint) lines.push(`ENTRYPOINT [${entrypoint.map((ep) => `"${ep}"`).join(',')}]`);
     if (workdir) lines.push(`WORKDIR ${workdir}`);
 
     for (const path of new Set(paths)) {
@@ -459,6 +740,17 @@ export class DockerService {
       if (value) {
         lines.push(`ENV ${key}="${value}"`);
       }
+    }
+
+    const prereqRuns = run?.filter((r) => r.prerequisite && r.cmds.length);
+    if (prereqRuns) {
+      prereqRuns.forEach((r) => {
+        if (r.workdir) {
+          r.cmds.unshift(`cd ${r.workdir}`);
+        }
+
+        lines.push(`RUN ${r.cmds.join(' && ')}`);
+      });
     }
 
     const copyLines = new Set<string>();
@@ -491,7 +783,7 @@ export class DockerService {
           }
 
           if (c.noGlob && workdir) {
-            copyLines.add(`COPY --from=${c.from} ${src} ${join(workdir, c.dest)}`);
+            copyLines.add(`COPY --from=${c.from} ${join(workdir, src)} ${join(workdir, c.dest)}`);
             return;
           }
 
@@ -508,10 +800,22 @@ export class DockerService {
     lines.push(...copyLines);
 
     if (run) {
-      if (run.workdir) {
-        lines.push(`WORKDIR ${run.workdir}`);
-      }
-      lines.push(`RUN ${run.cmds.join(' && ')}`);
+      const runs = run.filter((r) => !r.prerequisite && r.cmds.length);
+
+      runs.forEach((r) => {
+        if (shell === 'direnv') {
+          lines.push(`RUN direnv allow`);
+          // TODO: infer default /bin/sh command from base image
+          // TODO: does entrypoint need to be added to lambda runtime?
+          lines.push(`SHELL [ "direnv", "exec", "${workdir}", "/bin/sh", "-c" ]`);
+        }
+
+        if (r.workdir) {
+          r.cmds.unshift(`cd ${r.workdir}`);
+        }
+
+        lines.push(`RUN ${r.cmds.join(' && ')}`);
+      });
     }
 
     if (cmd) {
@@ -562,5 +866,111 @@ export class DockerService {
     }
 
     return { imageDigest, architecture };
+  }
+
+  private installPackages = async (runtime: string, packages?: string[]): Promise<RunCommand[]> => {
+    if (!packages || !packages.length) {
+      return [];
+    }
+
+    const bin = await this.checkBin(runtime, ['apk', 'apt', 'dnf', 'yum']);
+
+    switch (bin) {
+      case 'apk':
+        return [
+          {
+            prerequisite: true,
+            cmds: [
+              `apk update`,
+              `apk add --no-cache ${packages.join(' ')}`,
+              `rm -rf /var/cache/apk/*`,
+            ],
+          },
+        ];
+      case 'apt':
+        return [
+          {
+            prerequisite: true,
+            cmds: [
+              `apt update`,
+              `apt install -y --no-install-recommends ${packages.join(' ')}`,
+              `apt clean && rm -rf /var/lib/apt/lists/*`,
+            ],
+          },
+        ];
+      case 'dnf':
+        return [
+          {
+            prerequisite: true,
+            cmds: [
+              `dnf install -y ${packages.join(' ')}`,
+              `dnf clean all`,
+              `rm -rf /var/cache/dnf`,
+            ],
+          },
+        ];
+      case 'yum':
+        return [
+          {
+            prerequisite: true,
+            cmds: [
+              `yum install -y ${packages.join(' ')}`,
+              `yum clean all`,
+              `rm -rf /var/cache/yum`,
+            ],
+          },
+        ];
+      default:
+        throw new Error(`Unable to determine find a package manager in ${runtime}`);
+    }
+  };
+
+  private async checkBin<T extends string[]>(
+    runtime: string,
+    bins: [...T],
+  ): Promise<T[number] | undefined> {
+    if (!bins || !bins.length) {
+      return undefined;
+    }
+
+    const pullStream = await this.docker.pull(runtime);
+
+    await new Promise<DockerEvent[]>((resolve, reject) => {
+      this.docker.modem.followProgress(
+        pullStream,
+        (err, res) => (err ? reject(err) : resolve(res)),
+        (event) => {
+          try {
+            this.handleDockerEvent('Pull', event);
+          } catch (e) {
+            reject(e);
+          }
+        },
+      );
+    });
+
+    const bin = bins.pop();
+
+    const [output, container] = await this.docker.run(
+      runtime,
+      [`command -v ${bin}`],
+      new BufferedWriteStream(),
+      {
+        Tty: false,
+        Entrypoint: ['/bin/sh', '-c'], // TODO: check OS to determine shell
+      },
+    );
+
+    try {
+      await container.remove();
+    } catch (e) {
+      // ignore, TODO: log error
+    }
+
+    if ('StatusCode' in output && output.StatusCode !== 0) {
+      return this.checkBin(runtime, bins);
+    }
+
+    return bin;
   }
 }

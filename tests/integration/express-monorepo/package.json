@@ -1,0 +1,63 @@
+{
+  "name": "express-monorepo",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "scaffoldly build",
+    "deploy": "scaffoldly deploy"
+  },
+  "engineStrict": true,
+  "engines": {
+    "npm": "please-use-yarn"
+  },
+  "author": "",
+  "description": "",
+  "dependencies": {
+    "express": "^4.19.2",
+    "scaffoldly": "file:../../.."
+  },
+  "files": [
+    "package.json"
+  ],
+  "scaffoldly": {
+    "runtime": "node:20-alpine",
+    "handler": "localhost:3001",
+    "routes": {
+      "/api2*": "localhost:3002"
+    },
+    "scripts": {
+      "install": "yarn"
+    },
+    "services": [
+      {
+        "name": "api1",
+        "src": "api1",
+        "runtime": "node:20-alpine",
+        "handler": "localhost:3001",
+        "bin": {
+          "index.cjs": "index.cjs"
+        },
+        "files": [
+          "base:node_modules"
+        ],
+        "scripts": {
+          "start": "node index.cjs"
+        }
+      },
+      {
+        "src": "api2",
+        "runtime": "node:20-alpine",
+        "handler": "localhost:3002",
+        "bin": {
+          "index.cjs": "index.cjs"
+        },
+        "files": [
+          "base:node_modules"
+        ],
+        "scripts": {
+          "start": "node index.cjs"
+        }
+      }
+    ]
+  }
+}

@@ -1,40 +1,19 @@
-FROM node:20-alpine as base-0
+FROM node:20-alpine as install-base
+WORKDIR /var/task
+ENV SLY_DEBUG="true"
 
-FROM base-0 as build-0
+FROM install-base as build-base
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
-ENV NODE_ENV="production"
-ENV HOSTNAME="0.0.0.0"
 ENV SLY_DEBUG="true"
-COPY node_modules /var/task/node_modules
-COPY public /var/task/public
 COPY . /var/task/
 RUN next build
 
-FROM base-0 as package-0
+FROM install-base as runtime
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
-ENV NODE_ENV="production"
-ENV HOSTNAME="0.0.0.0"
 ENV SLY_DEBUG="true"
-COPY --from=build-0 /var/task/.next/standalone* /var/task/.next/standalone
-COPY --from=build-0 /var/task/.next* /var/task/.next
-COPY --from=build-0 /var/task/node_modules /var/task/node_modules
-COPY --from=build-0 /var/task/public /var/task/public
-
-FROM base-0
-WORKDIR /var/task
-ENV PATH="/var/task:$PATH"
-ENV PATH="/var/task/node_modules/.bin:$PATH"
-ENV NODE_ENV="production"
-ENV HOSTNAME="0.0.0.0"
-ENV SLY_DEBUG="true"
-COPY .serve* /var/task/.serve
 COPY .entrypoint* /var/task/.entrypoint
-COPY --from=package-0 /var/task/.next* /var/task/.next
-COPY --from=package-0 /var/task/node_modules /var/task/node_modules
-COPY --from=package-0 /var/task/public /var/task/public
-COPY --from=package-0 /var/task/.next/standalone/* /var/task/
 CMD ( node server.js )

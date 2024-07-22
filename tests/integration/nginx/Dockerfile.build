@@ -1,34 +1,25 @@
-FROM alpine:3 as base-0
+FROM alpine:3 as install-0
 WORKDIR /var/task
-ENV PATH="/var/task:$PATH"
-COPY inst* /var/task/inst
-RUN inst nginx nodejs && rm inst
-
-FROM base-0 as build-0
-WORKDIR /var/task
-ENV PATH="/var/task:$PATH"
-ENV NODE_ENV="production"
-ENV HOSTNAME="0.0.0.0"
 ENV SLY_DEBUG="true"
-COPY nginx /var/task/nginx
-COPY html /var/task/html
+RUN apk update && apk add --no-cache nginx nodejs && rm -rf /var/cache/apk/*
+
+FROM install-0 as build-0
+WORKDIR /var/task
+ENV PATH="/var/task:$PATH"
+ENV SLY_DEBUG="true"
 COPY . /var/task/
 RUN echo 'TODO'
 
-FROM base-0 as package-0
+FROM build-0 as package-0
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
-ENV NODE_ENV="production"
-ENV HOSTNAME="0.0.0.0"
 ENV SLY_DEBUG="true"
 COPY --from=build-0 /var/task/nginx /var/task/nginx
 COPY --from=build-0 /var/task/html /var/task/html
 
-FROM base-0
+FROM install-0 as runtime
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
-ENV NODE_ENV="production"
-ENV HOSTNAME="0.0.0.0"
 ENV SLY_DEBUG="true"
 COPY .entrypoint* /var/task/.entrypoint
 COPY --from=package-0 /var/task/nginx /var/task/nginx

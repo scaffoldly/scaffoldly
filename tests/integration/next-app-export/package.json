@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "scaffoldly dev",
-    "build": "next build",
+    "build": "scaffoldly build",
     "start": "scaffoldly start",
     "deploy": "scaffoldly deploy",
     "lint": "next lint"
