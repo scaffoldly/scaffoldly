@@ -47,7 +47,7 @@ type DockerStages = {
 type DockerFileSpec = {
   // bases?: DockerFileSpec[];
   from: string;
-  as?: string;
+  as: string;
   workdir?: string;
   copy?: Copy[];
   env?: { [key: string]: string | undefined };
@@ -228,29 +228,48 @@ export class DockerService {
   async createStages(config: ScaffoldlyConfig, mode: Script): Promise<DockerStages> {
     if (mode === 'develop') {
       // TODO
-      return { runtime: { from: 'todo' }, bases: {}, builds: {}, packages: {} };
+      return { runtime: { from: 'todo', as: 'todo' }, bases: {}, builds: {}, packages: {} };
     }
 
-    const bases: DockerStage = await this.createStage(config, 'install');
-    const builds: DockerStage = await this.createStage(config, 'build');
-    const packages: DockerStage = await this.createStage(config, 'package');
+    const bases: DockerStage = await this.createStage(config, 'install', {});
+    const builds: DockerStage = await this.createStage(config, 'build', bases);
+    const packages: DockerStage = await this.createStage(config, 'package', builds);
     const runtime = await this.createSpec(config, 'start', 0, packages);
+
+    if (!runtime) {
+      throw new Error('Failed to create runtime spec');
+    }
 
     return { bases, builds, packages, runtime };
   }
 
-  async createStage(config: ScaffoldlyConfig, mode: Script): Promise<DockerStage> {
+  async createStage(
+    config: ScaffoldlyConfig,
+    mode: Script,
+    fromStages: DockerStage,
+  ): Promise<DockerStage> {
     let bases: DockerStage = {};
 
-    const spec = await this.createSpec(config, mode, 0);
+    const spec = await this.createSpec(config, mode, 0, fromStages);
 
-    bases[`${mode}-0`] = spec;
+    if (spec) {
+      bases[`${mode}-0`] = spec;
+    }
 
     const { services } = config;
 
     bases = await services.reduce(async (accP, service, ix) => {
       const acc = await accP;
-      return { ...acc, [`${mode}-${ix + 1}`]: await this.createSpec(service, mode, ix + 1) };
+
+      const serviceSpec = await this.createSpec(service, mode, ix + 1, fromStages);
+      if (!serviceSpec) {
+        return acc;
+      }
+
+      return {
+        ...acc,
+        [`${mode}-${ix + 1}`]: serviceSpec,
+      };
     }, Promise.resolve(bases));
 
     return bases;
@@ -260,8 +279,8 @@ export class DockerService {
     config: ScaffoldlyConfig,
     mode: Script,
     ix: number,
-    fromStage?: DockerStage,
-  ): Promise<DockerFileSpec> {
+    fromStages: DockerStage,
+  ): Promise<DockerFileSpec | undefined> {
     const { packages, workdir, shell, runtime, src, files, scripts, bin } = config;
 
     const spec: DockerFileSpec = {
@@ -280,7 +299,13 @@ export class DockerService {
 
     if (mode === 'install') {
       spec.from = runtime;
-      spec.run = await this.installPackages(runtime, packages);
+
+      const runCommands = await this.installPackages(runtime, packages);
+      if (!runCommands.length) {
+        return undefined;
+      }
+
+      spec.run = runCommands;
       return spec;
     }
 
@@ -292,10 +317,19 @@ export class DockerService {
     spec.paths = paths;
 
     if (mode === 'build') {
-      spec.from = `install-${ix}`;
+      if (!scripts.build) {
+        return undefined;
+      }
+
+      const fromStage = fromStages[`install-${ix}`];
+      if (!fromStage) {
+        return undefined;
+      }
+
+      spec.from = fromStage.as;
       spec.run = [
         {
-          cmds: scripts.build ? [scripts.build] : [],
+          cmds: [scripts.build],
           prerequisite: false,
           workdir: src !== DEFAULT_SRC_ROOT ? src : undefined,
         },
@@ -324,10 +358,15 @@ export class DockerService {
 
       Object.entries(bin).forEach(([script, path]) => {
         if (!path) return;
+
+        const fromStage = fromStages[`build-${ix}`];
+        if (!fromStage) return;
+
         const scriptPath = join(src, script);
         const [binDir, binFile] = splitPath(path);
+
         copy.push({
-          from: `build-${ix}`,
+          from: fromStage.as,
           src: join(src, binDir),
           dest: join(src, binDir),
           bin: {
@@ -348,21 +387,23 @@ export class DockerService {
       spec.as = `runtime`;
       spec.cmd = config.serveCommands;
 
-      const copy = Object.keys(fromStage || {})
+      const copy = Object.keys(fromStages)
         .reverse() // Earlier stages get higher precedence
         .map((key) => {
-          const stage = fromStage?.[key];
-          if (!stage) return [];
-          return (stage.copy || []).map((c) => {
+          const fromStage = fromStages[key];
+          if (!fromStage) return [];
+
+          return (fromStage.copy || []).map((c) => {
             if (c.bin) {
               const cp: Copy = {
-                from: key,
+                from: fromStage.as,
                 src: `${c.src}${sep}`,
                 dest: `${c.bin.dir}${sep}`,
                 bin: c.bin,
               };
               return cp;
             }
+
             const cp: Copy = { ...c, from: key, noGlob: true };
             return cp;
           });
