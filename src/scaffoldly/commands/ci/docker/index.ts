@@ -328,8 +328,8 @@ export class DockerService {
         const [binDir, binFile] = splitPath(path);
         copy.push({
           from: `build-${ix}`,
-          src: binDir,
-          dest: binDir,
+          src: join(src, binDir),
+          dest: join(src, binDir),
           bin: {
             file: binFile,
             dir: scriptPath === path ? binDir : src,
