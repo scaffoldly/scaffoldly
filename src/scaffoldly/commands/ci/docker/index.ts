@@ -262,7 +262,7 @@ export class DockerService {
     ix: number,
     fromStage?: DockerStage,
   ): Promise<DockerFileSpec> {
-    const { packages, workdir, shell, runtime, src, files, scripts } = config;
+    const { packages, workdir, shell, runtime, src, files, scripts, bin } = config;
 
     const spec: DockerFileSpec = {
       from: runtime,
@@ -312,6 +312,22 @@ export class DockerService {
         return cp;
       });
 
+      Object.entries(bin).forEach(([script, path]) => {
+        if (!path) return;
+        const scriptPath = join(src, script);
+        const [binDir, binFile] = splitPath(path);
+        copy.push({
+          from: `build-${ix}`,
+          src: binDir,
+          dest: binDir,
+          bin: {
+            file: binFile,
+            dir: scriptPath === path ? binDir : src,
+          },
+          resolve: false,
+        });
+      });
+
       spec.copy = copy;
 
       return spec;
@@ -325,6 +341,15 @@ export class DockerService {
       const copy = Object.entries(fromStage || {})
         .map(([key, stage]) => {
           return (stage.copy || []).map((c) => {
+            if (c.bin) {
+              const cp: Copy = {
+                from: `package-${ix}`,
+                src: `${c.src}${sep}`,
+                dest: `${c.bin.dir}${sep}`,
+                bin: c.bin,
+              };
+              return cp;
+            }
             const cp: Copy = { ...c, src: join(workdir, c.src), from: key, noGlob: true };
             return cp;
           });

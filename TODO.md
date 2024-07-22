@@ -24,6 +24,8 @@
 
 ## Other
 
+- Prettify "Internal Server Error" message
+
 - Rename project to `scaffoldly`
 
 - Add EXPOSE to dockerfile based on ports
