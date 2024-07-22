@@ -348,12 +348,15 @@ export class DockerService {
       spec.as = `runtime`;
       spec.cmd = config.serveCommands;
 
-      const copy = Object.entries(fromStage || {})
-        .map(([key, stage]) => {
+      const copy = Object.keys(fromStage || {})
+        .reverse() // Earlier stages get higher precedence
+        .map((key) => {
+          const stage = fromStage?.[key];
+          if (!stage) return [];
           return (stage.copy || []).map((c) => {
             if (c.bin) {
               const cp: Copy = {
-                from: `package-${ix}`,
+                from: key,
                 src: `${c.src}${sep}`,
                 dest: `${c.bin.dir}${sep}`,
                 bin: c.bin,
