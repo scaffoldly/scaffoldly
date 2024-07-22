@@ -99,7 +99,7 @@ export interface IServiceConfig {
 
 export type PackageJsonBin = { [key: string]: string };
 
-export type Script = 'develop' | 'build' | 'start';
+export type Script = 'develop' | 'install' | 'build' | 'package' | 'start';
 
 export interface SecretConsumer {
   get secretValue(): Uint8Array;

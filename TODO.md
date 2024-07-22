@@ -26,6 +26,10 @@
 
 - Rename project to `scaffoldly`
 
+- Add EXPOSE to dockerfile based on ports
+
+- Make entrypoint still do routing even if not in lambda mode?
+
 - Create action.yml
 
 - update pull to pull all bases

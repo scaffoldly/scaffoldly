@@ -1,38 +1,27 @@
-FROM node:20-alpine as base-0
+FROM node:20-alpine as install-0
+WORKDIR /var/task
 
-FROM base-0 as build-0
+FROM install-0 as build-0
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
-ENV NODE_ENV="production"
-ENV HOSTNAME="0.0.0.0"
-ENV SLY_DEBUG="true"
-COPY public /var/task/public
-COPY node_modules /var/task/node_modules
 COPY . /var/task/
 RUN next build
 
-FROM base-0 as package-0
+FROM build-0 as package-0
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
-ENV NODE_ENV="production"
-ENV HOSTNAME="0.0.0.0"
-ENV SLY_DEBUG="true"
 COPY --from=build-0 /var/task/.next* /var/task/.next
 COPY --from=build-0 /var/task/public /var/task/public
 COPY --from=build-0 /var/task/node_modules /var/task/node_modules
 
-FROM base-0
+FROM install-0 as runtime
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
-ENV NODE_ENV="production"
-ENV HOSTNAME="0.0.0.0"
-ENV SLY_DEBUG="true"
-COPY .serve* /var/task/.serve
 COPY .entrypoint* /var/task/.entrypoint
-COPY --from=package-0 /var/task/.next* /var/task/.next
+COPY --from=package-0 /var/task/.next /var/task/.next
 COPY --from=package-0 /var/task/public /var/task/public
 COPY --from=package-0 /var/task/node_modules /var/task/node_modules
 CMD ( next start )
