@@ -360,7 +360,7 @@ export class DockerService {
               };
               return cp;
             }
-            const cp: Copy = { ...c, src: join(workdir, c.src), from: key, noGlob: true };
+            const cp: Copy = { ...c, from: key, noGlob: true };
             return cp;
           });
         })
@@ -688,7 +688,7 @@ export class DockerService {
           }
 
           if (c.noGlob && workdir) {
-            copyLines.add(`COPY --from=${c.from} ${src} ${join(workdir, c.dest)}`);
+            copyLines.add(`COPY --from=${c.from} ${join(workdir, src)} ${join(workdir, c.dest)}`);
             return;
           }
 
