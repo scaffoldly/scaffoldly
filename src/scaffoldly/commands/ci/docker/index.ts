@@ -453,7 +453,12 @@ export class DockerService {
       });
 
       spec.copy = copy;
-      spec.paths = paths;
+      spec.paths = [
+        ...Object.values(fromStages)
+          .map((fromStage) => fromStage?.paths || [])
+          .flat(),
+        ...paths,
+      ];
 
       return spec;
     }
