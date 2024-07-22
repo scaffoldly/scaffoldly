@@ -377,7 +377,6 @@ export class DockerService {
 
     if (mode === 'package') {
       const fromStage = fromStages[`build-${name}`];
-      console.log('!!! fromStages', fromStages);
 
       const copy = files.map((file) => {
         const [from, f] = file.split(':');
