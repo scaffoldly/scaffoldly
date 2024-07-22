@@ -311,7 +311,6 @@ export class DockerService {
     if (files.includes('node_modules')) {
       paths.push(join(workdir, src, 'node_modules', '.bin'));
     }
-    spec.paths = paths;
 
     if (mode === 'build') {
       if (!scripts.build) {
@@ -339,6 +338,7 @@ export class DockerService {
       }
 
       spec.copy = copy;
+      spec.paths = paths;
 
       return spec;
     }
@@ -360,6 +360,7 @@ export class DockerService {
         const scriptPath = join(src, script);
         const [binDir, binFile] = splitPath(path);
 
+        paths.push(join(workdir, src, binDir));
         copy.push({
           from: fromStage.as,
           src: join(src, binDir),
@@ -373,6 +374,7 @@ export class DockerService {
       });
 
       spec.copy = copy;
+      spec.paths = paths;
 
       return spec;
     }
@@ -387,6 +389,7 @@ export class DockerService {
           const fromStage = fromStages[key];
           return (fromStage?.copy || []).map((c) => {
             if (c.bin) {
+              paths.push(join(workdir, c.bin.dir));
               const cp: Copy = {
                 from: fromStage?.as,
                 src: `${c.src}${sep}`,
@@ -411,6 +414,7 @@ export class DockerService {
       });
 
       spec.copy = copy;
+      spec.paths = paths;
 
       return spec;
     }
