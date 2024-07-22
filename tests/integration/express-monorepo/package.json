@@ -6,6 +6,10 @@
     "build": "scaffoldly build",
     "deploy": "scaffoldly deploy"
   },
+  "engineStrict": true,
+  "engines": {
+    "npm": "please-use-yarn"
+  },
   "author": "",
   "description": "",
   "dependencies": {
@@ -21,6 +25,9 @@
     "routes": {
       "/api2*": "localhost:3002"
     },
+    "scripts": {
+      "install": "yarn"
+    },
     "services": [
       {
         "name": "api1",
@@ -30,8 +37,10 @@
         "bin": {
           "index.cjs": "index.cjs"
         },
+        "files": [
+          "base:node_modules"
+        ],
         "scripts": {
-          "install": "npm install",
           "start": "node index.cjs"
         }
       },
@@ -43,7 +52,7 @@
           "index.cjs": "index.cjs"
         },
         "files": [
-          "api1:../node_modules"
+          "base:node_modules"
         ],
         "scripts": {
           "start": "node index.cjs"

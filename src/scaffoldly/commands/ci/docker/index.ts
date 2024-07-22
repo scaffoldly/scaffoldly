@@ -174,9 +174,7 @@ export class DockerService {
 
     const stream = tar.pack(this.cwd, {
       // filter: (name) => {
-      //   if ([...staticBins].find((file) => name === join(this.cwd, file))) {
-      //     return true;
-      //   }
+      //   console.log('!!! name', name);
       //   return false;
       // },
     });
@@ -233,9 +231,13 @@ export class DockerService {
       return { runtime: { from: 'todo', as: 'todo' }, bases: {}, builds: {}, packages: {} };
     }
 
+    ui.updateBottomBarSubtext('Creating Install Stages');
     const bases: DockerStage = await this.createStage(config, 'install', {});
+    ui.updateBottomBarSubtext('Creating Build Stages');
     const builds: DockerStage = await this.createStage(config, 'build', bases);
+    ui.updateBottomBarSubtext('Creating Package Stages');
     const packages: DockerStage = await this.createStage(config, 'package', builds);
+    ui.updateBottomBarSubtext('Creating Runtime Stage');
     const runtime = await this.createSpec(config, 'start', BASE, packages);
 
     if (!runtime) {
@@ -284,8 +286,6 @@ export class DockerService {
     fromStages: DockerStage,
   ): Promise<DockerFileSpec | undefined> {
     const { packages, workdir, shell, runtime, src, files, scripts, bin } = config;
-
-    console.log('!!! files', mode, name, files);
 
     const spec: DockerFileSpec = {
       from: `install-${name}`,
@@ -418,7 +418,6 @@ export class DockerService {
       const copy = Object.keys(fromStages)
         .reverse() // Earlier stages get higher precedence
         .map((key) => {
-          console.log('!!! key', key);
           const fromStage = fromStages[key];
           return (fromStage?.copy || []).map((c) => {
             if (c.bin) {
@@ -674,20 +673,24 @@ export class DockerService {
     const { bases, builds, packages, runtime } = stages;
 
     Object.values(bases).forEach((spec, ix) => {
+      ui.updateBottomBarSubtext(`Rendering base stage ${spec?.as}`);
       lines.push(this.renderSpec('install', spec, ix));
       lines.push('');
     });
 
     Object.values(builds).forEach((spec, ix) => {
+      ui.updateBottomBarSubtext(`Rendering build stage ${spec?.as}`);
       lines.push(this.renderSpec('build', spec, ix));
       lines.push('');
     });
 
     Object.values(packages).forEach((spec, ix) => {
+      ui.updateBottomBarSubtext(`Rendering pacakge stage ${spec?.as}`);
       lines.push(this.renderSpec('package', spec, ix));
       lines.push('');
     });
 
+    ui.updateBottomBarSubtext(`Rendering runtime stage ${runtime.as}`);
     lines.push(this.renderSpec('start', runtime, 0));
 
     return lines.join('\n');

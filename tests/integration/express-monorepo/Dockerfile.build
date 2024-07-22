@@ -1,13 +1,12 @@
 FROM node:20-alpine as install-base
 WORKDIR /var/task
 ENV SLY_DEBUG="true"
+COPY . /var/task/
+RUN yarn
 
 FROM node:20-alpine as install-api1
 WORKDIR /var/task
 ENV SLY_DEBUG="true"
-COPY api1 /var/task/api1
-COPY package.json /var/task/package.json
-RUN cd api1 && npm install
 
 FROM node:20-alpine as install-2
 WORKDIR /var/task
@@ -25,6 +24,7 @@ ENV PATH="/var/task/api1:$PATH"
 ENV SLY_DEBUG="true"
 COPY api1 /var/task/api1
 COPY package.json /var/task/package.json
+COPY --from=build-base /var/task/api1/node_modules* /var/task/api1/node_modules
 
 FROM install-2 as build-2
 WORKDIR /var/task
@@ -32,7 +32,7 @@ ENV PATH="/var/task/api2:$PATH"
 ENV SLY_DEBUG="true"
 COPY api2 /var/task/api2
 COPY package.json /var/task/package.json
-COPY --from=build-api1 /var/task/node_modules /var/task/node_modules
+COPY --from=build-base /var/task/api2/node_modules* /var/task/api2/node_modules
 
 FROM install-base as package-base
 WORKDIR /var/task
@@ -44,6 +44,7 @@ WORKDIR /var/task
 ENV PATH="/var/task/api1:$PATH"
 ENV SLY_DEBUG="true"
 COPY --from=build-api1 /var/task/package.json /var/task/package.json
+COPY --from=package-base /var/task/api1/node_modules* /var/task/api1/node_modules
 COPY --from=build-api1 /var/task/api1* /var/task/api1
 
 FROM install-2 as package-2
@@ -51,7 +52,7 @@ WORKDIR /var/task
 ENV PATH="/var/task/api2:$PATH"
 ENV SLY_DEBUG="true"
 COPY --from=build-2 /var/task/package.json /var/task/package.json
-COPY --from=package-api1 /var/task/node_modules /var/task/node_modules
+COPY --from=package-base /var/task/api2/node_modules* /var/task/api2/node_modules
 COPY --from=build-2 /var/task/api2* /var/task/api2
 
 FROM install-base as runtime
@@ -62,8 +63,9 @@ ENV PATH="/var/task/api1:$PATH"
 ENV SLY_DEBUG="true"
 COPY .entrypoint* /var/task/.entrypoint
 COPY --from=package-2 /var/task/package.json /var/task/package.json
-COPY --from=package-2 /var/task/node_modules /var/task/node_modules
+COPY --from=package-2 /var/task/api2/node_modules /var/task/api2/node_modules
 COPY --from=package-2 /var/task/api2/* /var/task/api2/
 COPY --from=package-api1 /var/task/package.json /var/task/package.json
+COPY --from=package-api1 /var/task/api1/node_modules /var/task/api1/node_modules
 COPY --from=package-api1 /var/task/api1/* /var/task/api1/
 CMD ( cd api1 && node index.cjs ) & ( cd api2 && node index.cjs )
