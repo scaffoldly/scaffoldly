@@ -301,9 +301,6 @@ export class DockerService {
       spec.from = runtime;
 
       const runCommands = await this.installPackages(runtime, packages);
-      if (!runCommands.length) {
-        return undefined;
-      }
 
       spec.run = runCommands;
       return spec;
