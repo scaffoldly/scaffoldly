@@ -73,7 +73,6 @@ export interface IScaffoldlyConfig extends IServiceConfig {
   get runtime(): string;
   get handler(): string;
   get files(): string[]; // Get copied to workdir/{file} during build and serve
-  get devFiles(): string[]; // Get copied to workdir/{file} during dev
   get bin(): PackageJsonBin; // Get copied to workdir root
   get scripts(): { [key in Script]?: string };
   get src(): string; // Defaults to "."
@@ -86,13 +85,14 @@ export interface IScaffoldlyConfig extends IServiceConfig {
   getService(identifier: string | number): IScaffoldlyConfig;
 }
 
+export type ServiceName = string;
+
 export interface IServiceConfig {
-  name: string;
+  name: ServiceName;
   runtime: string;
   handler: string;
   bin?: PackageJsonBin;
   files?: string[];
-  devFiles?: string[];
   src: string;
   scripts: { [key in Script]?: string };
 }
@@ -162,7 +162,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
           routes: undefined,
         };
         this.serviceConfig = serviceConfig;
-        this._name = `${packageJson.name}-${serviceConfig.name}`;
+        this._name = serviceConfig.name;
         this._files = [...(packageJson.files || []), ...(serviceConfig.files || [])];
         this._bin = {
           ...(packageJson.bin || {}),
@@ -176,11 +176,8 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
     throw new Error('Unable to create scaffoldly config');
   }
 
-  get name(): string {
-    let { _name: name } = this;
-    if (!name) {
-      name = this.serviceConfig?.name;
-    }
+  get name(): ServiceName {
+    const name = this.serviceConfig?.name || this._name;
     if (!name) {
       throw new Error('Missing `name`');
     }
@@ -196,10 +193,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
   }
 
   get runtime(): string {
-    let { runtime } = this.scaffoldly;
-    if (!runtime) {
-      runtime = this.serviceConfig?.runtime;
-    }
+    const { runtime } = this.serviceConfig || this.scaffoldly;
     if (!runtime) {
       // TODO: Find runtime from one of the services
       throw new Error('Missing `runtime`');
@@ -208,12 +202,8 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
   }
 
   get handler(): string {
-    let { handler } = this.scaffoldly;
+    const { handler } = this.serviceConfig || this.scaffoldly;
     if (!handler) {
-      handler = this.serviceConfig?.handler;
-    }
-    if (!handler) {
-      // TODO: Find runtime from one of the services
       throw new Error('Missing `handler` in scaffoldly config');
     }
     return handler;
@@ -227,28 +217,8 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
     return files;
   }
 
-  // TODO: maybe get rid of this
-  get devFiles(): string[] {
-    let { devFiles } = this.scaffoldly;
-    if (!devFiles) {
-      devFiles = this.serviceConfig?.devFiles;
-    }
-    if (!devFiles) {
-      // TODO: Find devFiles from one of the services
-      // TODO: Combine all devFiles from all services?
-      devFiles = [DEFAULT_SRC_ROOT];
-    }
-    return devFiles;
-  }
-
   get src(): string {
-    let { src } = this.scaffoldly;
-    if (!src) {
-      src = this.serviceConfig?.src;
-    }
-    if (!src) {
-      src = DEFAULT_SRC_ROOT;
-    }
+    const { src = DEFAULT_SRC_ROOT } = this.serviceConfig || this.scaffoldly;
     return src;
   }
 
@@ -258,14 +228,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
   }
 
   get scripts(): { [key in Script]?: string } {
-    let { scripts } = this.scaffoldly;
-    if (!scripts) {
-      scripts = this.serviceConfig?.scripts;
-    }
-    if (!scripts) {
-      scripts = {};
-      // throw new Error('Missing `scripts` in scaffoldly config');
-    }
+    const { scripts = {} } = this.serviceConfig || this.scaffoldly;
     return scripts;
   }
 
@@ -279,9 +242,8 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
           runtime: service.runtime || this.runtime,
           handler: service.handler || this.handler,
           src: service.src || this.src,
-          scripts: service.scripts || this.scripts,
+          scripts: service.scripts || {},
           files: service.files || [],
-          devFiles: service.devFiles,
           bin: service.bin || {},
         },
       });

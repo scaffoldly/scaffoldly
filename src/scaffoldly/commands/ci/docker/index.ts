@@ -7,12 +7,14 @@ import {
   DEFAULT_SRC_ROOT,
   ServeCommands,
   Shell,
+  ServiceName,
 } from '../../../../config';
 import { join, sep } from 'path';
 import { ui } from '../../../command';
 import { isDebug } from '../../../ui';
 import { BufferedWriteStream } from './util';
 
+const BASE = 'base';
 type Path = string;
 
 type Copy = {
@@ -234,7 +236,7 @@ export class DockerService {
     const bases: DockerStage = await this.createStage(config, 'install', {});
     const builds: DockerStage = await this.createStage(config, 'build', bases);
     const packages: DockerStage = await this.createStage(config, 'package', builds);
-    const runtime = await this.createSpec(config, 'start', 0, { ...bases, ...packages });
+    const runtime = await this.createSpec(config, 'start', BASE, packages);
 
     if (!runtime) {
       throw new Error('Failed to create runtime spec');
@@ -250,25 +252,25 @@ export class DockerService {
   ): Promise<DockerStage> {
     let bases: DockerStage = {};
 
-    const spec = await this.createSpec(config, mode, 0, fromStages);
+    const spec = await this.createSpec(config, mode, BASE, fromStages);
 
     if (spec) {
-      bases[`${mode}-0`] = spec;
+      bases[spec.as] = spec;
     }
 
     const { services } = config;
 
-    bases = await services.reduce(async (accP, service, ix) => {
+    bases = await services.reduce(async (accP, service) => {
       const acc = await accP;
 
-      const serviceSpec = await this.createSpec(service, mode, ix + 1, fromStages);
+      const serviceSpec = await this.createSpec(service, mode, service.name, fromStages);
       if (!serviceSpec) {
         return acc;
       }
 
       return {
         ...acc,
-        [`${mode}-${ix + 1}`]: serviceSpec,
+        [serviceSpec.as]: serviceSpec,
       };
     }, Promise.resolve(bases));
 
@@ -278,14 +280,16 @@ export class DockerService {
   async createSpec(
     config: ScaffoldlyConfig,
     mode: Script,
-    ix: number,
+    name: ServiceName,
     fromStages: DockerStage,
   ): Promise<DockerFileSpec | undefined> {
     const { packages, workdir, shell, runtime, src, files, scripts, bin } = config;
 
+    console.log('!!! files', mode, name, files);
+
     const spec: DockerFileSpec = {
-      from: `install-${ix}`,
-      as: `${mode}-${ix}`,
+      from: `install-${name}`,
+      as: `${mode}-${name}`,
       workdir: workdir,
       shell: shell,
       cmd: undefined,
@@ -300,9 +304,31 @@ export class DockerService {
     if (mode === 'install') {
       spec.from = runtime;
 
-      const runCommands = await this.installPackages(runtime, packages);
+      const runCommands = (await this.installPackages(runtime, packages)) || [];
+
+      runCommands.push({
+        cmds: scripts.install ? [scripts.install] : [],
+        prerequisite: false,
+        workdir: src !== DEFAULT_SRC_ROOT ? src : undefined,
+      });
+
+      if (scripts.install) {
+        const copy: Copy[] = [{ src, dest: src }];
+        if (src !== DEFAULT_SRC_ROOT) {
+          files.forEach((file) => {
+            const [from, f] = file.split(':');
+            if (from && f) {
+              copy.push({ from: `${mode}-${from}`, src: join(src, f), dest: join(src, f) });
+              return;
+            }
+            copy.push({ src: file, dest: file });
+          });
+        }
+        spec.copy = copy;
+      }
 
       spec.run = runCommands;
+
       return spec;
     }
 
@@ -313,26 +339,27 @@ export class DockerService {
     }
 
     if (mode === 'build') {
-      if (!scripts.build) {
-        return undefined;
-      }
-
-      const fromStage = fromStages[`install-${ix}`];
+      const fromStage = fromStages[`install-${name}`];
       if (!fromStage) {
         return undefined;
       }
 
       spec.run = [
         {
-          cmds: [scripts.build],
+          cmds: scripts.build ? [scripts.build] : [],
           prerequisite: false,
           workdir: src !== DEFAULT_SRC_ROOT ? src : undefined,
         },
       ];
 
-      const copy = [{ src, dest: src }];
+      const copy: Copy[] = [{ src, dest: src }];
       if (src !== DEFAULT_SRC_ROOT) {
         files.forEach((file) => {
+          const [from, f] = file.split(':');
+          if (from && f) {
+            copy.push({ from: `${mode}-${from}`, src: join(src, f), dest: join(src, f) });
+            return;
+          }
           copy.push({ src: file, dest: file });
         });
       }
@@ -344,18 +371,23 @@ export class DockerService {
     }
 
     if (mode === 'package') {
-      const fromStage = fromStages[`build-${ix}`];
-      if (!fromStage) {
-        return undefined;
-      }
+      const fromStage = fromStages[`build-${config.name}`];
 
-      const copy = files.map((file) => {
-        const cp: Copy = { from: fromStage.as, src: file, dest: file };
-        return cp;
-      });
+      const copy: Copy[] = fromStage
+        ? files.map((file) => {
+            const [from, f] = file.split(':');
+            if (from && f) {
+              const cp: Copy = { from: `${mode}-${from}`, src: join(src, f), dest: join(src, f) };
+              return cp;
+            }
+            const cp: Copy = { from: fromStage.as, src: file, dest: file };
+            return cp;
+          })
+        : [];
 
       Object.entries(bin).forEach(([script, path]) => {
         if (!path) return;
+        if (!fromStage) return;
 
         const scriptPath = join(src, script);
         const [binDir, binFile] = splitPath(path);
@@ -386,6 +418,7 @@ export class DockerService {
       const copy = Object.keys(fromStages)
         .reverse() // Earlier stages get higher precedence
         .map((key) => {
+          console.log('!!! key', key);
           const fromStage = fromStages[key];
           return (fromStage?.copy || []).map((c) => {
             if (c.bin) {
@@ -419,7 +452,7 @@ export class DockerService {
       return spec;
     }
 
-    return spec;
+    return undefined;
   }
 
   // async createSpec(
