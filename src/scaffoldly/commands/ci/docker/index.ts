@@ -292,7 +292,6 @@ export class DockerService {
 
     if (mode === 'build') {
       spec.from = `install-${ix}`;
-      spec.copy = [{ src, dest: src }];
       spec.run = [
         {
           cmds: scripts.build ? [scripts.build] : [],
@@ -300,6 +299,14 @@ export class DockerService {
           workdir: src !== DEFAULT_SRC_ROOT ? src : undefined,
         },
       ];
+
+      const copy = [{ src, dest: src }];
+      if (src !== DEFAULT_SRC_ROOT) {
+        files.forEach((file) => {
+          copy.push({ src: file, dest: file });
+        });
+      }
+      spec.copy = copy;
 
       spec.paths = paths;
 

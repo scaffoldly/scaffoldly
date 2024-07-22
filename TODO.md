@@ -24,6 +24,8 @@
 
 ## Other
 
+- Reverse order of copies in for precedence
+
 - Prettify "Internal Server Error" message
 
 - Rename project to `scaffoldly`
