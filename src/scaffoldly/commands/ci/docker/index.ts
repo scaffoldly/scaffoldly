@@ -326,7 +326,6 @@ export class DockerService {
         return undefined;
       }
 
-      spec.from = fromStage.as;
       spec.run = [
         {
           cmds: [scripts.build],
@@ -341,26 +340,25 @@ export class DockerService {
           copy.push({ src: file, dest: file });
         });
       }
-      spec.copy = copy;
 
-      spec.paths = paths;
+      spec.copy = copy;
 
       return spec;
     }
 
     if (mode === 'package') {
-      spec.from = `install-${ix}`;
+      const fromStage = fromStages[`build-${ix}`];
+      if (!fromStage) {
+        return undefined;
+      }
 
       const copy = files.map((file) => {
-        const cp: Copy = { from: `build-${ix}`, src: file, dest: file };
+        const cp: Copy = { from: fromStage.as, src: file, dest: file };
         return cp;
       });
 
       Object.entries(bin).forEach(([script, path]) => {
         if (!path) return;
-
-        const fromStage = fromStages[`build-${ix}`];
-        if (!fromStage) return;
 
         const scriptPath = join(src, script);
         const [binDir, binFile] = splitPath(path);
@@ -383,16 +381,17 @@ export class DockerService {
     }
 
     if (mode === 'start') {
-      spec.from = `install-${ix}`;
+      const fromStage = fromStages[`package-${ix}`];
+      if (!fromStage) {
+        return undefined;
+      }
+
       spec.as = `runtime`;
       spec.cmd = config.serveCommands;
 
       const copy = Object.keys(fromStages)
         .reverse() // Earlier stages get higher precedence
         .map((key) => {
-          const fromStage = fromStages[key];
-          if (!fromStage) return [];
-
           return (fromStage.copy || []).map((c) => {
             if (c.bin) {
               const cp: Copy = {
