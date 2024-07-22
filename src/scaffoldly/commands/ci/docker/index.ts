@@ -272,7 +272,9 @@ export class DockerService {
       cmd: undefined,
       copy: [],
       paths: [],
-      env: {},
+      env: {
+        SLY_DEBUG: isDebug() ? 'true' : undefined,
+      },
       run: [],
     };
 
