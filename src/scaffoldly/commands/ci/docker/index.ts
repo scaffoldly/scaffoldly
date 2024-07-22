@@ -320,8 +320,8 @@ export class DockerService {
             if (from && f) {
               copy.push({
                 from: `${mode}-${from}`,
-                src: join(workdir, src, f),
-                dest: join(workdir, src, f),
+                src: join(workdir, f),
+                dest: join(workdir, f),
               });
               return;
             }
@@ -363,8 +363,8 @@ export class DockerService {
           if (from && f) {
             copy.push({
               from: `${mode}-${from}`,
-              src: join(workdir, src, f),
-              dest: join(workdir, src, f),
+              src: join(workdir, f),
+              dest: join(workdir, f),
             });
             return;
           }
@@ -387,8 +387,8 @@ export class DockerService {
             if (from && f) {
               const cp: Copy = {
                 from: `${mode}-${from}`,
-                src: join(workdir, src, f),
-                dest: join(workdir, src, f),
+                src: join(workdir, f),
+                dest: join(workdir, f),
               };
               return cp;
             }
