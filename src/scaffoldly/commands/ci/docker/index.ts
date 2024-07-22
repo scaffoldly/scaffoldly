@@ -35,7 +35,7 @@ type RunCommand = {
   prerequisite: boolean;
 };
 
-type DockerStage = { [key: string]: DockerFileSpec };
+type DockerStage = { [key: string]: DockerFileSpec | undefined };
 
 type DockerStages = {
   bases: DockerStage;
@@ -636,28 +636,35 @@ export class DockerService {
 
     const { bases, builds, packages, runtime } = stages;
 
-    Object.values(bases).forEach((spec) => {
-      lines.push(this.renderSpec(spec));
+    Object.values(bases).forEach((spec, ix) => {
+      lines.push(this.renderSpec('install', spec, ix));
       lines.push('');
     });
 
-    Object.values(builds).forEach((spec) => {
-      lines.push(this.renderSpec(spec));
+    Object.values(builds).forEach((spec, ix) => {
+      lines.push(this.renderSpec('build', spec, ix));
       lines.push('');
     });
 
-    Object.values(packages).forEach((spec) => {
-      lines.push(this.renderSpec(spec));
+    Object.values(packages).forEach((spec, ix) => {
+      lines.push(this.renderSpec('package', spec, ix));
       lines.push('');
     });
 
-    lines.push(this.renderSpec(runtime));
+    lines.push(this.renderSpec('start', runtime, 0));
 
     return lines.join('\n');
   };
 
-  renderSpec = (spec: DockerFileSpec): string => {
+  renderSpec = (mode: Script, spec: DockerFileSpec | undefined, ix: number): string => {
     const lines = [];
+
+    if (!spec) {
+      if (isDebug()) {
+        return `# ${mode} stage at ${ix} skipped`;
+      }
+      return '';
+    }
 
     // if (spec.bases) {
     //   for (const base of spec.bases) {
