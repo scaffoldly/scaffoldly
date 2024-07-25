@@ -103,6 +103,7 @@ export interface IServiceConfig {
   files?: string[];
   src: string;
   scripts: { [key in Script]?: string };
+  packages?: string[];
 }
 
 export type PackageJsonBin = { [key: string]: string };
@@ -127,6 +128,8 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
   private _bin?: PackageJsonBin;
 
   private _files?: string[];
+
+  private _packages?: string[];
 
   private _id = '';
 
@@ -180,6 +183,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
           ...(packageJson.bin || {}),
           ...(serviceConfig.bin || {}),
         };
+        this._packages = [...(this.scaffoldly.packages || []), ...(serviceConfig.packages || [])];
       }
 
       return;
@@ -353,8 +357,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
   }
 
   get packages(): string[] {
-    const { packages = [] } = this.scaffoldly;
-    return packages;
+    return this._packages || [];
   }
 
   get shell(): Shell | undefined {
@@ -379,6 +382,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
           version: this.version,
           bin: this.bin,
           files: this.files,
+          packages: this.packages,
         }),
       ),
     )}`;
