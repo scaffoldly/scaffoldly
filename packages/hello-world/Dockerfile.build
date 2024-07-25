@@ -1,0 +1,27 @@
+FROM alpine:3 as install-base
+WORKDIR /var/task
+ENV SLY_DEBUG="true"
+RUN apk update && apk add --no-cache nginx nodejs && rm -rf /var/cache/apk/*
+
+FROM install-base as build-base
+WORKDIR /var/task
+ENV PATH="/var/task:$PATH"
+ENV SLY_DEBUG="true"
+COPY . /var/task/
+RUN echo 'TODO'
+
+FROM install-base as package-base
+WORKDIR /var/task
+ENV PATH="/var/task:$PATH"
+ENV SLY_DEBUG="true"
+COPY --from=build-base /var/task/nginx /var/task/nginx
+COPY --from=build-base /var/task/html /var/task/html
+
+FROM install-base as runtime
+WORKDIR /var/task
+ENV PATH="/var/task:$PATH"
+ENV SLY_DEBUG="true"
+COPY .entrypoint* /var/task/.entrypoint
+COPY --from=package-base /var/task/nginx /var/task/nginx
+COPY --from=package-base /var/task/html /var/task/html
+CMD ( nginx -c /var/task/nginx/nginx.conf )

@@ -10,17 +10,21 @@ import { CloudResource, manageResource, ResourceOptions } from '..';
 import { NotFoundException } from './errors';
 import { DeployStatus } from '.';
 import { ui } from '../../../command';
+import { createHash } from 'crypto';
 
 export type SecretName = string;
 export type SecretVersion = string;
 
-export type SecretDeployStatus = {
-  secretName?: SecretName;
+export type Secret = {
+  secretName: SecretName;
+  uniqueId: string;
 };
+
+export type SecretDeployStatus = Partial<Secret>;
 
 export type SecretResource = CloudResource<
   SecretsManagerClient,
-  SecretName,
+  Secret,
   CreateSecretCommand,
   UpdateSecretCommand
 >;
@@ -40,39 +44,46 @@ export class SecretService {
     const secretStatus: SecretDeployStatus = {};
 
     ui.updateBottomBar('Deploying Secret');
-    const { secretName } = await this.manageSecret(consumer.secretValue, options);
+    const { secretName, uniqueId } = await this.manageSecret(consumer.secretValue, options);
 
     secretStatus.secretName = secretName;
+    secretStatus.uniqueId = uniqueId;
 
     return secretStatus;
   }
 
-  private async manageSecret(
-    value: Uint8Array,
-    options: ResourceOptions,
-  ): Promise<{ secretName: string }> {
+  private async manageSecret(value: Uint8Array, options: ResourceOptions): Promise<Secret> {
     const { name } = this.config;
     if (!name) {
       throw new Error('Missing name');
     }
 
-    const secretName = await manageResource(this.secretResource(name, value), options);
-
-    return { secretName };
+    return manageResource(this.secretResource(name, value), options);
   }
 
   private secretResource(name: string, value: Uint8Array): SecretResource {
     // const secretHash = Buffer.from(value).toString('base64');
 
-    const read = async () => {
+    const read = async (): Promise<Secret> => {
       return this.secretsManagerClient
         .send(new DescribeSecretCommand({ SecretId: name }))
         .then((response) => {
-          if (!response.Name) {
+          const { Name, ARN } = response;
+          if (!Name) {
             throw new NotFoundException('Secret not found');
           }
-          // TODO: Check consistency of the secret's value?
-          return response.Name;
+          if (!ARN) {
+            throw new NotFoundException('Secret ARN not found');
+          }
+
+          // AWS appends a unique id to the end of the ARN.
+          // It is safe to hash and use as a Unique Identifier elsewhere.
+          const uniqueId = createHash('sha256').update(ARN).digest('hex').substring(0, 8);
+
+          return {
+            secretName: Name,
+            uniqueId,
+          } as Secret;
         })
         .catch((e) => {
           if (e.name === 'ResourceNotFoundException') {

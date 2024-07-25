@@ -13,6 +13,7 @@ import {
   FunctionCodeLocation,
   // eslint-disable-next-line import/named
   AddPermissionRequest,
+  Architecture,
 } from '@aws-sdk/client-lambda';
 import { ScaffoldlyConfig } from '../../../../config';
 import { IamConsumer, PolicyDocument, TrustRelationship } from './iam';
@@ -69,18 +70,18 @@ export class LambdaService implements IamConsumer {
     this.lambdaClient = new LambdaClient();
   }
 
-  public async deploy(status: DeployStatus, options: ResourceOptions): Promise<LambdaDeployStatus> {
+  public async predeploy(
+    status: DeployStatus,
+    options: ResourceOptions,
+  ): Promise<LambdaDeployStatus> {
     const lambdaStatus: LambdaDeployStatus = {};
 
-    ui.updateBottomBar('Creating Lambda function');
+    ui.updateBottomBar('Preparing function');
     const configuration = await manageResource(
       this.functionResource(this.config.name, status),
       options,
     );
     lambdaStatus.functionArn = configuration.FunctionArn;
-
-    const code = await manageResource(this.codeResource(this.config.name, status), options);
-    lambdaStatus.imageUri = code.ImageUri;
 
     ui.updateBottomBar('Setting permissions');
     await manageResource(
@@ -92,9 +93,25 @@ export class LambdaService implements IamConsumer {
       options,
     );
 
-    ui.updateBottomBar(`Creating function URL`);
+    ui.updateBottomBar(`Updating URL`);
     const url = await manageResource(this.urlResource(this.config.name), options);
     lambdaStatus.url = url;
+
+    return lambdaStatus;
+  }
+
+  public async deploy(status: DeployStatus, options: ResourceOptions): Promise<LambdaDeployStatus> {
+    const lambdaStatus: LambdaDeployStatus = {};
+
+    ui.updateBottomBar('Updating Lambda function');
+    const configuration = await manageResource(
+      this.functionResource(this.config.name, status),
+      options,
+    );
+    lambdaStatus.functionArn = configuration.FunctionArn;
+
+    const code = await manageResource(this.codeResource(this.config.name, status), options);
+    lambdaStatus.imageUri = code.ImageUri;
 
     return lambdaStatus;
   }
@@ -106,18 +123,31 @@ export class LambdaService implements IamConsumer {
       memorySize: number;
     };
 
-    const { repositoryUri, imageDigest, roleArn, architecture } = status;
-    if (!repositoryUri) {
-      throw new Error('Missing repository URI');
+    let { repositoryUri, imageDigest } = status;
+    if (!repositoryUri || !imageDigest) {
+      // Use the Hello World Image if either is unknown, it's the initial deploy
+      // TODO: multi-platform builds for hello world
+      repositoryUri = '557208059266.dkr.ecr.us-east-1.amazonaws.com/scaffoldly-hello-world';
+      imageDigest = 'sha256:3b5a30e673defa489f2bbb0ed36b558dd22ecc866eaa37a1b81713e32d55560c';
     }
-    if (!imageDigest) {
-      throw new Error('Missing image digest');
+
+    const { architecture } = status;
+    const architectures: Architecture[] = [];
+    switch (architecture) {
+      case 'arm64':
+        architectures.push('arm64');
+        break;
+      case 'amd64':
+        architectures.push('x86_64');
+        break;
+      default:
+        throw new Error(`Unsupported architecture: ${architecture}`);
     }
+
+    const { roleArn } = status;
+
     if (!roleArn) {
       throw new Error('Missing role ARN');
-    }
-    if (!architecture) {
-      throw new Error('Missing architecture');
     }
 
     const desired: MutableFields = {
@@ -142,9 +172,25 @@ export class LambdaService implements IamConsumer {
                 memorySize: response.Configuration.MemorySize,
               };
 
+              if (
+                response.Configuration.Architectures &&
+                response.Configuration.Architectures.length &&
+                response.Configuration.Architectures[0] !== architectures[0]
+              ) {
+                return retry(
+                  new Error(
+                    `Configured architecture ${response.Configuration.Architectures[0]} is immutable.`,
+                  ),
+                );
+              }
+
               if (!_.isEqual(actual, desired)) {
                 return retry(
-                  new Error(`Timed out waiting for ${name} to update with configuration`),
+                  new Error(
+                    `Timed out waiting for ${name} to update with configuration: ${JSON.stringify(
+                      desired,
+                    )}`,
+                  ),
                 );
               }
               if (response.Configuration.LastUpdateStatus !== 'Successful') {
@@ -165,13 +211,11 @@ export class LambdaService implements IamConsumer {
         { factor: 1, retries: 60 },
       );
 
-    const SLY_SERVE = this.config.serveCommands.encode();
-    const SLY_ROUTES = JSON.stringify(this.config.routes); // TODO: Properly encode this
-
     const env = {
-      SLY_ROUTES,
-      SLY_SERVE,
-      SLY_SECRET: status.secretName || '',
+      SLY_ROUTES: JSON.stringify(this.config.routes), // TODO encode
+      SLY_SERVE: this.config.serveCommands.encode(),
+      SECRET_NAME: status.secretName || '',
+      URL: status.url || '',
     };
 
     dotenv({ path: join(this.cwd, '.env'), processEnv: env });
@@ -179,16 +223,8 @@ export class LambdaService implements IamConsumer {
     return {
       client: this.lambdaClient,
       read,
-      create: async (command) =>
-        promiseRetry((retry) => this.lambdaClient.send(command).catch(retry).then(read), {
-          factor: 1,
-          retries: 60,
-        }),
-      update: async (command) =>
-        promiseRetry((retry) => this.lambdaClient.send(command).catch(retry).then(read), {
-          factor: 1,
-          retries: 60,
-        }),
+      create: async (command) => this.lambdaClient.send(command).then(read),
+      update: async (command) => this.lambdaClient.send(command).then(read),
       request: {
         create: new CreateFunctionCommand({
           Code: {
@@ -204,9 +240,15 @@ export class LambdaService implements IamConsumer {
           PackageType: 'Image',
           Timeout: desired.timeout,
           MemorySize: desired.memorySize,
-          Architectures: [architecture === 'arm64' ? 'arm64' : 'x86_64'],
+          Architectures: architectures,
           Environment: {
-            Variables: env,
+            Variables: {
+              ...env,
+              // Disable version checking in config since we're deploying hello world image
+              // This is so we can deploy a function and generate a Function URL without needing a build first
+              SLY_SERVE: this.config.serveCommands.encode(false),
+              SLY_STRICT: 'false',
+            },
           },
         }),
         update: new UpdateFunctionConfigurationCommand({

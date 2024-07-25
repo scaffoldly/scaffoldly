@@ -15,8 +15,10 @@ import { CloudResource, manageResource, ResourceOptions } from '..';
 import {} from '@smithy/types';
 import { NotFoundException } from './errors';
 import { DeployStatus } from '.';
+import { Architecture, DockerService } from '../docker';
 
 export type EcrDeployStatus = {
+  architecture?: Architecture;
   repositoryUri?: string;
 };
 
@@ -41,7 +43,7 @@ export interface RegistryAuthConsumer {
 export class EcrService implements RegistryAuthConsumer {
   ecrClient: ECRClient;
 
-  constructor(private config: ScaffoldlyConfig) {
+  constructor(private config: ScaffoldlyConfig, private dockerService: DockerService) {
     this.ecrClient = new ECRClient();
   }
 
@@ -53,6 +55,10 @@ export class EcrService implements RegistryAuthConsumer {
 
     const { repositoryUri } = repository;
     ecrStatus.repositoryUri = repositoryUri;
+
+    ui.updateBottomBar('Determining architecture');
+    const architecture = await this.dockerService.architecture;
+    ecrStatus.architecture = architecture;
 
     return ecrStatus;
   }

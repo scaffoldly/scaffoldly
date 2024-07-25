@@ -5,10 +5,11 @@ import { DeployStatus } from '../aws';
 import { ui } from '../../../command';
 import { RegistryAuthConsumer } from '../aws/ecr';
 
+export type Architecture = 'arm64' | 'amd64';
+
 export type DockerDeployStatus = {
   imageName?: string;
   imageDigest?: string;
-  architecture?: string;
   entrypoint?: string[];
 };
 
@@ -17,6 +18,10 @@ export class DockerService {
 
   constructor(config: ScaffoldlyConfig, private dockerService: DockerCiService) {
     this.config = config;
+  }
+
+  get architecture(): Promise<Architecture> {
+    return this.dockerService.getArchitecture(this.config.runtime);
   }
 
   public async deploy(
@@ -38,9 +43,8 @@ export class DockerService {
     const authConfig = await consumer.authConfig;
 
     ui.updateBottomBar(`Pushing ${imageName}`);
-    const { imageDigest, architecture } = await this.dockerService.push(imageName, authConfig);
+    const { imageDigest } = await this.dockerService.push(imageName, authConfig);
     dockerStatus.imageDigest = imageDigest;
-    dockerStatus.architecture = architecture;
 
     if (options.clean) {
       throw new Error('Not implemented');

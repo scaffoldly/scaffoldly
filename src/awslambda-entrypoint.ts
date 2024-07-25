@@ -11,7 +11,7 @@ import { spawn } from 'child_process';
 import { GetSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
 // import { parse } from 'shell-quote';
 
-const { SLY_SERVE, SLY_ROUTES, SLY_SECRET, AWS_LAMBDA_RUNTIME_API } = process.env;
+const { SLY_STRICT, SLY_SERVE, SLY_ROUTES, SLY_SECRET, AWS_LAMBDA_RUNTIME_API } = process.env;
 
 export const run = async (): Promise<void> => {
   if (process.argv.includes('--version')) {
@@ -31,7 +31,7 @@ export const run = async (): Promise<void> => {
     throw new Error('Missing SLY_ROUTES');
   }
 
-  log('Bootstraping', { SLY_SERVE, SLY_ROUTES, SLY_SECRET, AWS_LAMBDA_RUNTIME_API });
+  log('Bootstraping', { SLY_STRICT, SLY_SERVE, SLY_ROUTES, SLY_SECRET, AWS_LAMBDA_RUNTIME_API });
 
   let env: Record<string, string> = {};
 
@@ -61,7 +61,7 @@ export const run = async (): Promise<void> => {
   let routes: Routes;
 
   try {
-    serveCommands = ServeCommands.decode(SLY_SERVE);
+    serveCommands = ServeCommands.decode(SLY_SERVE, SLY_STRICT !== 'false');
   } catch (e) {
     throw new Error('Unable to parse SLY_ROUTES');
   }

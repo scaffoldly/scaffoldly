@@ -13,6 +13,7 @@ import { join, sep } from 'path';
 import { ui } from '../../../command';
 import { isDebug } from '../../../ui';
 import { BufferedWriteStream } from './util';
+import { Architecture } from '../../cd/docker';
 
 const BASE = 'base';
 type Path = string;
@@ -102,26 +103,6 @@ const splitPath = (path: string): [string, string] => {
   return [parts.slice(0, -1).join(sep), parts.pop() as string];
 };
 
-const filesToResolve = (spec: DockerFileSpec): Copy[] => {
-  const files = new Set<Copy>();
-
-  if (spec.copy) {
-    spec.copy.forEach((c) => {
-      if (c.resolve) {
-        files.add(c);
-      }
-    });
-  }
-
-  // if (spec.bases) {
-  //   spec.bases.forEach((b) => {
-  //     filesToResolve(b).forEach((f) => files.add(f));
-  //   });
-  // }
-
-  return Array.from(files);
-};
-
 export class DockerService {
   docker: Docker;
 
@@ -155,15 +136,13 @@ export class DockerService {
   ): Promise<{ imageName: string; entrypoint: string[] }> {
     const stages = await this.createStages(config, mode);
 
-    console.log('!!! created stages', JSON.stringify(stages, null, 2));
+    if (isDebug()) {
+      console.log('Stages:', JSON.stringify(stages, null, 2));
+    }
 
-    // const { spec, entrypoint } = await this.createSpec(config, mode);
+    const tag = config.id ? `${config.version}-${config.id}` : config.version;
 
-    // console.log('!!! created spec', JSON.stringify(spec, null, 2));
-
-    const imageName = repositoryUri
-      ? `${repositoryUri}:${config.version}`
-      : `${config.name}:${mode}`;
+    const imageName = repositoryUri ? `${repositoryUri}:${tag}` : `${config.name}:${tag}`;
 
     // todo add dockerfile to tar instead of writing it to cwd
     // const dockerfile = this.renderSpec(spec);
@@ -201,10 +180,11 @@ export class DockerService {
       throw new Error('Missing runtime');
     }
 
+    // TODO: Multi-platform
     const buildStream = await this.docker.buildImage(stream, {
       dockerfile: dockerfilePath.replace(this.cwd, DEFAULT_SRC_ROOT),
       t: imageName,
-      // forcerm: true,
+      forcerm: true,
       // version: '2', // FYI: Not in the type
     } as ImageBuildOptions);
 
@@ -222,7 +202,10 @@ export class DockerService {
       );
     });
 
-    return { imageName, entrypoint: entrypoint };
+    return {
+      imageName,
+      entrypoint: entrypoint,
+    };
   }
 
   async createStages(config: ScaffoldlyConfig, mode: Script): Promise<DockerStages> {
@@ -466,219 +449,6 @@ export class DockerService {
     return undefined;
   }
 
-  // async createSpec(
-  //   config: ScaffoldlyConfig,
-  //   mode: Script,
-  //   ix = 0,
-  // ): Promise<{ spec: DockerFileSpec; entrypoint: string[]; stream?: Pack }> {
-  //   const { runtime, bin = {}, services, src, shell, packages } = config;
-
-  //   // const serviceSpecs = await Promise.all(
-  //   //   services.map((s, sIx) => this.createSpec(s, mode, ix + sIx + 1)),
-  //   // );
-
-  //   const entrypointScript = join('node_modules', 'scaffoldly', 'dist', 'awslambda-entrypoint.js');
-  //   const entrypointBin = `.entrypoint`;
-
-  //   if (!runtime) {
-  //     throw new Error('Missing runtime');
-  //   }
-
-  //   const environment = mode === 'develop' ? 'development' : 'production';
-
-  //   const workdir = join(sep, 'var', 'task');
-
-  //   const paths = [join(workdir, src)];
-
-  //   Object.entries(bin).forEach(([script, path]) => {
-  //     if (!path) return;
-  //     const scriptPath = join(src, script);
-  //     const [binDir] = splitPath(path);
-  //     if (scriptPath === path) {
-  //       paths.push(join(workdir, binDir));
-  //     }
-  //   });
-
-  //   let spec: DockerFileSpec = {
-  //     bases: [
-  //       {
-  //         from: runtime,
-  //         as: `base-${ix}`,
-  //         workdir,
-  //         paths: [workdir],
-  //         run: await this.installPackages(runtime, packages),
-  //         shell,
-  //       },
-  //       ...serviceSpecs.map((s) => s.spec),
-  //     ],
-  //     from: `base-${ix}`,
-  //     as: `package-${ix}`,
-  //     workdir,
-  //     env: {
-  //       NODE_ENV: environment, // TODO Env File Interpolation
-  //       HOSTNAME: '0.0.0.0',
-  //       SLY_DEBUG: isDebug() ? 'true' : undefined,
-  //     },
-  //     shell,
-  //   };
-
-  //   let { devFiles, files: additionalBuildFiles } = config;
-  //   const { files } = config;
-
-  //   // HACK: include node_modules/.bin in path
-  //   //       this is a hack because it seems like there's a better way to infer this
-  //   if (files.includes('node_modules') || devFiles.includes('node_modules')) {
-  //     paths.push(join(workdir, src, 'node_modules', '.bin'));
-  //   }
-
-  //   spec.paths = paths;
-
-  //   if (devFiles.includes(DEFAULT_SRC_ROOT)) {
-  //     // Already including the full source directiory, no need to copy more
-  //     devFiles = [join(DEFAULT_SRC_ROOT, src)];
-  //     additionalBuildFiles = files;
-  //   }
-
-  //   const buildFiles: Copy[] = [...additionalBuildFiles, ...devFiles].map((file) => {
-  //     const copy: Copy = {
-  //       src: file,
-  //       dest: file,
-  //     };
-  //     return copy;
-  //   });
-
-  //   if (mode === 'develop' && config.scripts.develop) {
-  //     spec.copy = buildFiles;
-  //   }
-
-  //   if (mode === 'build' && config.scripts.build) {
-  //     spec.bases = [
-  //       {
-  //         ...spec,
-  //         as: `build-${ix}`,
-  //         copy: buildFiles,
-  //         workdir,
-  //         run: [
-  //           {
-  //             workdir: src !== DEFAULT_SRC_ROOT ? join(workdir, src) : undefined,
-  //             cmds: [config.scripts.build],
-  //             prerequisite: false,
-  //           },
-  //         ],
-  //       },
-  //     ];
-
-  //     const copy = files.map(
-  //       (file) =>
-  //         ({
-  //           from: `build-${ix}`,
-  //           src: file,
-  //           dest: file,
-  //         } as Copy),
-  //     );
-
-  //     Object.entries(bin).forEach(([script, path]) => {
-  //       if (!path) return;
-  //       const scriptPath = join(src, script);
-  //       const [binDir, binFile] = splitPath(path);
-  //       copy.push({
-  //         from: `build-${ix}`,
-  //         src: binDir,
-  //         dest: binDir,
-  //         bin: {
-  //           file: binFile,
-  //           dir: scriptPath === path ? binDir : src,
-  //         },
-  //         resolve: false,
-  //       });
-  //     });
-
-  //     spec.copy = [...(spec.copy || []), ...copy].map((c) => {
-  //       const srcGlobIx = c.src.indexOf('*');
-  //       if (srcGlobIx !== -1) {
-  //         c.src = c.src.slice(0, srcGlobIx);
-  //       }
-  //       const destGlobIx = c.dest.indexOf('*');
-  //       if (destGlobIx !== -1) {
-  //         c.dest = c.dest.slice(0, destGlobIx);
-  //       }
-
-  //       return c;
-  //     });
-  //   }
-
-  //   if (mode === 'build' && ix === 0) {
-  //     const copy = [spec, ...(spec.bases || [])]
-  //       .map((s) => {
-  //         console.log(`!!! checking spec ${s.as}`);
-  //         return (s.copy || []).map((c) => {
-  //           console.log(`!!!    considering copy`, c);
-  //           let from = s.as;
-  //           if (c.bin) {
-  //             from = c.from;
-  //           }
-  //           return { ...c, from } as Copy;
-  //         });
-  //       })
-  //       .flat()
-  //       .filter((c) => !!c && c.src !== DEFAULT_SRC_ROOT);
-
-  //     // spec.copy = copy.filter((c) => !!c.bin || c.from !== spec.as);
-
-  //     if (spec.paths) {
-  //       paths.push(...spec.paths);
-  //     }
-
-  //     copy.forEach((c) => {
-  //       if (c.bin) {
-  //         paths.push(join(workdir, c.bin.dir));
-  //       }
-  //     });
-
-  //     spec = {
-  //       ...spec,
-  //       bases: [spec],
-  //       as: undefined,
-  //       from: `base-${ix}`,
-  //       paths,
-  //       copy: [
-  //         // {
-  //         //   src: serveScript,
-  //         //   dest: serveBin,
-  //         //   resolve: true,
-  //         // },
-  //         {
-  //           src: entrypointScript,
-  //           dest: entrypointBin,
-  //           resolve: true,
-  //         },
-  //         ...(copy || [])
-  //           .map((c) => {
-  //             if (c.bin) {
-  //               return [
-  //                 {
-  //                   from: `package-${ix}`,
-  //                   src: `${c.src}${sep}`,
-  //                   dest: `${c.bin.dir}${sep}`,
-  //                   bin: c.bin,
-  //                 },
-  //               ] as Copy[];
-  //             }
-  //             return [{ ...c, from: `package-${ix}` } as Copy];
-  //           })
-  //           .flat(),
-  //       ],
-  //       cmd: config.serveCommands,
-  //     };
-  //   }
-
-  //   return {
-  //     spec,
-  //     // entrypoint: [join(workdir, serveBin), join(workdir, entrypointBin)],
-  //     entrypoint: [join(workdir, entrypointBin)],
-  //   };
-  // }
-
   renderStages = (stages: DockerStages): string => {
     const lines = [];
 
@@ -827,17 +597,8 @@ export class DockerService {
     return dockerfile;
   };
 
-  public async push(
-    imageName: string,
-    authConfig: AuthConfig,
-  ): Promise<{ imageDigest: string; architecture: string }> {
+  public async push(imageName: string, authConfig: AuthConfig): Promise<{ imageDigest: string }> {
     const image = this.docker.getImage(imageName);
-
-    const { Architecture: architecture } = await image.inspect();
-
-    if (architecture !== 'amd64' && architecture !== 'arm64') {
-      throw new Error(`Unsupported architecture: ${architecture}`);
-    }
 
     const pushStream = await image.push({ authconfig: authConfig });
 
@@ -865,7 +626,7 @@ export class DockerService {
       throw new Error('Failed to push image');
     }
 
-    return { imageDigest, architecture };
+    return { imageDigest };
   }
 
   private installPackages = async (runtime: string, packages?: string[]): Promise<RunCommand[]> => {
@@ -925,6 +686,52 @@ export class DockerService {
     }
   };
 
+  public async getArchitecture(runtime: string): Promise<Architecture> {
+    let image: Docker.ImageInspectInfo | undefined = undefined;
+
+    try {
+      image = await this.docker.getImage(runtime).inspect();
+    } catch (e) {
+      const pullStream = await this.docker.pull(runtime);
+
+      await new Promise<DockerEvent[]>((resolve, reject) => {
+        this.docker.modem.followProgress(
+          pullStream,
+          (err, res) => (err ? reject(err) : resolve(res)),
+          (event) => {
+            try {
+              this.handleDockerEvent('Pull', event);
+            } catch (e2) {
+              reject(e2);
+            }
+          },
+        );
+      });
+
+      image = await this.docker.getImage(runtime).inspect();
+    }
+
+    if (!image) {
+      throw new Error(`Failed to find image: ${runtime}`);
+    }
+
+    if (!image.Architecture) {
+      throw new Error(`Failed to determine architecture for image: ${runtime}`);
+    }
+
+    let architecture: Architecture | undefined = undefined;
+    switch (image.Architecture) {
+      case 'amd64':
+      case 'arm64':
+        architecture = image.Architecture;
+        break;
+      default:
+        throw new Error(`Unsupported architecture: ${image.Architecture}`);
+    }
+
+    return architecture;
+  }
+
   private async checkBin<T extends string[]>(
     runtime: string,
     bins: [...T],
@@ -932,22 +739,6 @@ export class DockerService {
     if (!bins || !bins.length) {
       return undefined;
     }
-
-    const pullStream = await this.docker.pull(runtime);
-
-    await new Promise<DockerEvent[]>((resolve, reject) => {
-      this.docker.modem.followProgress(
-        pullStream,
-        (err, res) => (err ? reject(err) : resolve(res)),
-        (event) => {
-          try {
-            this.handleDockerEvent('Pull', event);
-          } catch (e) {
-            reject(e);
-          }
-        },
-      );
-    });
 
     const bin = bins.pop();
 

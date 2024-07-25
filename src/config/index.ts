@@ -4,7 +4,10 @@ import { join, sep } from 'path';
 export const DEFAULT_SRC_ROOT = `.`;
 export const DEFAULT_ROUTE = '/*';
 
-export const decode = <T>(config: string): T => {
+export const decode = <T>(config: string, strict: boolean): T => {
+  if (!strict && config.startsWith('base58:')) {
+    return JSON.parse(new TextDecoder().decode(base58.decode(config.split('base58:')[1])));
+  }
   if (config.startsWith(`${pkg.name}@${pkg.version}:`)) {
     return JSON.parse(
       new TextDecoder().decode(base58.decode(config.split(`${pkg.name}@${pkg.version}:`)[1])),
@@ -13,7 +16,10 @@ export const decode = <T>(config: string): T => {
   throw new Error(`Invalid config: ${config}`);
 };
 
-export const encode = <T>(config: T): string => {
+export const encode = <T>(config: T, strict: boolean): string => {
+  if (!strict) {
+    return `base58:${base58.encode(new TextEncoder().encode(JSON.stringify(config)))}`;
+  }
   return `${pkg.name}@${pkg.version}:${base58.encode(
     new TextEncoder().encode(JSON.stringify(config)),
   )}`;
@@ -48,12 +54,12 @@ export class ServeCommands {
       .join(' & ');
   };
 
-  encode = (): string => {
-    return encode(this.serveCommands);
+  encode = (strict = true): string => {
+    return encode(this.serveCommands, strict);
   };
 
-  static decode = (config: string): ServeCommand[] => {
-    return decode(config);
+  static decode = (config: string, strict = true): ServeCommand[] => {
+    return decode(config, strict);
   };
 }
 
@@ -68,6 +74,7 @@ export type PackageJson = {
 export type Routes = { [key: string]: string | undefined };
 
 export interface IScaffoldlyConfig extends IServiceConfig {
+  get id(): string;
   get name(): string;
   get version(): string;
   get runtime(): string;
@@ -88,6 +95,7 @@ export interface IScaffoldlyConfig extends IServiceConfig {
 export type ServiceName = string;
 
 export interface IServiceConfig {
+  id: string;
   name: ServiceName;
   runtime: string;
   handler: string;
@@ -120,7 +128,10 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
 
   private _files?: string[];
 
+  private _id = '';
+
   constructor(
+    private strict: boolean,
     configs: {
       packageJson?: PackageJson;
       encodedConfig?: string;
@@ -132,8 +143,9 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
     this.packageJson = packageJson;
 
     if (encodedConfig) {
-      const decodedConfig = decode<ScaffoldlyConfig>(encodedConfig);
+      const decodedConfig = decode<ScaffoldlyConfig>(encodedConfig, this.strict);
       this.scaffoldly = decodedConfig;
+      this._id = decodedConfig.id;
       this._name = decodedConfig.name;
       this._version = decodedConfig.version;
       this._bin = decodedConfig.bin;
@@ -176,11 +188,41 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
     throw new Error('Unable to create scaffoldly config');
   }
 
+  set id(id: string) {
+    this._id = id;
+  }
+
+  get id(): string {
+    const { _id: id } = this;
+    if (!id) {
+      return ''; // For truthy checks
+    }
+    return id;
+  }
+
   get name(): ServiceName {
-    const name = this.serviceConfig?.name || this._name;
+    let name = this.serviceConfig?.name || this._name;
     if (!name) {
       throw new Error('Missing `name`');
     }
+
+    const re = /[a-z0-9]+(?:[._-][a-z0-9]+)*/; // From ECR Regex
+
+    const replaced = name.replace(/\//g, '-');
+    const sanitized = replaced.toLowerCase().replace(/[^a-z0-9._-]/g, '');
+    const matches = sanitized.match(re);
+
+    if (!matches || !matches[0]) {
+      throw new Error(`Invalid service name: '${name}' (sanitized: ${sanitized})`);
+    }
+
+    name = matches[0];
+
+    const id = this.serviceConfig?.id || this._id;
+    if (id) {
+      name = `${name}-${id}`;
+    }
+
     return name;
   }
 
@@ -235,9 +277,10 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
   get services(): ScaffoldlyConfig[] {
     const { services = [] } = this.scaffoldly;
     return services.map((service, ix) => {
-      return new ScaffoldlyConfig({
+      return new ScaffoldlyConfig(this.strict, {
         packageJson: this.packageJson,
         serviceConfig: {
+          id: service.id || '',
           name: service.name || `${ix + 1}`,
           runtime: service.runtime || this.runtime,
           handler: service.handler || this.handler,
