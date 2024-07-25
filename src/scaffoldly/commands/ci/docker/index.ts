@@ -287,7 +287,7 @@ export class DockerService {
     if (mode === 'install') {
       spec.from = runtime;
 
-      const runCommands = (await this.installPackages(runtime, packages)) || [];
+      const runCommands = (await this.installPackages(config.runtime, packages)) || [];
 
       runCommands.push({
         cmds: scripts.install ? [scripts.install] : [],
