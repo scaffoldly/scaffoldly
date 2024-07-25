@@ -104,6 +104,7 @@ export interface IServiceConfig {
   src: string;
   scripts: { [key in Script]?: string };
   packages?: string[];
+  shell?: Shell;
 }
 
 export type PackageJsonBin = { [key: string]: string };
@@ -293,6 +294,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
           files: service.files || [],
           bin: service.bin || {},
           packages: service.packages || [],
+          shell: service.shell,
         },
       });
     });
@@ -362,7 +364,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
   }
 
   get shell(): Shell | undefined {
-    const { shell } = this.scaffoldly;
+    const { shell } = this.serviceConfig || this.scaffoldly;
     return shell;
   }
 
