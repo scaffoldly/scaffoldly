@@ -292,6 +292,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
           scripts: service.scripts || {},
           files: service.files || [],
           bin: service.bin || {},
+          packages: service.packages || [],
         },
       });
     });
