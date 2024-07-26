@@ -167,26 +167,26 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
       this.scaffoldly = scaffoldly;
       this._name = packageJson.name;
       this._version = packageJson.version;
-      this._bin = packageJson.bin;
-      this._files = packageJson.files;
+      this._bin = { ...(packageJson.bin || {}), ...(scaffoldly.bin || {}) };
+      this._files = [...(packageJson.files || []), ...(scaffoldly.files || [])];
       this._packages = scaffoldly.packages || [];
 
       if (serviceConfig) {
         // We're in a sub-service, don't pull in  nested services or routes
         this.scaffoldly = {
-          ...this.scaffoldly,
-          runtime: serviceConfig.runtime || this.runtime,
+          ...scaffoldly,
+          runtime: serviceConfig.runtime || scaffoldly.runtime,
           services: [],
           routes: undefined,
         };
         this.serviceConfig = serviceConfig;
         this._name = serviceConfig.name;
-        this._files = [...(packageJson.files || []), ...(serviceConfig.files || [])];
+        this._packages = this._packages || [];
+        this._files = [...(this._files || []), ...(serviceConfig.files || [])];
         this._bin = {
-          ...(packageJson.bin || {}),
+          ...(this._bin || {}),
           ...(serviceConfig.bin || {}),
         };
-        this._packages = [...(this.scaffoldly.packages || []), ...(serviceConfig.packages || [])];
       }
 
       return;

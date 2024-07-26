@@ -225,7 +225,9 @@ export class LambdaService implements IamConsumer {
     return {
       client: this.lambdaClient,
       read,
-      create: async (command) => this.lambdaClient.send(command).then(read),
+      create: async (command) =>
+        // Using retry b/c of Role creation race condition
+        promiseRetry((retry) => this.lambdaClient.send(command).catch(retry)).then(read),
       update: async (command) => this.lambdaClient.send(command).then(read),
       request: {
         create: new CreateFunctionCommand({
