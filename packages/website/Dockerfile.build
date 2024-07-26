@@ -1,0 +1,25 @@
+FROM node:22-alpine as install-base
+WORKDIR /var/task
+
+FROM install-base as build-base
+WORKDIR /var/task
+ENV PATH="/var/task:$PATH"
+ENV PATH="/var/task/node_modules/.bin:$PATH"
+COPY . /var/task/
+RUN docusaurus build
+
+FROM install-base as package-base
+WORKDIR /var/task
+ENV PATH="/var/task:$PATH"
+ENV PATH="/var/task/node_modules/.bin:$PATH"
+COPY --from=build-base /var/task/build /var/task/build
+COPY --from=build-base /var/task/node_modules /var/task/node_modules
+
+FROM install-base as runtime
+WORKDIR /var/task
+ENV PATH="/var/task:$PATH"
+ENV PATH="/var/task/node_modules/.bin:$PATH"
+COPY .entrypoint* /var/task/.entrypoint
+COPY --from=package-base /var/task/build /var/task/build
+COPY --from=package-base /var/task/node_modules /var/task/node_modules
+CMD ( serve build )

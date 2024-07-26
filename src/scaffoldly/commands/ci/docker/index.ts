@@ -455,24 +455,24 @@ export class DockerService {
     const { bases, builds, packages, runtime } = stages;
 
     Object.values(bases).forEach((spec, ix) => {
-      ui.updateBottomBarSubtext(`Rendering base stage ${spec?.as}`);
+      ui.updateBottomBarSubtext(`Rendering ${spec?.as} stage`);
       lines.push(this.renderSpec('install', spec, ix));
       lines.push('');
     });
 
     Object.values(builds).forEach((spec, ix) => {
-      ui.updateBottomBarSubtext(`Rendering build stage ${spec?.as}`);
+      ui.updateBottomBarSubtext(`Rendering ${spec?.as} stage`);
       lines.push(this.renderSpec('build', spec, ix));
       lines.push('');
     });
 
     Object.values(packages).forEach((spec, ix) => {
-      ui.updateBottomBarSubtext(`Rendering pacakge stage ${spec?.as}`);
+      ui.updateBottomBarSubtext(`Rendering  ${spec?.as} stage`);
       lines.push(this.renderSpec('package', spec, ix));
       lines.push('');
     });
 
-    ui.updateBottomBarSubtext(`Rendering runtime stage ${runtime.as}`);
+    ui.updateBottomBarSubtext(`Rendering ${runtime.as} stage`);
     lines.push(this.renderSpec('start', runtime, 0));
 
     return lines.join('\n');
