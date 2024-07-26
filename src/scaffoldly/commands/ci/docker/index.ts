@@ -686,7 +686,7 @@ export class DockerService {
     }
   };
 
-  public async getArchitecture(runtime: string): Promise<Architecture> {
+  private async getImage(runtime: string): Promise<Docker.ImageInspectInfo | undefined> {
     let image: Docker.ImageInspectInfo | undefined = undefined;
 
     try {
@@ -711,25 +711,25 @@ export class DockerService {
       image = await this.docker.getImage(runtime).inspect();
     }
 
+    return image;
+  }
+
+  public async getArchitecture(runtime: string): Promise<Architecture> {
+    const image = await this.getImage(runtime);
+
     if (!image) {
-      throw new Error(`Failed to find image: ${runtime}`);
+      throw new Error(`Failed to get image for ${runtime}`);
     }
 
-    if (!image.Architecture) {
-      throw new Error(`Failed to determine architecture for image: ${runtime}`);
-    }
+    const architecture = image.Architecture;
 
-    let architecture: Architecture | undefined = undefined;
-    switch (image.Architecture) {
+    switch (architecture) {
       case 'amd64':
       case 'arm64':
-        architecture = image.Architecture;
-        break;
+        return architecture as Architecture;
       default:
-        throw new Error(`Unsupported architecture: ${image.Architecture}`);
+        throw new Error(`Unsupported architecture: ${architecture}`);
     }
-
-    return architecture;
   }
 
   private async checkBin<T extends string[]>(
@@ -740,10 +740,19 @@ export class DockerService {
       return undefined;
     }
 
+    const image = await this.getImage(runtime);
+    if (!image) {
+      throw new Error(`Failed to get image for ${runtime}`);
+    }
+
+    if (!image.RepoDigests || !image.RepoDigests.length) {
+      throw new Error(`Failed to get image digest for ${runtime}`);
+    }
+
     const bin = bins.pop();
 
     const [output, container] = await this.docker.run(
-      runtime,
+      image.RepoDigests[0],
       [`command -v ${bin}`],
       new BufferedWriteStream(),
       {

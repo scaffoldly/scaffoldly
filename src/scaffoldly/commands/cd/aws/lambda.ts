@@ -24,6 +24,7 @@ import { DeployStatus } from '.';
 import { NotFoundException } from './errors';
 import { CloudResource, manageResource, ResourceOptions } from '..';
 import { config as dotenv } from 'dotenv';
+import { expand as dotenvExpand } from 'dotenv-expand';
 import { Cwd } from '../..';
 import { join } from 'path';
 
@@ -211,7 +212,7 @@ export class LambdaService implements IamConsumer {
         { factor: 1, retries: 60 },
       );
 
-    const env = {
+    const env: Record<string, string> = {
       SLY_ROUTES: JSON.stringify(this.config.routes), // TODO encode
       SLY_SERVE: this.config.serveCommands.encode(),
       SECRET_NAME: status.secretName || '',
@@ -219,6 +220,7 @@ export class LambdaService implements IamConsumer {
     };
 
     dotenv({ path: join(this.cwd, '.env'), processEnv: env });
+    dotenvExpand(env);
 
     return {
       client: this.lambdaClient,

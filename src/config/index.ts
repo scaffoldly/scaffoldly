@@ -154,6 +154,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
       this._version = decodedConfig.version;
       this._bin = decodedConfig.bin;
       this._files = decodedConfig.files;
+      this._packages = decodedConfig.packages;
 
       return;
     }
@@ -168,6 +169,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
       this._version = packageJson.version;
       this._bin = packageJson.bin;
       this._files = packageJson.files;
+      this._packages = scaffoldly.packages || [];
 
       if (serviceConfig) {
         // We're in a sub-service, don't pull in  nested services or routes
