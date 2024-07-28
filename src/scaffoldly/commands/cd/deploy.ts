@@ -37,9 +37,7 @@ export class DeployCommand extends CdCommand {
 
     const status = await this.gitService
       .predeploy({}, options)
-      .then((s) => this.envService.predeploy(s, options))
       .then((s) => this.awsService.predeploy(s, options))
-      .then((s) => this.envService.deploy(s, options))
       .then((s) => this.awsService.deploy(s, options));
 
     ui.updateBottomBar('');

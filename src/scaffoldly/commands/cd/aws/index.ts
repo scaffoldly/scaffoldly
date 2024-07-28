@@ -61,10 +61,16 @@ export class AwsService {
     // Pre-Deploy Lambda (Creates the Function URL and other pre-deploy steps)
     status = await this.lambdaService.predeploy(status, options);
 
+    // Pre-Deploy Environment Variables
+    status = await this.envService.predeploy(status, options);
+
     return status;
   }
 
   async deploy(status: DeployStatus, options: ResourceOptions): Promise<DeployStatus> {
+    // Deploy Environment Variables
+    status = await this.envService.deploy(status, options);
+
     // Deploy Docker Container
     status = await this.dockerService.deploy(status, this.ecrService, options);
 
