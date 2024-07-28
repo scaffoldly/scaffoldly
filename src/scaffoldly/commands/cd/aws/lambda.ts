@@ -222,18 +222,20 @@ export class LambdaService implements IamConsumer {
       ORIGIN: status.origin || '',
     };
 
-    const parsedEnv: Record<string, string> =
-      dotenvExpand({
+    const parsedEnv: Record<string, string> = {
+      ...env, // Combine final result with scaffoldly env
+      ...(dotenvExpand({
         processEnv: {
-          ...process.env,
-          ...env,
+          ...env, // Include scaffoldly env
+          ...process.env, // Combine with process.env
         },
         parsed: dotenv({
           path: status.envFiles?.map((f) => join(this.cwd, f)),
           debug: isDebug(),
-          processEnv: env,
+          processEnv: env, // Start with scaffoldly env
         }).parsed,
-      }).parsed || {};
+      }).parsed || {}),
+    };
 
     return {
       client: this.lambdaClient,
