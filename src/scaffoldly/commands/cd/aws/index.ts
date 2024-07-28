@@ -4,14 +4,13 @@ import { LambdaDeployStatus, LambdaService } from './lambda';
 import { ResourceOptions } from '..';
 import { IamDeployStatus, IamService } from './iam';
 import { EcrDeployStatus, EcrService } from './ecr';
-import { ui } from '../../../command';
 import { DockerDeployStatus, DockerService } from '../docker';
 import { Cwd } from '../..';
 import { SecretDeployStatus, SecretService } from './secret';
-import { GitService } from '../../ci/git';
-import { isDebug } from '../../../ui';
+import { GitDeployStatus, GitService } from '../git';
 
-export type DeployStatus = DockerDeployStatus &
+export type DeployStatus = GitDeployStatus &
+  DockerDeployStatus &
   EcrDeployStatus &
   IamDeployStatus &
   SecretDeployStatus &
@@ -41,15 +40,14 @@ export class AwsService {
     this.lambdaService = new LambdaService(this.cwd, this.config);
   }
 
-  async deploy(): Promise<void> {
-    const options: ResourceOptions = {};
-    let status: DeployStatus = {};
+  async predeploy(status: DeployStatus, options: ResourceOptions): Promise<DeployStatus> {
+    // TODO Check if auth'd to AWS
 
     // Deploy ECR with a unqualified name
     this.config.id = '';
     status = {
       ...status,
-      ...(await this.ecrService.deploy(status, options)),
+      ...(await this.ecrService.predeploy(status, options)),
     };
 
     const branch = await this.gitService.branch;
@@ -61,7 +59,7 @@ export class AwsService {
     this.config.id = branch;
     status = {
       ...status,
-      ...(await this.secretService.deploy(status, this.config, options)),
+      ...(await this.secretService.predeploy(status, this.config, options)),
     };
 
     // Set Unique ID for the rest of the steps...
@@ -69,7 +67,7 @@ export class AwsService {
     // Deploy IAM
     status = {
       ...status,
-      ...(await this.iamService.deploy(status, this.lambdaService, options)),
+      ...(await this.iamService.predeploy(status, this.lambdaService, options)),
     };
 
     // Pre-Deploy Lambda (Creates the Function URL and other pre-deploy steps)
@@ -78,7 +76,11 @@ export class AwsService {
       ...(await this.lambdaService.predeploy(status, options)),
     };
 
-    // Deploy Docker Container using uniqueId in status for uniqueness
+    return status;
+  }
+
+  async deploy(status: DeployStatus, options: ResourceOptions): Promise<DeployStatus> {
+    // Deploy Docker Container
     status = {
       ...status,
       ...(await this.dockerService.deploy(status, this.ecrService, options)),
@@ -90,12 +92,6 @@ export class AwsService {
       ...(await this.lambdaService.deploy(status, options)),
     };
 
-    ui.updateBottomBar('');
-    if (isDebug()) {
-      console.table(status);
-    }
-    console.log('');
-    console.log('🚀 Deployment Complete!');
-    console.log(`   🌎 URL: ${status.url}`);
+    return status;
   }
 }

@@ -219,7 +219,9 @@ export class LambdaService implements IamConsumer {
       URL: status.url || '',
     };
 
-    dotenv({ path: join(this.cwd, '.env'), processEnv: env });
+    const dotenvPaths = status.envFiles?.map((f) => join(this.cwd, f));
+
+    dotenv({ path: dotenvPaths, processEnv: env });
     dotenvExpand(env);
 
     return {

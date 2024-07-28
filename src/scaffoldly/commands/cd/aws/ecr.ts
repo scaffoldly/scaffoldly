@@ -47,7 +47,10 @@ export class EcrService implements RegistryAuthConsumer {
     this.ecrClient = new ECRClient();
   }
 
-  public async deploy(_status: DeployStatus, options: ResourceOptions): Promise<EcrDeployStatus> {
+  public async predeploy(
+    _status: DeployStatus,
+    options: ResourceOptions,
+  ): Promise<EcrDeployStatus> {
     const ecrStatus: EcrDeployStatus = {};
 
     ui.updateBottomBar('Creating ECR repository');

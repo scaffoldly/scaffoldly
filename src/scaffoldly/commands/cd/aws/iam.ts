@@ -63,7 +63,7 @@ export class IamService {
     this.iamClient = new IAMClient();
   }
 
-  public async deploy(
+  public async predeploy(
     _status: DeployStatus,
     consumer: IamConsumer,
     options: ResourceOptions,

@@ -36,7 +36,7 @@ export class SecretService {
     this.secretsManagerClient = new SecretsManagerClient();
   }
 
-  public async deploy(
+  public async predeploy(
     _status: DeployStatus,
     consumer: SecretConsumer,
     options: ResourceOptions,

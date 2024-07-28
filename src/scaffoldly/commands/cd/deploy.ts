@@ -1,8 +1,10 @@
-import { CdCommand } from '.';
+import { CdCommand, ResourceOptions } from '.';
 import { event } from '../../helpers/events';
 import { DockerService } from '../ci/docker';
-import { GitService } from '../ci/git';
+import { GitService } from './git';
 import { AwsService } from './aws';
+import { ui } from '../../command';
+import { isDebug } from '../../ui';
 
 export class DeployCommand extends CdCommand {
   gitService: GitService;
@@ -21,8 +23,21 @@ export class DeployCommand extends CdCommand {
   async handle(): Promise<void> {
     event('deploy');
 
-    // TODO Check if auth'd to AWS
-    await this.awsService.deploy();
+    const options: ResourceOptions = {}; // TODO: Add options
+
+    const status = await this.gitService
+      .predeploy({}, options)
+
+      .then((s) => this.awsService.predeploy(s, options))
+      .then((s) => this.awsService.deploy(s, options));
+
+    ui.updateBottomBar('');
+    if (isDebug()) {
+      console.table(status);
+    }
+    console.log('');
+    console.log('🚀 Deployment Complete!');
+    console.log(`   🌎 URL: ${status.url}`);
 
     return;
   }
