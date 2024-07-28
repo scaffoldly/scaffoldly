@@ -31,7 +31,7 @@ import { join } from 'path';
 export type LambdaDeployStatus = {
   functionArn?: string;
   imageUri?: string;
-  url?: string;
+  origin?: string;
 };
 
 export type FunctionResource = CloudResource<
@@ -55,7 +55,9 @@ export type PermissionResource = CloudResource<
   undefined
 >;
 
-type FunctionUrl = string;
+type FunctionUrl = {
+  origin: string;
+};
 
 export type UrlResource = CloudResource<
   LambdaClient,
@@ -95,8 +97,8 @@ export class LambdaService implements IamConsumer {
     );
 
     ui.updateBottomBar(`Updating URL`);
-    const url = await manageResource(this.urlResource(this.config.name), options);
-    lambdaStatus.url = url;
+    const { origin } = await manageResource(this.urlResource(this.config.name), options);
+    lambdaStatus.origin = origin;
 
     return lambdaStatus;
   }
@@ -216,7 +218,7 @@ export class LambdaService implements IamConsumer {
       SLY_ROUTES: JSON.stringify(this.config.routes), // TODO encode
       SLY_SERVE: this.config.serveCommands.encode(),
       SECRET_NAME: status.secretName || '',
-      URL: status.url || '',
+      ORIGIN: status.origin || '',
     };
 
     const dotenvPaths = status.envFiles?.map((f) => join(this.cwd, f));
@@ -414,7 +416,8 @@ export class LambdaService implements IamConsumer {
           if (!response.FunctionUrl) {
             throw new NotFoundException('Function URL not found');
           }
-          return response.FunctionUrl;
+          const url = new URL(response.FunctionUrl);
+          return { origin: url.origin } as FunctionUrl;
         })
         .catch((e) => {
           if (e.name === 'ResourceNotFoundException') {

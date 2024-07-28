@@ -37,7 +37,7 @@ export class DeployCommand extends CdCommand {
     }
     console.log('');
     console.log('🚀 Deployment Complete!');
-    console.log(`   🌎 URL: ${status.url}`);
+    console.log(`   🌎 Origin: ${status.origin}`);
 
     return;
   }

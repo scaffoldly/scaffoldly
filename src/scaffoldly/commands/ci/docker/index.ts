@@ -467,7 +467,7 @@ export class DockerService {
     });
 
     Object.values(packages).forEach((spec, ix) => {
-      ui.updateBottomBarSubtext(`Rendering  ${spec?.as} stage`);
+      ui.updateBottomBarSubtext(`Rendering ${spec?.as} stage`);
       lines.push(this.renderSpec('package', spec, ix));
       lines.push('');
     });
