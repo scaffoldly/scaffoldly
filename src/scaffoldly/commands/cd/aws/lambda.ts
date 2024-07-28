@@ -214,17 +214,18 @@ export class LambdaService implements IamConsumer {
         { factor: 1, retries: 60 },
       );
 
-    const env: Record<string, string> = {
-      SLY_ROUTES: JSON.stringify(this.config.routes), // TODO encode
-      SLY_SERVE: this.config.serveCommands.encode(),
-      SECRET_NAME: status.secretName || '',
-      ORIGIN: status.origin || '',
-    };
-
-    const dotenvPaths = status.envFiles?.map((f) => join(this.cwd, f));
-
-    dotenv({ path: dotenvPaths, processEnv: env });
-    dotenvExpand(env);
+    const env: Record<string, string> =
+      dotenvExpand({
+        parsed: dotenv({
+          path: status.envFiles?.map((f) => join(this.cwd, f)),
+          processEnv: {
+            SLY_ROUTES: JSON.stringify(this.config.routes), // TODO encode
+            SLY_SERVE: this.config.serveCommands.encode(),
+            SECRET_NAME: status.secretName || '',
+            ORIGIN: status.origin || '',
+          },
+        }).parsed,
+      }).parsed || {};
 
     return {
       client: this.lambdaClient,
