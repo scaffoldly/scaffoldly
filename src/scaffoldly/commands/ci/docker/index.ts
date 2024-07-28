@@ -255,7 +255,7 @@ export class DockerService {
     bases = await services.reduce(async (accP, service) => {
       const acc = await accP;
 
-      const serviceSpec = await this.createSpec(service, mode, service.name, fromStages);
+      const serviceSpec = await this.createSpec(service, mode, service.name, fromStages, env);
       if (!serviceSpec) {
         return acc;
       }
