@@ -223,11 +223,10 @@ export class LambdaService implements IamConsumer {
     };
 
     const parsedEnv: Record<string, string> = {
-      ...env, // Combine final result with scaffoldly env
       ...(dotenvExpand({
         processEnv: {
-          ...env, // Include scaffoldly env
           ...process.env, // Combine with process.env
+          ...env, // Include scaffoldly env
         },
         parsed: dotenv({
           path: status.envFiles?.map((f) => join(this.cwd, f)),
@@ -235,6 +234,7 @@ export class LambdaService implements IamConsumer {
           processEnv: env, // Start with scaffoldly env
         }).parsed,
       }).parsed || {}),
+      ...env, // Combine final result with scaffoldly env
     };
 
     return {
