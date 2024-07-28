@@ -181,7 +181,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
         };
         this.serviceConfig = serviceConfig;
         this._name = serviceConfig.name;
-        this._packages = this._packages || [];
+        this._packages = [...(this._packages || []), ...(serviceConfig.packages || [])];
         this._files = [...(this._files || []), ...(serviceConfig.files || [])];
         this._bin = {
           ...(this._bin || {}),
