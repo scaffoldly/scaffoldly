@@ -222,20 +222,38 @@ export class LambdaService implements IamConsumer {
       ORIGIN: status.origin || '',
     };
 
-    const parsedEnv: Record<string, string> = {
-      ...(dotenvExpand({
-        processEnv: {
-          ...process.env, // Combine with process.env
-          ...env, // Include scaffoldly env
-        },
-        parsed: dotenv({
-          path: status.envFiles?.map((f) => join(this.cwd, f)),
-          debug: isDebug(),
-          processEnv: env, // Start with scaffoldly env
-        }).parsed,
-      }).parsed || {}),
-      ...env, // Combine final result with scaffoldly env
-    };
+    console.log('!!! Initial env', env);
+
+    const { parsed: dotenvParsed = {} } = dotenv({
+      path: status.envFiles?.map((f) => join(this.cwd, f)),
+      debug: isDebug(),
+      processEnv: {
+        ...process.env,
+        ...env,
+      },
+    });
+
+    console.log('!!! dotenvParsed', dotenvParsed);
+
+    const { parsed: dotenvExpandParsed = {} } = dotenvExpand({
+      parsed: dotenvParsed,
+      processEnv: {
+        ...process.env,
+        ...env,
+      },
+    });
+
+    console.log('!!! dotenvExpandParsed', dotenvExpandParsed);
+
+    // const parsedEnv: Record<string, string> = {
+    //   ...(dotenvExpand({
+    //     parsed: dotenv({
+    //       path: status.envFiles?.map((f) => join(this.cwd, f)),
+    //       debug: isDebug(),
+    //     }).parsed,
+    //   }).parsed || {}),
+    //   ...env, // Combine final result with scaffoldly env
+    // };
 
     return {
       client: this.lambdaClient,
@@ -262,7 +280,8 @@ export class LambdaService implements IamConsumer {
           Architectures: architectures,
           Environment: {
             Variables: {
-              ...parsedEnv,
+              ...dotenvExpandParsed,
+              ...env,
               // Disable version checking in config since we're deploying hello world image
               // This is so we can deploy a function and generate a Function URL without needing a build first
               SLY_SERVE: this.config.serveCommands.encode(false),
@@ -276,7 +295,10 @@ export class LambdaService implements IamConsumer {
           Timeout: desired.timeout,
           MemorySize: desired.memorySize,
           Environment: {
-            Variables: parsedEnv,
+            Variables: {
+              ...dotenvExpandParsed,
+              ...env,
+            },
           },
           ImageConfig: {
             EntryPoint: status.entrypoint,
