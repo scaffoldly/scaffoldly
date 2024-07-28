@@ -6,10 +6,9 @@ import { log } from './awslambda-entrypoint/log';
 import { getRuntimeEvent, postRuntimeEventResponse } from './awslambda-entrypoint/runtime';
 import { RuntimeEvent, EndpointProxyRequest, EndpointResponse } from './awslambda-entrypoint/types';
 import packageJson from '../package.json';
-import { Routes, ServeCommand, ServeCommands } from './config';
-import { spawn } from 'child_process';
+import { Routes, Command, Commands } from './config';
 import { GetSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
-// import { parse } from 'shell-quote';
+import { spawnAsync } from './awslambda-entrypoint/spawn';
 
 const { SLY_STRICT, SLY_SERVE, SLY_ROUTES, SLY_SECRET, AWS_LAMBDA_RUNTIME_API } = process.env;
 
@@ -31,7 +30,13 @@ export const run = async (): Promise<void> => {
     throw new Error('Missing SLY_ROUTES');
   }
 
-  log('Bootstraping', { SLY_STRICT, SLY_SERVE, SLY_ROUTES, SLY_SECRET, AWS_LAMBDA_RUNTIME_API });
+  log('Bootstraping', {
+    SLY_STRICT,
+    SLY_SERVE,
+    SLY_ROUTES,
+    SLY_SECRET,
+    AWS_LAMBDA_RUNTIME_API,
+  });
 
   let env: Record<string, string> = {};
 
@@ -57,16 +62,16 @@ export const run = async (): Promise<void> => {
       });
   }
 
-  let serveCommands: ServeCommand[];
+  let commands: Command[];
   let routes: Routes;
 
   try {
-    serveCommands = ServeCommands.decode(SLY_SERVE, SLY_STRICT !== 'false');
+    commands = Commands.decode(SLY_SERVE, SLY_STRICT !== 'false');
   } catch (e) {
-    throw new Error('Unable to parse SLY_ROUTES');
+    throw new Error('Unable to parse SLY_SERVE');
   }
 
-  if (!serveCommands || !serveCommands.length) {
+  if (!commands || !commands.length) {
     throw new Error('No serve commands found');
   }
 
@@ -80,27 +85,14 @@ export const run = async (): Promise<void> => {
     throw new Error('No routes found');
   }
 
-  const procs = serveCommands.map(({ cmd, workdir }) => {
-    const [command, ...args] = cmd.split(' ');
-    const proc = spawn(command, args, {
-      detached: true,
-      stdio: 'inherit',
-      cwd: workdir,
-      env: { ...process.env, ...env },
-    });
-    proc.on('exit', (code) => {
-      log('Process exited', { cmd });
-      if (code !== 0) {
-        throw new Error(`${cmd} exited with code ${code}`);
-      }
-    });
-    return proc;
-  });
-
-  log('Processes spawned', { pids: procs.map((p) => p.pid) });
+  await Promise.all(
+    commands
+      .filter((command) => !command.schedule) // filter out scheduled commands
+      .map((command) => spawnAsync(command, env)),
+  );
 
   log('Polling for events', { routes });
-  await pollForEvents(AWS_LAMBDA_RUNTIME_API, routes);
+  await pollForEvents(AWS_LAMBDA_RUNTIME_API, routes, commands, env);
 };
 
 export {

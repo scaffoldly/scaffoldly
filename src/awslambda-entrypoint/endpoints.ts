@@ -3,9 +3,10 @@ import axios, { AxiosResponse, AxiosResponseHeaders, RawAxiosResponseHeaders } f
 import net from 'net';
 import { EndpointProxyRequest, EndpointResponse } from './types';
 import { log } from './log';
-import { APIGatewayProxyEventV2 } from 'aws-lambda';
-import { Routes } from '../config';
+import { APIGatewayProxyEventV2, ScheduledEvent } from 'aws-lambda';
+import { Routes, Schedule } from '../config';
 import { pathToRegexp } from 'path-to-regexp';
+import { spawnAsync } from './spawn';
 
 function convertHeaders(
   headers: RawAxiosResponseHeaders | AxiosResponseHeaders,
@@ -96,11 +97,33 @@ export const findHandler = (routes: Routes, rawPath?: string): string | undefine
 export const endpointProxy = async ({
   requestId,
   routes,
+  commands,
+  env,
   event,
   deadline,
 }: EndpointProxyRequest): Promise<EndpointResponse> => {
-  // TDOO: fix event type
-  const rawEvent = JSON.parse(event) as Partial<APIGatewayProxyEventV2>;
+  // TDOO: fix event type for Function URL type
+  const rawEvent = JSON.parse(event) as Partial<APIGatewayProxyEventV2 | ScheduledEvent>;
+
+  if ('detail-type' in rawEvent && rawEvent['detail-type'] === 'Scheduled Event') {
+    const schedule = JSON.parse(rawEvent.detail) as Schedule;
+
+    log('Received scheduled event', { schedule });
+    try {
+      await Promise.all(commands.map((command) => spawnAsync(command, env, schedule)));
+    } catch (e) {
+      log('Error spawning commands', { error: e });
+    }
+
+    return {
+      requestId,
+      payload: { statusCode: 200, headers: {}, body: '', isBase64Encoded: false },
+    };
+  }
+
+  if (!('requestContext' in rawEvent)) {
+    throw new Error(`Unsupported event: ${JSON.stringify(rawEvent)}`);
+  }
 
   const {
     requestContext,

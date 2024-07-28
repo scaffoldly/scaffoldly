@@ -27,38 +27,39 @@ export const encode = <T>(config: T, strict: boolean): string => {
 
 export type Shell = 'direnv';
 
-export type ServeCommand = {
+export type Command = {
   cmd: string;
   workdir?: string;
+  schedule?: Schedule;
 };
 
-export class ServeCommands {
-  serveCommands: ServeCommand[];
+export class Commands {
+  commands: Command[];
 
   constructor() {
-    this.serveCommands = [];
+    this.commands = [];
   }
 
-  add = (serveCommand: ServeCommand): ServeCommands => {
-    this.serveCommands.push(serveCommand);
+  add = (command: Command): Commands => {
+    this.commands.push(command);
     return this;
   };
 
   toString = (): string => {
-    return this.serveCommands
-      .map((serveCommand) => {
-        return serveCommand.workdir
-          ? `( cd ${serveCommand.workdir} && ${serveCommand.cmd} )`
-          : `( ${serveCommand.cmd} )`;
+    return this.commands
+      .map((command) => {
+        return command.workdir
+          ? `( cd ${command.workdir} && ${command.cmd} )`
+          : `( ${command.cmd} )`;
       })
       .join(' & ');
   };
 
   encode = (strict = true): string => {
-    return encode(this.serveCommands, strict);
+    return encode(this.commands, strict);
   };
 
-  static decode = (config: string, strict = true): ServeCommand[] => {
+  static decode = (config: string, strict = true): Command[] => {
     return decode(config, strict);
   };
 }
@@ -89,7 +90,7 @@ export interface IScaffoldlyConfig extends IServiceConfig {
   get secrets(): string[];
   get packages(): string[];
   get shell(): Shell | undefined;
-  getService(identifier: string | number): IScaffoldlyConfig;
+  get schedules(): { [key in Schedule]?: string };
 }
 
 export type ServiceName = string;
@@ -102,14 +103,17 @@ export interface IServiceConfig {
   bin?: PackageJsonBin;
   files?: string[];
   src: string;
-  scripts: { [key in Script]?: string };
   packages?: string[];
   shell?: Shell;
+  scripts: { [key in Script]?: string };
+  schedules: { [key in Schedule]?: string };
 }
 
 export type PackageJsonBin = { [key: string]: string };
 
 export type Script = 'develop' | 'install' | 'build' | 'package' | 'start';
+
+export type Schedule = '@immediately' | '@hourly' | '@daily' | '@weekly' | '@monthly' | '@yearly';
 
 export interface SecretConsumer {
   get secretValue(): Uint8Array;
@@ -292,11 +296,12 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
           runtime: service.runtime || this.runtime,
           handler: service.handler || this.handler,
           src: service.src || this.src,
-          scripts: service.scripts || {},
           files: service.files || [],
           bin: service.bin || {},
           packages: service.packages || [],
           shell: service.shell,
+          scripts: service.scripts || {},
+          schedules: service.schedules || {},
         },
       });
     });
@@ -313,22 +318,42 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
     return routes;
   }
 
-  get serveCommands(): ServeCommands {
-    const cmds = new ServeCommands();
+  get serveCommands(): Commands {
+    const cmds = new Commands();
+    let workdir = this.src !== DEFAULT_SRC_ROOT ? this.src : undefined;
+
     if (this.scripts.start) {
       cmds.add({
         cmd: this.scripts.start,
-        workdir: this.src !== DEFAULT_SRC_ROOT ? this.src : undefined,
+        workdir,
       });
     }
 
+    Object.entries(this.schedules).forEach(([schedule, cmd]) => {
+      cmds.add({
+        cmd,
+        workdir,
+        schedule: schedule as Schedule,
+      });
+    });
+
     this.services.forEach((service) => {
+      workdir = service.src !== DEFAULT_SRC_ROOT ? service.src : undefined;
+
       if (service.scripts.start) {
         cmds.add({
           cmd: service.scripts.start,
-          workdir: service.src !== DEFAULT_SRC_ROOT ? service.src : undefined,
+          workdir,
         });
       }
+
+      Object.entries(service.schedules).forEach(([schedule, cmd]) => {
+        cmds.add({
+          cmd,
+          workdir,
+          schedule: schedule as Schedule,
+        });
+      });
     });
 
     return cmds;
@@ -370,12 +395,9 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
     return shell;
   }
 
-  getService(identifier: string | number): IScaffoldlyConfig {
-    const service = this.services.find((s, ix) => s.name === identifier || ix === identifier);
-    if (!service) {
-      throw new Error(`Service ${identifier} not found`);
-    }
-    return service;
+  get schedules(): { [key in Schedule]?: string } {
+    const { schedules = {} } = this.serviceConfig || this.scaffoldly;
+    return schedules;
   }
 
   encode = (): string => {

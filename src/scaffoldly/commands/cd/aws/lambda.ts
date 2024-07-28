@@ -14,8 +14,9 @@ import {
   // eslint-disable-next-line import/named
   AddPermissionRequest,
   Architecture,
+  InvokeCommand,
 } from '@aws-sdk/client-lambda';
-import { ScaffoldlyConfig } from '../../../../config';
+import { ScaffoldlyConfig, Schedule } from '../../../../config';
 import { IamConsumer, PolicyDocument, TrustRelationship } from './iam';
 import promiseRetry from 'promise-retry';
 import { ui } from '../../../command';
@@ -24,6 +25,7 @@ import { DeployStatus } from '.';
 import { NotFoundException } from './errors';
 import { CloudResource, manageResource, ResourceOptions } from '..';
 import { EnvService } from '../env';
+import { ScheduledEvent } from 'aws-lambda';
 
 export type LambdaDeployStatus = {
   functionArn?: string;
@@ -110,7 +112,41 @@ export class LambdaService implements IamConsumer {
     const code = await manageResource(this.codeResource(this.config.name, status), options);
     lambdaStatus.imageUri = code.ImageUri;
 
+    await this.invoke(lambdaStatus);
+
     return { ...status, ...lambdaStatus };
+  }
+
+  public async invoke(status: DeployStatus): Promise<void> {
+    const { functionArn } = status;
+    if (!functionArn) {
+      throw new Error('Missing function ARN');
+    }
+
+    const detail: Schedule = '@immediately';
+
+    // TODO: set up proper immediate invoke from EventBridge
+    const payload: ScheduledEvent = {
+      id: 'todo',
+      'detail-type': 'Scheduled Event',
+      source: 'aws.events',
+      account: 'todo',
+      time: new Date().toISOString(),
+      region: 'todo',
+      resources: ['todo'],
+      detail: JSON.stringify(detail),
+      version: '0',
+    };
+
+    ui.updateBottomBar('Invoking function');
+    const invocation = await this.lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: functionArn,
+        InvocationType: 'RequestResponse',
+        Payload: JSON.stringify(payload),
+      }),
+    );
+    ui.updateBottomBarSubtext(`Invocation ID: ${invocation.$metadata.requestId}`);
   }
 
   private functionResource(name: string, status: DeployStatus): FunctionResource {

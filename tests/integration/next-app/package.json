@@ -37,6 +37,9 @@
       "dev": "next dev",
       "build": "next build",
       "start": "next start"
+    },
+    "schedules": {
+      "@immediately": "echo 'Hello, World!'"
     }
   }
 }
