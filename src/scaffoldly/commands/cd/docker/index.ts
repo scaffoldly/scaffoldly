@@ -16,26 +16,27 @@ export type DockerDeployStatus = {
 export class DockerService {
   config: ScaffoldlyConfig;
 
-  constructor(config: ScaffoldlyConfig, private dockerService: DockerCiService) {
+  constructor(config: ScaffoldlyConfig, private dockerCiService: DockerCiService) {
     this.config = config;
   }
 
   get architecture(): Promise<Architecture> {
-    return this.dockerService.getArchitecture(this.config.runtime);
+    return this.dockerCiService.getArchitecture(this.config.runtime);
   }
 
   public async deploy(
     status: DeployStatus,
     consumer: RegistryAuthConsumer,
     options: ResourceOptions,
-  ): Promise<DockerDeployStatus> {
+  ): Promise<DeployStatus> {
     const dockerStatus: DockerDeployStatus = {};
 
     ui.updateBottomBar(`Building ${status.repositoryUri}`);
-    const { imageName, entrypoint } = await this.dockerService.build(
+    const { imageName, entrypoint } = await this.dockerCiService.build(
       this.config,
       'build',
       status.repositoryUri,
+      status.buildEnv,
     );
     dockerStatus.imageName = imageName;
     dockerStatus.entrypoint = entrypoint;
@@ -43,13 +44,14 @@ export class DockerService {
     const authConfig = await consumer.authConfig;
 
     ui.updateBottomBar(`Pushing ${imageName}`);
-    const { imageDigest } = await this.dockerService.push(imageName, authConfig);
+    // TODO: Move push to this class
+    const { imageDigest } = await this.dockerCiService.push(imageName, authConfig);
     dockerStatus.imageDigest = imageDigest;
 
     if (options.clean) {
       throw new Error('Not implemented');
     }
 
-    return dockerStatus;
+    return { ...status, ...dockerStatus };
   }
 }

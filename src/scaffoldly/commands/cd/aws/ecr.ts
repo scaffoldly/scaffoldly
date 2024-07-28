@@ -47,23 +47,20 @@ export class EcrService implements RegistryAuthConsumer {
     this.ecrClient = new ECRClient();
   }
 
-  public async predeploy(
-    _status: DeployStatus,
-    options: ResourceOptions,
-  ): Promise<EcrDeployStatus> {
-    const ecrStatus: EcrDeployStatus = {};
+  public async predeploy(status: DeployStatus, options: ResourceOptions): Promise<DeployStatus> {
+    const ecrDeployStatus: EcrDeployStatus = {};
 
     ui.updateBottomBar('Creating ECR repository');
     const { repository } = await this.manageEcrRepository(options);
 
     const { repositoryUri } = repository;
-    ecrStatus.repositoryUri = repositoryUri;
+    ecrDeployStatus.repositoryUri = repositoryUri;
 
     ui.updateBottomBar('Determining architecture');
     const architecture = await this.dockerService.architecture;
-    ecrStatus.architecture = architecture;
+    ecrDeployStatus.architecture = architecture;
 
-    return ecrStatus;
+    return { ...status, ...ecrDeployStatus };
   }
 
   private repositoryResource(name: string): RepositoryResource {

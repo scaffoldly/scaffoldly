@@ -64,11 +64,11 @@ export class IamService {
   }
 
   public async predeploy(
-    _status: DeployStatus,
+    status: DeployStatus,
     consumer: IamConsumer,
     options: ResourceOptions,
-  ): Promise<IamDeployStatus> {
-    const iamStatus: IamDeployStatus = {};
+  ): Promise<DeployStatus> {
+    const iamDeployStatus: IamDeployStatus = {};
 
     const { roleArn } = await this.manageIamRole(
       consumer.trustRelationship,
@@ -76,9 +76,9 @@ export class IamService {
       options,
     );
 
-    iamStatus.roleArn = roleArn;
+    iamDeployStatus.roleArn = roleArn;
 
-    return iamStatus;
+    return { ...status, ...iamDeployStatus };
   }
 
   private async manageIamRole(

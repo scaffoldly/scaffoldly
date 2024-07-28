@@ -4,10 +4,9 @@ import { DeployStatus } from '../aws';
 import { ResourceOptions } from '..';
 
 export type GitDeployStatus = {
-  envFiles?: string[];
+  branch?: string;
+  defaultBranch?: string;
 };
-
-const normalize = (branch: string | undefined) => branch?.replace('/', '-');
 
 export class GitService {
   git: SimpleGit;
@@ -18,30 +17,16 @@ export class GitService {
 
   public async predeploy(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _status: DeployStatus,
+    status: DeployStatus,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _options: ResourceOptions,
-  ): Promise<GitDeployStatus> {
+  ): Promise<DeployStatus> {
     const gitDeployStatus: GitDeployStatus = {};
 
-    const envFiles = await this.envFiles;
-    gitDeployStatus.envFiles = envFiles;
+    gitDeployStatus.branch = await this.branch;
+    gitDeployStatus.defaultBranch = await this.defaultBranch;
 
-    return gitDeployStatus;
-  }
-
-  get envFiles(): Promise<string[]> {
-    const base = '.env';
-    return Promise.all([this.branch.then(normalize), this.defaultBranch.then(normalize)])
-      .then((files) => files.filter((f) => !!f) as string[])
-      .then((files) => files.map((f) => `${base}.${f}`))
-      .then((files) => [...new Set([...files, base])])
-      .then((files) => {
-        // TODO: do more?
-        // TODO: pr-# file or .braches file?
-        // TODO: tag-# file? or .tags file?
-        return files;
-      });
+    return { ...status, ...gitDeployStatus };
   }
 
   get defaultBranch(): Promise<string | undefined> {

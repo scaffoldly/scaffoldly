@@ -37,19 +37,19 @@ export class SecretService {
   }
 
   public async predeploy(
-    _status: DeployStatus,
+    status: DeployStatus,
     consumer: SecretConsumer,
     options: ResourceOptions,
-  ): Promise<SecretDeployStatus> {
-    const secretStatus: SecretDeployStatus = {};
+  ): Promise<DeployStatus> {
+    const secretDeployStatus: SecretDeployStatus = {};
 
     ui.updateBottomBar('Deploying Secret');
     const { secretName, uniqueId } = await this.manageSecret(consumer.secretValue, options);
 
-    secretStatus.secretName = secretName;
-    secretStatus.uniqueId = uniqueId;
+    secretDeployStatus.secretName = secretName;
+    secretDeployStatus.uniqueId = uniqueId;
 
-    return secretStatus;
+    return { ...status, ...secretDeployStatus };
   }
 
   private async manageSecret(value: Uint8Array, options: ResourceOptions): Promise<Secret> {

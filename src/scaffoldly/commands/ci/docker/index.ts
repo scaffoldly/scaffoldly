@@ -133,8 +133,9 @@ export class DockerService {
     config: ScaffoldlyConfig,
     mode: Script,
     repositoryUri?: string,
+    env?: Record<string, string>,
   ): Promise<{ imageName: string; entrypoint: string[] }> {
-    const stages = await this.createStages(config, mode);
+    const stages = await this.createStages(config, mode, env);
 
     if (isDebug()) {
       console.log('Stages:', JSON.stringify(stages, null, 2));
@@ -208,7 +209,11 @@ export class DockerService {
     };
   }
 
-  async createStages(config: ScaffoldlyConfig, mode: Script): Promise<DockerStages> {
+  async createStages(
+    config: ScaffoldlyConfig,
+    mode: Script,
+    env?: Record<string, string>,
+  ): Promise<DockerStages> {
     if (mode === 'develop') {
       // TODO
       return { runtime: { from: 'todo', as: 'todo' }, bases: {}, builds: {}, packages: {} };
@@ -217,9 +222,10 @@ export class DockerService {
     ui.updateBottomBarSubtext('Creating Install Stages');
     const bases: DockerStage = await this.createStage(config, 'install', {});
     ui.updateBottomBarSubtext('Creating Build Stages');
-    const builds: DockerStage = await this.createStage(config, 'build', bases);
+    const builds: DockerStage = await this.createStage(config, 'build', bases, env); // Include env in build stage
     ui.updateBottomBarSubtext('Creating Package Stages');
     const packages: DockerStage = await this.createStage(config, 'package', builds);
+
     ui.updateBottomBarSubtext('Creating Runtime Stage');
     const runtime = await this.createSpec(config, 'start', BASE, packages);
 
@@ -234,10 +240,11 @@ export class DockerService {
     config: ScaffoldlyConfig,
     mode: Script,
     fromStages: DockerStage,
+    env?: Record<string, string>,
   ): Promise<DockerStage> {
     let bases: DockerStage = {};
 
-    const spec = await this.createSpec(config, mode, BASE, fromStages);
+    const spec = await this.createSpec(config, mode, BASE, fromStages, env);
 
     if (spec) {
       bases[spec.as] = spec;
@@ -267,6 +274,7 @@ export class DockerService {
     mode: Script,
     name: ServiceName,
     fromStages: DockerStage,
+    env?: Record<string, string>,
   ): Promise<DockerFileSpec | undefined> {
     const { packages, workdir, shell, runtime, src, files, scripts, bin } = config;
 
@@ -279,6 +287,7 @@ export class DockerService {
       copy: [],
       paths: [],
       env: {
+        ...(env || {}),
         SLY_DEBUG: isDebug() ? 'true' : undefined,
       },
       run: [],

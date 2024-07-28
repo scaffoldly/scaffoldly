@@ -1,13 +1,17 @@
 import { CdCommand, ResourceOptions } from '.';
 import { event } from '../../helpers/events';
-import { DockerService } from '../ci/docker';
+import { DockerService as DockerCiService } from '../ci/docker';
 import { GitService } from './git';
 import { AwsService } from './aws';
 import { ui } from '../../command';
 import { isDebug } from '../../ui';
+import { EnvService } from './env';
+import { DockerService } from './docker';
 
 export class DeployCommand extends CdCommand {
   gitService: GitService;
+
+  envService: EnvService;
 
   awsService: AwsService;
 
@@ -16,8 +20,14 @@ export class DeployCommand extends CdCommand {
   constructor() {
     super();
     this.gitService = new GitService(this.cwd);
-    this.dockerService = new DockerService(this.cwd);
-    this.awsService = new AwsService(this.cwd, this.config, this.gitService, this.dockerService);
+    this.envService = new EnvService(this.cwd, this.config);
+    this.dockerService = new DockerService(this.config, new DockerCiService(this.cwd));
+    this.awsService = new AwsService(
+      this.config,
+      this.gitService,
+      this.envService,
+      this.dockerService,
+    );
   }
 
   async handle(): Promise<void> {
@@ -27,8 +37,9 @@ export class DeployCommand extends CdCommand {
 
     const status = await this.gitService
       .predeploy({}, options)
-
+      .then((s) => this.envService.predeploy(s, options))
       .then((s) => this.awsService.predeploy(s, options))
+      .then((s) => this.envService.deploy(s, options))
       .then((s) => this.awsService.deploy(s, options));
 
     ui.updateBottomBar('');

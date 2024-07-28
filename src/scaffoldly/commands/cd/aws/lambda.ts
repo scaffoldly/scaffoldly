@@ -23,11 +23,7 @@ import _ from 'lodash';
 import { DeployStatus } from '.';
 import { NotFoundException } from './errors';
 import { CloudResource, manageResource, ResourceOptions } from '..';
-import { config as dotenv } from 'dotenv';
-import { expand as dotenvExpand } from 'dotenv-expand';
-import { Cwd } from '../..';
-import { join } from 'path';
-import { isDebug } from '../../../ui';
+import { EnvService } from '../env';
 
 export type LambdaDeployStatus = {
   functionArn?: string;
@@ -70,22 +66,19 @@ export type UrlResource = CloudResource<
 export class LambdaService implements IamConsumer {
   lambdaClient: LambdaClient;
 
-  constructor(private cwd: Cwd, private config: ScaffoldlyConfig) {
+  constructor(private config: ScaffoldlyConfig, private envService: EnvService) {
     this.lambdaClient = new LambdaClient();
   }
 
-  public async predeploy(
-    status: DeployStatus,
-    options: ResourceOptions,
-  ): Promise<LambdaDeployStatus> {
-    const lambdaStatus: LambdaDeployStatus = {};
+  public async predeploy(status: DeployStatus, options: ResourceOptions): Promise<DeployStatus> {
+    const lambdaDeployStatus: LambdaDeployStatus = {};
 
     ui.updateBottomBar('Preparing function');
     const configuration = await manageResource(
       this.functionResource(this.config.name, status),
       options,
     );
-    lambdaStatus.functionArn = configuration.FunctionArn;
+    lambdaDeployStatus.functionArn = configuration.FunctionArn;
 
     ui.updateBottomBar('Setting permissions');
     await manageResource(
@@ -99,12 +92,12 @@ export class LambdaService implements IamConsumer {
 
     ui.updateBottomBar(`Updating URL`);
     const { origin } = await manageResource(this.urlResource(this.config.name), options);
-    lambdaStatus.origin = origin;
+    lambdaDeployStatus.origin = origin;
 
-    return lambdaStatus;
+    return { ...status, ...lambdaDeployStatus };
   }
 
-  public async deploy(status: DeployStatus, options: ResourceOptions): Promise<LambdaDeployStatus> {
+  public async deploy(status: DeployStatus, options: ResourceOptions): Promise<DeployStatus> {
     const lambdaStatus: LambdaDeployStatus = {};
 
     ui.updateBottomBar('Updating Lambda function');
@@ -117,7 +110,7 @@ export class LambdaService implements IamConsumer {
     const code = await manageResource(this.codeResource(this.config.name, status), options);
     lambdaStatus.imageUri = code.ImageUri;
 
-    return lambdaStatus;
+    return { ...status, ...lambdaStatus };
   }
 
   private functionResource(name: string, status: DeployStatus): FunctionResource {
@@ -215,46 +208,6 @@ export class LambdaService implements IamConsumer {
         { factor: 1, retries: 60 },
       );
 
-    const env = {
-      SLY_ROUTES: JSON.stringify(this.config.routes), // TODO encode
-      SLY_SERVE: this.config.serveCommands.encode(),
-      SECRET_NAME: status.secretName || '',
-      ORIGIN: status.origin || '',
-    };
-
-    console.log('!!! Initial env', env);
-
-    const { parsed: dotenvParsed = {} } = dotenv({
-      path: status.envFiles?.map((f) => join(this.cwd, f)),
-      debug: isDebug(),
-      processEnv: {
-        ...process.env,
-        ...env,
-      },
-    });
-
-    console.log('!!! dotenvParsed', dotenvParsed);
-
-    const { parsed: dotenvExpandParsed = {} } = dotenvExpand({
-      parsed: dotenvParsed,
-      processEnv: {
-        ...process.env,
-        ...env,
-      },
-    });
-
-    console.log('!!! dotenvExpandParsed', dotenvExpandParsed);
-
-    // const parsedEnv: Record<string, string> = {
-    //   ...(dotenvExpand({
-    //     parsed: dotenv({
-    //       path: status.envFiles?.map((f) => join(this.cwd, f)),
-    //       debug: isDebug(),
-    //     }).parsed,
-    //   }).parsed || {}),
-    //   ...env, // Combine final result with scaffoldly env
-    // };
-
     return {
       client: this.lambdaClient,
       read,
@@ -280,10 +233,10 @@ export class LambdaService implements IamConsumer {
           Architectures: architectures,
           Environment: {
             Variables: {
-              ...dotenvExpandParsed,
-              ...env,
+              ...this.envService.runtimeEnv,
               // Disable version checking in config since we're deploying hello world image
               // This is so we can deploy a function and generate a Function URL without needing a build first
+              // TODO: Remove this crap
               SLY_SERVE: this.config.serveCommands.encode(false),
               SLY_STRICT: 'false',
             },
@@ -295,10 +248,7 @@ export class LambdaService implements IamConsumer {
           Timeout: desired.timeout,
           MemorySize: desired.memorySize,
           Environment: {
-            Variables: {
-              ...dotenvExpandParsed,
-              ...env,
-            },
+            Variables: this.envService.runtimeEnv,
           },
           ImageConfig: {
             EntryPoint: status.entrypoint,

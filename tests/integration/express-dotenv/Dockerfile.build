@@ -6,6 +6,8 @@ FROM install-base as build-base
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
+ENV ORIGIN="https://xsaznuiu6odkainyy55kca7v5u0lxgrb.lambda-url.us-east-1.on.aws"
+ENV HELLO="World"
 ENV SLY_DEBUG="true"
 COPY . /var/task/
 RUN echo 'TODO'
