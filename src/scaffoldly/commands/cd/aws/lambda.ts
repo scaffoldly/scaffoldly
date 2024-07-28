@@ -27,6 +27,7 @@ import { config as dotenv } from 'dotenv';
 import { expand as dotenvExpand } from 'dotenv-expand';
 import { Cwd } from '../..';
 import { join } from 'path';
+import { isDebug } from '../../../ui';
 
 export type LambdaDeployStatus = {
   functionArn?: string;
@@ -214,16 +215,23 @@ export class LambdaService implements IamConsumer {
         { factor: 1, retries: 60 },
       );
 
-    const env: Record<string, string> =
+    const env = {
+      SLY_ROUTES: JSON.stringify(this.config.routes), // TODO encode
+      SLY_SERVE: this.config.serveCommands.encode(),
+      SECRET_NAME: status.secretName || '',
+      ORIGIN: status.origin || '',
+    };
+
+    const parsedEnv: Record<string, string> =
       dotenvExpand({
+        processEnv: {
+          ...process.env,
+          ...env,
+        },
         parsed: dotenv({
           path: status.envFiles?.map((f) => join(this.cwd, f)),
-          processEnv: {
-            SLY_ROUTES: JSON.stringify(this.config.routes), // TODO encode
-            SLY_SERVE: this.config.serveCommands.encode(),
-            SECRET_NAME: status.secretName || '',
-            ORIGIN: status.origin || '',
-          },
+          debug: isDebug(),
+          processEnv: env,
         }).parsed,
       }).parsed || {};
 
@@ -252,7 +260,7 @@ export class LambdaService implements IamConsumer {
           Architectures: architectures,
           Environment: {
             Variables: {
-              ...env,
+              ...parsedEnv,
               // Disable version checking in config since we're deploying hello world image
               // This is so we can deploy a function and generate a Function URL without needing a build first
               SLY_SERVE: this.config.serveCommands.encode(false),
@@ -266,7 +274,7 @@ export class LambdaService implements IamConsumer {
           Timeout: desired.timeout,
           MemorySize: desired.memorySize,
           Environment: {
-            Variables: env,
+            Variables: parsedEnv,
           },
           ImageConfig: {
             EntryPoint: status.entrypoint,
