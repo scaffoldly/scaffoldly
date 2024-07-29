@@ -47,6 +47,7 @@ export class Commands {
 
   toString = (): string => {
     return this.commands
+      .filter((command) => !command.schedule)
       .map((command) => {
         return command.workdir
           ? `( cd ${command.workdir} && ${command.cmd} )`

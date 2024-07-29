@@ -5,7 +5,7 @@ import {
   Script,
   ScaffoldlyConfig,
   DEFAULT_SRC_ROOT,
-  ServeCommands,
+  Commands,
   Shell,
   ServiceName,
 } from '../../../../config';
@@ -56,7 +56,7 @@ type DockerFileSpec = {
   env?: { [key: string]: string | undefined };
   run?: RunCommand[];
   paths?: string[];
-  cmd?: ServeCommands;
+  cmd?: Commands;
   shell?: Shell;
 };
 

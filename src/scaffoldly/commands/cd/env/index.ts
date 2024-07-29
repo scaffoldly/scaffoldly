@@ -59,8 +59,6 @@ export class EnvService {
   }
 
   get buildEnv(): Record<string, string> {
-    console.log('!!! baseEnv', this.baseEnv);
-
     const processEnv = Object.entries(process.env).reduce(
       (acc, [k, v]) => {
         if (!v) return acc;

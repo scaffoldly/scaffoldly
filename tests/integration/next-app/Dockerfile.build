@@ -28,4 +28,4 @@ COPY .entrypoint* /var/task/.entrypoint
 COPY --from=package-base /var/task/.next /var/task/.next
 COPY --from=package-base /var/task/public /var/task/public
 COPY --from=package-base /var/task/node_modules /var/task/node_modules
-CMD ( next start ) & ( echo 'Hello, World!' )
+CMD ( next start )
