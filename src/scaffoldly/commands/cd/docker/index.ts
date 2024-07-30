@@ -8,6 +8,7 @@ import { RegistryAuthConsumer } from '../aws/ecr';
 export type Architecture = 'arm64' | 'amd64';
 
 export type DockerDeployStatus = {
+  imageTag?: string;
   imageName?: string;
   imageDigest?: string;
   entrypoint?: string[];
@@ -31,19 +32,20 @@ export class DockerService {
   ): Promise<DeployStatus> {
     const dockerStatus: DockerDeployStatus = {};
 
-    ui.updateBottomBar(`Building ${status.repositoryUri}`);
-    const { imageName, entrypoint } = await this.dockerCiService.build(
+    ui.updateBottomBar(`Building ${this.config.name}`);
+    const { imageName, entrypoint, imageTag } = await this.dockerCiService.build(
       this.config,
       'build',
       status.repositoryUri,
       status.buildEnv,
     );
+    dockerStatus.imageTag = imageTag;
     dockerStatus.imageName = imageName;
     dockerStatus.entrypoint = entrypoint;
 
     const authConfig = await consumer.authConfig;
 
-    ui.updateBottomBar(`Pushing ${imageName}`);
+    ui.updateBottomBar(`Pushing ${imageTag}`);
     // TODO: Move push to this class
     const { imageDigest } = await this.dockerCiService.push(imageName, authConfig);
     dockerStatus.imageDigest = imageDigest;

@@ -1,0 +1,34 @@
+{
+  "name": "nginx-schedules",
+  "version": "1.0.0",
+  "scripts": {
+    "deploy": "scaffoldly deploy"
+  },
+  "author": "",
+  "description": "",
+  "dependencies": {
+    "scaffoldly": "file:../../.."
+  },
+  "files": [
+    "nginx",
+    "html"
+  ],
+  "scaffoldly": {
+    "runtime": "alpine:3",
+    "handler": "localhost:8080",
+    "packages": [
+      "nginx",
+      "nodejs"
+    ],
+    "scripts": {
+      "dev": "TODO",
+      "build": "echo 'Hello from build'",
+      "start": "nginx -c /var/task/nginx/nginx.conf"
+    },
+    "schedules": {
+      "@immediately": "echo 'Hello from @immediately'",
+      "@hourly": "echo 'Hello from @hourly'",
+      "@daily": "echo 'Hello from @daily'"
+    }
+  }
+}

@@ -3,10 +3,11 @@ import axios, { AxiosResponse, AxiosResponseHeaders, RawAxiosResponseHeaders } f
 import net from 'net';
 import { EndpointProxyRequest, EndpointResponse } from './types';
 import { log } from './log';
-import { APIGatewayProxyEventV2, ScheduledEvent } from 'aws-lambda';
-import { Routes, Schedule } from '../config';
+import { APIGatewayProxyEventV2 } from 'aws-lambda';
+import { Commands, Routes } from '../config';
 import { pathToRegexp } from 'path-to-regexp';
 import { spawnAsync } from './spawn';
+import packageJson from '../../package.json';
 
 function convertHeaders(
   headers: RawAxiosResponseHeaders | AxiosResponseHeaders,
@@ -97,31 +98,46 @@ export const findHandler = (routes: Routes, rawPath?: string): string | undefine
 export const endpointProxy = async ({
   requestId,
   routes,
-  commands,
   env,
   event,
   deadline,
 }: EndpointProxyRequest): Promise<EndpointResponse> => {
   // TDOO: fix event type for Function URL type
-  const rawEvent = JSON.parse(event) as Partial<APIGatewayProxyEventV2 | ScheduledEvent>;
+  const rawEvent = JSON.parse(event) as Partial<APIGatewayProxyEventV2 | string>;
+  if (typeof rawEvent === 'string' && rawEvent.startsWith(`${packageJson.name}@`)) {
+    let commands = Commands.decode(rawEvent, true);
 
-  if ('detail-type' in rawEvent && rawEvent['detail-type'] === 'Scheduled Event') {
-    const schedule = JSON.parse(rawEvent.detail) as Schedule;
+    log('Received scheduled event', { commands });
 
-    log('Received scheduled event', { schedule });
-    try {
-      await Promise.all(commands.map((command) => spawnAsync(command, env, schedule)));
-    } catch (e) {
-      log('Error spawning commands', { error: e });
-    }
+    commands = await Promise.all(
+      commands.map(async (command) => {
+        try {
+          const spawn = await spawnAsync(command, env, command.schedule);
+          if (!spawn) {
+            return command;
+          }
+          command.output = spawn.output?.toString('utf-8');
+          return command;
+        } catch (e) {
+          log('Error handling scheduled command', e);
+          return command;
+        }
+      }),
+    );
 
+    // TODO: Retries?
     return {
       requestId,
-      payload: { statusCode: 200, headers: {}, body: '', isBase64Encoded: false },
+      payload: {
+        statusCode: 200,
+        headers: {},
+        body: JSON.stringify(commands),
+        isBase64Encoded: false,
+      },
     };
   }
 
-  if (!('requestContext' in rawEvent)) {
+  if (typeof rawEvent !== 'object' || !('requestContext' in rawEvent)) {
     throw new Error(`Unsupported event: ${JSON.stringify(rawEvent)}`);
   }
 

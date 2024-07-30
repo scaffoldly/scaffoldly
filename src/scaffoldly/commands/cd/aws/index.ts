@@ -7,6 +7,7 @@ import { DockerDeployStatus, DockerService } from '../docker';
 import { SecretDeployStatus, SecretService } from './secret';
 import { GitDeployStatus, GitService } from '../git';
 import { EnvDeployStatus, EnvService } from '../env';
+import { EventsService } from './events';
 
 export type DeployStatus = GitDeployStatus &
   EnvDeployStatus &
@@ -25,6 +26,8 @@ export class AwsService {
 
   lambdaService: LambdaService;
 
+  eventsService: EventsService;
+
   constructor(
     private config: ScaffoldlyConfig,
     private gitService: GitService,
@@ -35,6 +38,7 @@ export class AwsService {
     this.iamService = new IamService(this.config);
     this.ecrService = new EcrService(this.config, this.dockerService);
     this.lambdaService = new LambdaService(this.config, this.envService);
+    this.eventsService = new EventsService(this.config);
   }
 
   async predeploy(status: DeployStatus, options: ResourceOptions): Promise<DeployStatus> {
@@ -56,7 +60,11 @@ export class AwsService {
     // Set Unique ID for the rest of the steps...
     this.config.id = status.uniqueId || '';
     // Deploy IAM
-    status = await this.iamService.predeploy(status, this.lambdaService, options);
+    status = await this.iamService.predeploy(
+      status,
+      [this.lambdaService, this.eventsService],
+      options,
+    );
 
     // Pre-Deploy Lambda (Creates the Function URL and other pre-deploy steps)
     status = await this.lambdaService.predeploy(status, options);
@@ -76,6 +84,9 @@ export class AwsService {
 
     // Deploy Lambda
     status = await this.lambdaService.deploy(status, options);
+
+    // Deploy Events
+    status = await this.eventsService.deploy(status, options);
 
     return status;
   }

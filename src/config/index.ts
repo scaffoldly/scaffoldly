@@ -31,6 +31,7 @@ export type Command = {
   cmd: string;
   workdir?: string;
   schedule?: Schedule;
+  output?: string;
 };
 
 export class Commands {
@@ -45,9 +46,12 @@ export class Commands {
     return this;
   };
 
-  toString = (): string => {
+  toString = (schedule?: Schedule): string => {
     return this.commands
-      .filter((command) => !command.schedule)
+      .filter(
+        (command) =>
+          (!schedule && !command.schedule) || (schedule && command.schedule === schedule),
+      )
       .map((command) => {
         return command.workdir
           ? `( cd ${command.workdir} && ${command.cmd} )`
@@ -114,7 +118,7 @@ export type PackageJsonBin = { [key: string]: string };
 
 export type Script = 'develop' | 'install' | 'build' | 'package' | 'start';
 
-export type Schedule = '@immediately' | '@hourly' | '@daily' | '@weekly' | '@monthly' | '@yearly';
+export type Schedule = '@immediately' | '@hourly' | '@daily';
 
 export interface SecretConsumer {
   get secretValue(): Uint8Array;

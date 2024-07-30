@@ -28,6 +28,13 @@ export type TrustRelationship = {
   }[];
 };
 
+const mergeTrustRelationships = (trustRelationships: TrustRelationship[]): TrustRelationship => {
+  return {
+    Version: '2012-10-17',
+    Statement: trustRelationships.flatMap((trustRelationship) => trustRelationship.Statement),
+  };
+};
+
 export type PolicyDocument = {
   Version: string;
   Statement: {
@@ -35,6 +42,13 @@ export type PolicyDocument = {
     Action: string[];
     Resource: string[];
   }[];
+};
+
+const mergePolicyDocuments = (policyDocuments: PolicyDocument[]): PolicyDocument => {
+  return {
+    Version: '2012-10-17',
+    Statement: policyDocuments.flatMap((policyDocument) => policyDocument.Statement),
+  };
 };
 
 export type RoleResource = CloudResource<
@@ -65,14 +79,14 @@ export class IamService {
 
   public async predeploy(
     status: DeployStatus,
-    consumer: IamConsumer,
+    consumers: IamConsumer[],
     options: ResourceOptions,
   ): Promise<DeployStatus> {
     const iamDeployStatus: IamDeployStatus = {};
 
     const { roleArn } = await this.manageIamRole(
-      consumer.trustRelationship,
-      consumer.policyDocument,
+      mergeTrustRelationships(consumers.map((consumer) => consumer.trustRelationship)),
+      mergePolicyDocuments(consumers.map((consumer) => consumer.policyDocument)),
       options,
     );
 

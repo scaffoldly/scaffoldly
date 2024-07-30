@@ -134,7 +134,7 @@ export class DockerService {
     mode: Script,
     repositoryUri?: string,
     env?: Record<string, string>,
-  ): Promise<{ imageName: string; entrypoint: string[] }> {
+  ): Promise<{ imageName: string; imageTag: string; entrypoint: string[] }> {
     const stages = await this.createStages(config, mode, env);
 
     if (isDebug()) {
@@ -143,7 +143,8 @@ export class DockerService {
 
     const tag = config.id ? `${config.version}-${config.id}` : config.version;
 
-    const imageName = repositoryUri ? `${repositoryUri}:${tag}` : `${config.name}:${tag}`;
+    const imageTag = `${config.name}:${tag}`;
+    const imageName = repositoryUri ? `${repositoryUri}:${tag}` : imageTag;
 
     // todo add dockerfile to tar instead of writing it to cwd
     // const dockerfile = this.renderSpec(spec);
@@ -205,6 +206,7 @@ export class DockerService {
 
     return {
       imageName,
+      imageTag,
       entrypoint: entrypoint,
     };
   }

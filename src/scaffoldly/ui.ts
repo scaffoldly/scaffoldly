@@ -82,7 +82,7 @@ export class BottomBar {
         if (this.subtext) {
           message = `${message}\n${SECONDARY_SPACES}${
             SECONDARY_LOADING[count % SECONDARY_LOADING.length]
-          } ${this.subtext}`;
+          } ${this.subtext.substring(0, process.stdout.columns - 10)}`;
         }
         this.bottomBar.updateBottomBar(message);
         count++;

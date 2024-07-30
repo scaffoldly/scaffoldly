@@ -6,8 +6,14 @@ import { NotFoundException } from './aws/errors';
 import { SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
 import { isDebug } from '../../ui';
 import { ui } from '../../command';
+import { SchedulerClient } from '@aws-sdk/client-scheduler';
 
-export type CloudClient = ECRClient | IAMClient | LambdaClient | SecretsManagerClient;
+export type CloudClient =
+  | ECRClient
+  | IAMClient
+  | LambdaClient
+  | SecretsManagerClient
+  | SchedulerClient;
 
 export type ResourceOptions = {
   clean?: boolean;

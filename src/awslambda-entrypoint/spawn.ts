@@ -1,24 +1,37 @@
 import { ChildProcess, spawn } from 'child_process';
 import { Command, Schedule } from '../config';
-import { log } from './log';
+import { info, log } from './log';
+import chalk from 'chalk';
 
 export const spawnAsync = async (
   command: Command,
   env: Record<string, string>,
   schedule?: Schedule,
-): Promise<ChildProcess | undefined> => {
+): Promise<{ proc: ChildProcess; output?: Buffer } | undefined> => {
+  const chunks: Buffer[] = [];
+
   return new Promise((resolve, reject) => {
     if (!!schedule && command.schedule !== schedule) {
       resolve(undefined);
       return;
     }
 
+    info('Spawning command', { command });
+
     const [cmd, ...args] = command.cmd.split(' ');
     const proc = spawn(cmd, args, {
       detached: !schedule, // Run detached for unscheduled events
-      stdio: 'inherit',
+      stdio: !schedule ? 'inherit' : undefined,
       cwd: command.workdir,
       env: { ...process.env, ...env },
+    });
+
+    proc.stdout?.on('data', (data) => {
+      chunks.push(Buffer.from(data));
+    });
+
+    proc.stderr?.on('data', (data) => {
+      chunks.push(Buffer.from(chalk.red(data)));
     });
 
     proc.on('spawn', () => {
@@ -39,14 +52,14 @@ export const spawnAsync = async (
 
       if (schedule) {
         // Scheduled event, wait for exit before resolution
-        resolve(proc);
+        resolve({ proc, output: Buffer.concat(chunks) });
         return;
       }
     });
 
     if (!schedule) {
       // Unscheduled event, resolve immediately
-      resolve(proc);
+      resolve({ proc });
       return;
     }
   });
