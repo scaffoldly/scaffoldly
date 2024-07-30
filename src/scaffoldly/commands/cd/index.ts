@@ -20,31 +20,40 @@ export type ResourceOptions = {
   destroy?: boolean;
 };
 
-export type CloudResource<Client extends CloudClient, Resource, CreateCommand, UpdateCommand> = {
+export type CloudResource<
+  Client extends CloudClient,
+  Resource,
+  CreateCommand,
+  UpdateCommand,
+  DisposeCommand,
+> = {
   client: Client;
+  disposable?: Promise<boolean>;
   read: () => Promise<Resource>;
   create: (command: CreateCommand) => Promise<Resource>;
   update: (command: UpdateCommand) => Promise<Resource>;
+  dispose?: (resource: Partial<Resource>, command: DisposeCommand) => Promise<Partial<Resource>>;
   request: {
     create: CreateCommand;
     update?: UpdateCommand;
+    dispose?: DisposeCommand;
   };
 };
 
-const handleResource = <T>(resource: T): T => {
+const handleResource = <T>(action: 'create' | 'update' | 'dispose', resource: T): T => {
   if (isDebug()) {
     if (typeof resource !== 'object') {
-      ui.updateBottomBarSubtext(`Managed cloud resource: ${resource}`);
+      ui.updateBottomBarSubtext(`Cloud resource (${action}): ${resource}`);
       return resource;
     }
     ui.updateBottomBarSubtext(
-      `Managed cloud resource: ${JSON.stringify({ ...resource, $metadata: undefined })}`,
+      `Cloud resource (${action}): ${JSON.stringify({ ...resource, $metadata: undefined })}`,
     );
   }
   return resource;
 };
 
-const handleError = <T>(action: 'create' | 'update', retry: Promise<T>) => {
+const handleError = <T>(action: 'create' | 'update' | 'dispose', retry: Promise<T>) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return async (e: any): Promise<T> => {
     if ('$metadata' in e && 'httpStatusCode' in e.$metadata && e.$metadata.httpStatusCode === 404) {
@@ -59,6 +68,9 @@ const handleError = <T>(action: 'create' | 'update', retry: Promise<T>) => {
     if (action === 'update' && e instanceof NotFoundException) {
       return retry;
     }
+    if (action === 'dispose' && e instanceof NotFoundException) {
+      return retry;
+    }
     throw e;
   };
 };
@@ -68,29 +80,56 @@ export const manageResource = async <
   Resource,
   CreateCommand,
   UpdateCommand,
+  DeleteCommand,
 >(
-  resource: CloudResource<Client, Resource, CreateCommand, UpdateCommand>,
+  resource: CloudResource<Client, Resource, CreateCommand, UpdateCommand, DeleteCommand>,
   options: ResourceOptions,
-): Promise<Resource> => {
-  const { request } = resource;
+): Promise<Partial<Resource>> => {
+  const {
+    read: readFn,
+    create: createFn,
+    update: updateFn,
+    dispose: disposeFn,
+    request,
+    disposable = Promise.resolve(false),
+  } = resource;
+  const { create, update, dispose } = request;
 
   if (options.destroy) {
     throw new Error('Not implemented');
   }
 
-  if (!request.update) {
-    return resource
-      .create(request.create)
-      .then(handleResource)
+  if (disposeFn && (await disposable) === true) {
+    if (!dispose) {
+      throw new Error('Dispose command required');
+    }
+
+    const existing = await readFn()
+      .then((r) => r as Partial<Resource>)
       .catch((e) => {
-        return handleError('create', resource.read())(e);
+        return handleError('dispose', Promise.resolve({} as Partial<Resource>))(e);
       });
-  } else {
-    return resource
-      .update(request.update)
-      .then(handleResource)
+
+    return disposeFn(existing, dispose)
+      .then((r) => handleResource('dispose', r))
       .catch((e) => {
-        return handleError('update', resource.create(request.create))(e);
+        return handleError('dispose', Promise.resolve(existing))(e);
+      });
+  }
+
+  const creator = createFn(create)
+    .then((r) => handleResource('create', r))
+    .catch((e) => {
+      return handleError('create', readFn())(e);
+    });
+
+  if (!update) {
+    return creator;
+  } else {
+    return updateFn(update)
+      .then((r) => handleResource('update', r))
+      .catch((e) => {
+        return handleError('update', creator)(e);
       });
   }
 };

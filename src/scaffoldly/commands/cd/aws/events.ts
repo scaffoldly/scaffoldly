@@ -2,6 +2,7 @@ import { Command, Commands, ScaffoldlyConfig, Schedule } from '../../../../confi
 import {
   CreateScheduleCommand,
   CreateScheduleGroupCommand,
+  DeleteScheduleCommand,
   // eslint-disable-next-line import/named
   FlexibleTimeWindow,
   GetScheduleCommand,
@@ -31,6 +32,7 @@ export type ScheduleGroupResource = CloudResource<
   SchedulerClient,
   ScheduleGroup,
   CreateScheduleGroupCommand,
+  undefined,
   undefined
 >;
 
@@ -43,14 +45,16 @@ export type ScheduleEventResource = CloudResource<
   SchedulerClient,
   ScheduledEvent,
   CreateScheduleCommand,
-  UpdateScheduleCommand
+  UpdateScheduleCommand,
+  DeleteScheduleCommand
 >;
 
 export type InvokeFunctionResource = CloudResource<
   LambdaClient,
   Command[],
   InvokeCommand,
-  InvokeCommand
+  InvokeCommand,
+  undefined
 >;
 
 const sanitizeSchedule = (schedule: Schedule): string => {
@@ -72,19 +76,24 @@ const scheduleExpression = (schedule: Schedule): string => {
 
 const mapSchedules = (config: ScaffoldlyConfig): { [key in Schedule]: Commands } => {
   const { serveCommands } = config;
-  return serveCommands.commands.reduce((acc, command) => {
-    const { schedule } = command;
-    if (!schedule) {
+  return serveCommands.commands.reduce(
+    (acc, command) => {
+      const { schedule } = command;
+      if (!schedule) {
+        return acc;
+      }
+
+      acc[schedule].commands.push(command);
+
       return acc;
-    }
-    if (!acc[schedule]) {
-      acc[schedule] = new Commands();
-    }
-
-    acc[schedule].commands.push(command);
-
-    return acc;
-  }, {} as { [key in Schedule]: Commands });
+    },
+    {
+      '@immediately': new Commands(),
+      '@daily': new Commands(),
+      '@hourly': new Commands(),
+      '@frequently': new Commands(),
+    },
+  );
 };
 
 export class EventsService implements IamConsumer {
@@ -131,6 +140,10 @@ export class EventsService implements IamConsumer {
       options,
     );
 
+    if (!scheduleGroup) {
+      throw new Error('Missing scheduleGroup');
+    }
+
     const { functionArn, roleArn } = status;
     if (!functionArn) {
       throw new Error('Missing functionArn');
@@ -148,9 +161,10 @@ export class EventsService implements IamConsumer {
             options,
           ).then((cmds) =>
             cmds.map((cmd) => {
+              if (!cmd) return;
               ui.updateBottomBar('');
               console.log(`\n✅ Executed \`${cmd.cmd}\``);
-              if (cmd.output) {
+              if (cmd?.output) {
                 console.log(`   --> ${cmd.output.trim().replace('\n', '\n   -->')}`);
               }
             }),
@@ -168,10 +182,10 @@ export class EventsService implements IamConsumer {
           options,
         ).then(() => {
           ui.updateBottomBar('');
+          const command = commands.toString(schedule as Schedule);
+          if (!command) return;
           console.log(
-            `\n✅ Scheduled \`${commands.toString(schedule as Schedule)}\` for ${scheduleExpression(
-              schedule as Schedule,
-            )}`,
+            `\n✅ Scheduled \`${command}\` for ${scheduleExpression(schedule as Schedule)}`,
           );
         });
       }),
@@ -243,9 +257,6 @@ export class EventsService implements IamConsumer {
         });
     };
 
-    // const actionAfterCompletion: ActionAfterCompletion =
-    //   schedule === '@immediately' ? 'DELETE' : 'NONE';
-
     const target: Target = {
       Arn: functionArn,
       RoleArn: roleArn,
@@ -262,6 +273,10 @@ export class EventsService implements IamConsumer {
       read,
       create: (command) => this.schedulerClient.send(command).then(read),
       update: (command) => this.schedulerClient.send(command).then(read),
+      dispose: (resource, command) => this.schedulerClient.send(command).then(() => resource),
+      disposable: Promise.resolve(
+        this.config.serveCommands.commands.every((c) => c.schedule !== schedule),
+      ),
       request: {
         create: new CreateScheduleCommand({
           Name: name,
@@ -282,6 +297,10 @@ export class EventsService implements IamConsumer {
           ActionAfterCompletion: 'NONE',
           Target: target,
           FlexibleTimeWindow: flexibleTimeWindow,
+        }),
+        dispose: new DeleteScheduleCommand({
+          Name: name,
+          GroupName: group,
         }),
       },
     };

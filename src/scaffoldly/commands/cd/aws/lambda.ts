@@ -35,13 +35,15 @@ export type FunctionResource = CloudResource<
   LambdaClient,
   FunctionConfiguration,
   CreateFunctionCommand,
-  UpdateFunctionConfigurationCommand
+  UpdateFunctionConfigurationCommand,
+  undefined
 >;
 
 export type CodeResource = CloudResource<
   LambdaClient,
   FunctionCodeLocation,
   UpdateFunctionCodeCommand,
+  undefined,
   undefined
 >;
 
@@ -49,6 +51,7 @@ export type PermissionResource = CloudResource<
   LambdaClient,
   AddPermissionRequest,
   AddPermissionCommand,
+  undefined,
   undefined
 >;
 
@@ -60,6 +63,7 @@ export type UrlResource = CloudResource<
   LambdaClient,
   FunctionUrl,
   CreateFunctionUrlConfigCommand,
+  undefined,
   undefined
 >;
 

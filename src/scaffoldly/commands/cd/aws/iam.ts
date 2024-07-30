@@ -55,14 +55,16 @@ export type RoleResource = CloudResource<
   IAMClient,
   Role,
   CreateRoleCommand,
-  UpdateAssumeRolePolicyCommand
+  UpdateAssumeRolePolicyCommand,
+  undefined
 >;
 
 export type RolePolicyResource = CloudResource<
   IAMClient,
   PolicyDocument,
   PutRolePolicyCommand,
-  PutRolePolicyCommand
+  PutRolePolicyCommand,
+  undefined
 >;
 
 export interface IamConsumer {
@@ -162,7 +164,7 @@ export class IamService {
   }
 
   private rolePolicyResource(
-    role: Role,
+    role: Partial<Role>,
     name: string,
     policyDocument: PolicyDocument,
   ): RolePolicyResource {
