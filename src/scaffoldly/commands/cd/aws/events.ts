@@ -2,6 +2,8 @@ import { Command, Commands, ScaffoldlyConfig, Schedule } from '../../../../confi
 import {
   CreateScheduleCommand,
   CreateScheduleGroupCommand,
+  // eslint-disable-next-line import/named
+  FlexibleTimeWindow,
   GetScheduleCommand,
   GetScheduleGroupCommand,
   SchedulerClient,
@@ -57,6 +59,8 @@ const sanitizeSchedule = (schedule: Schedule): string => {
 
 const scheduleExpression = (schedule: Schedule): string => {
   switch (schedule) {
+    case '@frequently':
+      return 'rate(5 minutes)';
     case '@hourly':
       return 'rate(1 hour)';
     case '@daily':
@@ -165,7 +169,9 @@ export class EventsService implements IamConsumer {
         ).then(() => {
           ui.updateBottomBar('');
           console.log(
-            `\n✅ Scheduled \`${commands.toString(schedule as Schedule)}\` to run ${schedule}`,
+            `\n✅ Scheduled \`${commands.toString(schedule as Schedule)}\` for ${scheduleExpression(
+              schedule as Schedule,
+            )}`,
           );
         });
       }),
@@ -246,6 +252,11 @@ export class EventsService implements IamConsumer {
       Input: JSON.stringify(commands.encode()),
     };
 
+    const flexibleTimeWindow: FlexibleTimeWindow =
+      schedule === '@frequently'
+        ? { Mode: 'FLEXIBLE', MaximumWindowInMinutes: 5 }
+        : { Mode: 'OFF' };
+
     return {
       client: this.schedulerClient,
       read,
@@ -260,9 +271,7 @@ export class EventsService implements IamConsumer {
           ScheduleExpressionTimezone: 'UTC',
           ActionAfterCompletion: 'NONE',
           Target: target,
-          FlexibleTimeWindow: {
-            Mode: 'OFF',
-          },
+          FlexibleTimeWindow: flexibleTimeWindow,
         }),
         update: new UpdateScheduleCommand({
           Name: name,
@@ -272,9 +281,7 @@ export class EventsService implements IamConsumer {
           ScheduleExpressionTimezone: 'UTC',
           ActionAfterCompletion: 'NONE',
           Target: target,
-          FlexibleTimeWindow: {
-            Mode: 'OFF',
-          },
+          FlexibleTimeWindow: flexibleTimeWindow,
         }),
       },
     };

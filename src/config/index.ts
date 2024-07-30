@@ -118,7 +118,7 @@ export type PackageJsonBin = { [key: string]: string };
 
 export type Script = 'develop' | 'install' | 'build' | 'package' | 'start';
 
-export type Schedule = '@immediately' | '@hourly' | '@daily';
+export type Schedule = '@immediately' | '@frequently' | '@hourly' | '@daily';
 
 export interface SecretConsumer {
   get secretValue(): Uint8Array;
