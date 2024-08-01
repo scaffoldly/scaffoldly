@@ -125,13 +125,14 @@ export const endpointProxy = async ({
           isBase64Encoded: false,
         },
       };
-    } catch (e) {
+    } catch (error) {
+      log('Error executing command', { error });
       return {
         requestId,
         payload: {
           statusCode: 500,
           headers: {},
-          body: JSON.stringify(e.stdout),
+          body: JSON.stringify(error.stdout),
           isBase64Encoded: false,
         },
       };

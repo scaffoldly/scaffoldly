@@ -94,6 +94,14 @@ export class LambdaService implements IamConsumer {
       options,
     );
 
+    // await manageResource(
+    //   this.permissionResource(this.config.name, 'InvokeElasticLoadBalancing', {
+    //     Action: 'lambda:InvokeFunction',
+    //     Principal: 'elasticloadbalancing.amazonaws.com',
+    //   }),
+    //   options,
+    // );
+
     ui.updateBottomBar(`Updating URL`);
     const { origin } = await manageResource(this.urlResource(this.config.name), options);
     lambdaDeployStatus.origin = origin;
