@@ -1,4 +1,4 @@
-import { Command, Commands, ScaffoldlyConfig, Schedule } from '../../../../config';
+import { Commands, ScaffoldlyConfig, Schedule } from '../../../../config';
 import {
   CreateScheduleCommand,
   CreateScheduleGroupCommand,
@@ -49,9 +49,15 @@ export type ScheduleEventResource = CloudResource<
   DeleteScheduleCommand
 >;
 
+type InvokeOutput = {
+  commands: Commands;
+  body: string;
+  failed: boolean;
+};
+
 export type InvokeFunctionResource = CloudResource<
   LambdaClient,
-  Command[],
+  InvokeOutput,
   InvokeCommand,
   InvokeCommand,
   undefined
@@ -159,16 +165,14 @@ export class EventsService implements IamConsumer {
           return manageResource(
             this.invokeFunctionResource(this.config.name, commands),
             options,
-          ).then((cmds) =>
-            cmds.map((cmd) => {
-              if (!cmd) return;
-              ui.updateBottomBar('');
-              console.log(`\n✅ Executed \`${cmd.cmd}\``);
-              if (cmd?.output) {
-                console.log(`   --> ${cmd.output.trim().replace('\n', '\n   -->')}`);
-              }
-            }),
-          );
+          ).then((output) => {
+            ui.updateBottomBar('');
+            const emoji = output.failed ? '❌' : '✅';
+            console.log(`\n${emoji} Executed \`${commands.toString({ schedule })}\``);
+            if (output.body) {
+              console.log(`   --> ${output.body.trim().replace('\n', '\n   -->')}`);
+            }
+          });
         }
 
         return manageResource(
@@ -182,7 +186,7 @@ export class EventsService implements IamConsumer {
           options,
         ).then(() => {
           ui.updateBottomBar('');
-          const command = commands.toString(schedule as Schedule);
+          const command = commands.toString({ schedule: schedule as Schedule });
           if (!command) return;
           console.log(
             `\n✅ Scheduled \`${command}\` for ${scheduleExpression(schedule as Schedule)}`,
@@ -307,9 +311,13 @@ export class EventsService implements IamConsumer {
   }
 
   private invokeFunctionResource(name: string, commands: Commands): InvokeFunctionResource {
-    let output: Command[] = [];
+    let output = '';
+    let failed = false;
     const read = async () => {
-      return output;
+      return {
+        body: JSON.stringify(output),
+        failed,
+      } as InvokeOutput;
     };
 
     const invokeCommand: InvokeCommand = new InvokeCommand({
@@ -325,8 +333,13 @@ export class EventsService implements IamConsumer {
       }
 
       const payload = JSON.parse(Buffer.from(Payload).toString('utf-8'));
+      if ('statusCode' in payload && payload.statusCode !== 200) {
+        failed = true;
+      }
       if ('body' in payload && typeof payload.body === 'string') {
-        output = JSON.parse(payload.body) as Command[];
+        output = JSON.parse(payload.body);
+      } else {
+        output = JSON.stringify(payload);
       }
     };
 

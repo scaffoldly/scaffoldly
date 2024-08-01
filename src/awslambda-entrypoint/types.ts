@@ -1,6 +1,6 @@
 import { APIGatewayProxyResult } from 'aws-lambda';
 import { ChildProcess } from 'child_process';
-import { Command, Routes } from '../config';
+import { Commands, Routes } from '../config';
 
 export type SpawnResult = {
   childProcess?: ChildProcess;
@@ -16,7 +16,7 @@ export type RuntimeEvent = {
 export type EndpointProxyRequest = {
   requestId: string;
   routes: Routes;
-  commands: Command[];
+  commands: Commands;
   env: Record<string, string>;
   event: string;
   deadline: number;

@@ -1,3 +1,5 @@
+export const isDebug = !!process.env.SLY_DEBUG;
+
 export const info = (message: unknown, obj?: Record<string, unknown>): void => {
   const msg = `[awslambda-bootstrap] ${message}`;
   if (!obj) {

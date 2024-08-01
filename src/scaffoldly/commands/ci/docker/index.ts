@@ -600,7 +600,7 @@ export class DockerService {
     }
 
     if (cmd) {
-      lines.push(`CMD ${cmd.toString()}`);
+      lines.push(`CMD ${cmd.toString({})}`);
     }
 
     const dockerfile = lines.join('\n');

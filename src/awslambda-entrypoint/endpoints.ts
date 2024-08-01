@@ -2,11 +2,11 @@
 import axios, { AxiosResponse, AxiosResponseHeaders, RawAxiosResponseHeaders } from 'axios';
 import net from 'net';
 import { EndpointProxyRequest, EndpointResponse } from './types';
-import { log } from './log';
+import { isDebug, log } from './log';
 import { APIGatewayProxyEventV2 } from 'aws-lambda';
 import { Commands, Routes } from '../config';
 import { pathToRegexp } from 'path-to-regexp';
-import { spawnAsync } from './spawn';
+import { execa } from 'execa';
 import packageJson from '../../package.json';
 
 function convertHeaders(
@@ -105,36 +105,39 @@ export const endpointProxy = async ({
   // TDOO: fix event type for Function URL type
   const rawEvent = JSON.parse(event) as Partial<APIGatewayProxyEventV2 | string>;
   if (typeof rawEvent === 'string' && rawEvent.startsWith(`${packageJson.name}@`)) {
-    let commands = Commands.decode(rawEvent, true);
-
+    const commands = Commands.decode(rawEvent);
     log('Received scheduled event', { commands });
 
-    commands = await Promise.all(
-      commands.map(async (command) => {
-        try {
-          const spawn = await spawnAsync(command, env, command.schedule);
-          if (!spawn) {
-            return command;
-          }
-          command.output = spawn.output?.toString('utf-8');
-          return command;
-        } catch (e) {
-          log('Error handling scheduled command', e);
-          return command;
-        }
-      }),
-    );
+    try {
+      const { stdout } = await execa(commands.toString(), {
+        shell: true,
+        stdio: ['inherit', 'pipe', 'pipe'],
+        env: { ...process.env, ...env },
+        verbose: isDebug,
+      });
+
+      return {
+        requestId,
+        payload: {
+          statusCode: 200,
+          headers: {},
+          body: JSON.stringify(stdout),
+          isBase64Encoded: false,
+        },
+      };
+    } catch (e) {
+      return {
+        requestId,
+        payload: {
+          statusCode: 500,
+          headers: {},
+          body: JSON.stringify(e.stdout),
+          isBase64Encoded: false,
+        },
+      };
+    }
 
     // TODO: Retries?
-    return {
-      requestId,
-      payload: {
-        statusCode: 200,
-        headers: {},
-        body: JSON.stringify(commands),
-        isBase64Encoded: false,
-      },
-    };
   }
 
   if (typeof rawEvent !== 'object' || !('requestContext' in rawEvent)) {

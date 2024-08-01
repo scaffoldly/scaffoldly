@@ -2,12 +2,12 @@ import { log } from './log';
 import { EndpointProxyRequest } from './types';
 import { endpointProxy } from './endpoints';
 import { getRuntimeEvent, postRuntimeEventResponse } from './runtime';
-import { Command, Routes } from '../config';
+import { Commands, Routes } from '../config';
 
 export const pollForEvents = async (
   runtimeApi: string,
   routes: Routes,
-  commands: Command[],
+  commands: Commands,
   env: Record<string, string>,
 ): Promise<void> => {
   log('Waiting for next event from Lambda Runtime API', { runtimeApi });

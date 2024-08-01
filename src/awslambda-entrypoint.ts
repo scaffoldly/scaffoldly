@@ -2,15 +2,15 @@
 
 import { pollForEvents } from './awslambda-entrypoint/events';
 import { endpointProxy } from './awslambda-entrypoint/endpoints';
-import { log } from './awslambda-entrypoint/log';
+import { isDebug, log } from './awslambda-entrypoint/log';
 import { getRuntimeEvent, postRuntimeEventResponse } from './awslambda-entrypoint/runtime';
 import { RuntimeEvent, EndpointProxyRequest, EndpointResponse } from './awslambda-entrypoint/types';
 import packageJson from '../package.json';
-import { Routes, Command, Commands } from './config';
+import { Routes, Commands } from './config';
 import { GetSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
-import { spawnAsync } from './awslambda-entrypoint/spawn';
+import { execa } from 'execa';
 
-const { SLY_STRICT, SLY_SERVE, SLY_ROUTES, SLY_SECRET, AWS_LAMBDA_RUNTIME_API } = process.env;
+const { SLY_SERVE, SLY_ROUTES, SLY_SECRET, AWS_LAMBDA_RUNTIME_API } = process.env;
 
 export const run = async (): Promise<void> => {
   if (process.argv.includes('--version')) {
@@ -31,7 +31,6 @@ export const run = async (): Promise<void> => {
   }
 
   log('Bootstraping', {
-    SLY_STRICT,
     SLY_SERVE,
     SLY_ROUTES,
     SLY_SECRET,
@@ -62,17 +61,13 @@ export const run = async (): Promise<void> => {
       });
   }
 
-  let commands: Command[];
+  let commands: Commands;
   let routes: Routes;
 
   try {
-    commands = Commands.decode(SLY_SERVE, SLY_STRICT !== 'false');
+    commands = Commands.decode(SLY_SERVE);
   } catch (e) {
     throw new Error('Unable to parse SLY_SERVE');
-  }
-
-  if (!commands || !commands.length) {
-    throw new Error('No serve commands found');
   }
 
   try {
@@ -85,11 +80,15 @@ export const run = async (): Promise<void> => {
     throw new Error('No routes found');
   }
 
-  await Promise.all(
-    commands
-      .filter((command) => !command.schedule) // filter out scheduled commands
-      .map((command) => spawnAsync(command, env)),
-  );
+  // Append "&" to run in background
+  // TODO: Turn these (and secret fetching) into Lambda Extensions
+  await execa(`${commands.toString({})} &`, {
+    shell: true,
+    detached: true,
+    stdio: ['inherit', 'pipe', 'pipe'],
+    env: { ...process.env, ...env },
+    verbose: isDebug,
+  });
 
   log('Polling for events', { routes });
   await pollForEvents(AWS_LAMBDA_RUNTIME_API, routes, commands, env);

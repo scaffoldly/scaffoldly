@@ -4,10 +4,7 @@ import { join, sep } from 'path';
 export const DEFAULT_SRC_ROOT = `.`;
 export const DEFAULT_ROUTE = '/*';
 
-export const decode = <T>(config: string, strict: boolean): T => {
-  if (!strict && config.startsWith('base58:')) {
-    return JSON.parse(new TextDecoder().decode(base58.decode(config.split('base58:')[1])));
-  }
+export const decode = <T>(config: string): T => {
   if (config.startsWith(`${pkg.name}@${pkg.version}:`)) {
     return JSON.parse(
       new TextDecoder().decode(base58.decode(config.split(`${pkg.name}@${pkg.version}:`)[1])),
@@ -16,10 +13,7 @@ export const decode = <T>(config: string, strict: boolean): T => {
   throw new Error(`Invalid config: ${config}`);
 };
 
-export const encode = <T>(config: T, strict: boolean): string => {
-  if (!strict) {
-    return `base58:${base58.encode(new TextEncoder().encode(JSON.stringify(config)))}`;
-  }
+export const encode = <T>(config: T): string => {
   return `${pkg.name}@${pkg.version}:${base58.encode(
     new TextEncoder().encode(JSON.stringify(config)),
   )}`;
@@ -46,12 +40,12 @@ export class Commands {
     return this;
   };
 
-  toString = (schedule?: Schedule): string => {
-    return this.commands
-      .filter(
-        (command) =>
-          (!schedule && !command.schedule) || (schedule && command.schedule === schedule),
-      )
+  toString = (filter?: { schedule?: Schedule }): string => {
+    const filtered = filter
+      ? this.commands.filter((command) => command.schedule === filter.schedule)
+      : this.commands;
+
+    return filtered
       .map((command) => {
         return command.workdir
           ? `( cd ${command.workdir} && ${command.cmd} )`
@@ -60,12 +54,17 @@ export class Commands {
       .join(' & ');
   };
 
-  encode = (strict = true): string => {
-    return encode(this.commands, strict);
+  encode = (): string => {
+    return encode(this.commands);
   };
 
-  static decode = (config: string, strict = true): Command[] => {
-    return decode(config, strict);
+  static decode = (config: string): Commands => {
+    const cmds: Command[] = decode<Command[]>(config);
+    const commands = new Commands();
+    cmds.forEach((cmd) => {
+      commands.add(cmd);
+    });
+    return commands;
   };
 }
 
@@ -156,7 +155,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
     this.packageJson = packageJson;
 
     if (encodedConfig) {
-      const decodedConfig = decode<ScaffoldlyConfig>(encodedConfig, this.strict);
+      const decodedConfig = decode<ScaffoldlyConfig>(encodedConfig);
       this.scaffoldly = decodedConfig;
       this._id = decodedConfig.id;
       this._name = decodedConfig.name;

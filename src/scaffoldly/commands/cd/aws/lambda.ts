@@ -241,8 +241,7 @@ export class LambdaService implements IamConsumer {
               // Disable version checking in config since we're deploying hello world image
               // This is so we can deploy a function and generate a Function URL without needing a build first
               // TODO: Remove this crap
-              SLY_SERVE: this.config.serveCommands.encode(false),
-              SLY_STRICT: 'false',
+              SLY_SERVE: this.config.serveCommands.encode(),
             },
           },
         }),
