@@ -82,13 +82,15 @@ export const run = async (): Promise<void> => {
 
   // Append "&" to run in background
   // TODO: Turn these (and secret fetching) into Lambda Extensions
-  await execa(`${commands.toString({})} &`, {
+  const proc = execa(`${commands.toString({})} &`, {
     shell: true,
     detached: true,
     stdio: ['inherit', 'pipe', 'pipe'],
     env: { ...process.env, ...env },
     verbose: isDebug,
   });
+
+  proc.unref();
 
   log('Polling for events', { routes });
   await pollForEvents(AWS_LAMBDA_RUNTIME_API, routes, commands, env);
