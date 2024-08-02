@@ -26,6 +26,7 @@ export type RepositoryResource = CloudResource<
   ECRClient,
   Repository,
   CreateRepositoryCommand,
+  undefined,
   undefined
 >;
 
@@ -33,6 +34,7 @@ export type AuthorizationDataResource = CloudResource<
   ECRClient,
   AuthorizationData,
   CreateRepositoryCommand,
+  undefined,
   undefined
 >;
 

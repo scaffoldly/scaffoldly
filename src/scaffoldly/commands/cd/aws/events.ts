@@ -59,7 +59,7 @@ export type InvokeFunctionResource = CloudResource<
   LambdaClient,
   InvokeOutput,
   InvokeCommand,
-  InvokeCommand,
+  undefined,
   undefined
 >;
 
@@ -311,9 +311,12 @@ export class EventsService implements IamConsumer {
   }
 
   private invokeFunctionResource(name: string, commands: Commands): InvokeFunctionResource {
-    let output = '';
+    let output: string | undefined = '';
     let failed = false;
     const read = async () => {
+      if (!output) {
+        throw new NotFoundException('No output');
+      }
       return {
         body: JSON.stringify(output),
         failed,
@@ -347,10 +350,9 @@ export class EventsService implements IamConsumer {
       client: this.lambdaClient,
       read,
       create: (command) => this.lambdaClient.send(command).then(handleResponse).then(read),
-      update: (command) => this.lambdaClient.send(command).then(handleResponse).then(read),
+      update: read,
       request: {
         create: invokeCommand,
-        update: invokeCommand,
       },
     };
   }
