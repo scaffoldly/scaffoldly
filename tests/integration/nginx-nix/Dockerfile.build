@@ -1,0 +1,29 @@
+FROM alpine:3 as install-base
+WORKDIR /var/task
+RUN apk update && apk add --no-cache nix direnv && rm -rf /var/cache/apk/*
+
+FROM install-base as build-base
+WORKDIR /var/task
+ENV PATH="/var/task:$PATH"
+COPY . /var/task/
+RUN direnv allow
+SHELL [ "direnv", "exec", "/var/task", "/bin/sh", "-c" ]
+RUN echo 'TODO'
+
+FROM install-base as package-base
+WORKDIR /var/task
+ENV PATH="/var/task:$PATH"
+COPY --from=build-base /var/task/nginx /var/task/nginx
+COPY --from=build-base /var/task/html /var/task/html
+COPY --from=build-base /var/task/.envrc /var/task/.envrc
+COPY --from=build-base /var/task/shell.nix /var/task/shell.nix
+
+FROM install-base as runtime
+WORKDIR /var/task
+ENV PATH="/var/task:$PATH"
+COPY .entrypoint* /var/task/.entrypoint
+COPY --from=package-base /var/task/nginx /var/task/nginx
+COPY --from=package-base /var/task/html /var/task/html
+COPY --from=package-base /var/task/.envrc /var/task/.envrc
+COPY --from=package-base /var/task/shell.nix /var/task/shell.nix
+CMD ( nginx -c /var/task/nginx/nginx.conf )

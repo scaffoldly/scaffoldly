@@ -1,0 +1,35 @@
+{
+  "name": "nginx-nix",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "deploy": "scaffoldly deploy"
+  },
+  "author": "",
+  "description": "",
+  "dependencies": {
+    "scaffoldly": "file:../../.."
+  },
+  "files": [
+    "nginx",
+    "html"
+  ],
+  "scaffoldly": {
+    "runtime": "alpine:3",
+    "handler": "localhost:8080",
+    "shell": "direnv",
+    "packages": [
+      "nix",
+      "direnv"
+    ],
+    "files": [
+      ".envrc",
+      "shell.nix"
+    ],
+    "scripts": {
+      "dev": "TODO",
+      "build": "echo 'TODO'",
+      "start": "nginx -c /var/task/nginx/nginx.conf"
+    }
+  }
+}
