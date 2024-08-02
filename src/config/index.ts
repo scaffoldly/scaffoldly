@@ -85,6 +85,7 @@ export interface IScaffoldlyConfig extends IServiceConfig {
   get runtime(): string;
   get handler(): string;
   get files(): string[]; // Get copied to workdir/{file} during build and serve
+  get buildFiles(): string[]; // Get copied to workdir/{file} during build
   get bin(): PackageJsonBin; // Get copied to workdir root
   get scripts(): { [key in Script]?: string };
   get src(): string; // Defaults to "."
@@ -106,6 +107,7 @@ export interface IServiceConfig {
   handler: string;
   bin?: PackageJsonBin;
   files?: string[];
+  buildFiles?: string[];
   src: string;
   packages?: string[];
   shell?: Shell;
@@ -138,6 +140,8 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
 
   private _files?: string[];
 
+  private _buildFiles?: string[];
+
   private _packages?: string[];
 
   private _id = '';
@@ -162,6 +166,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
       this._version = decodedConfig.version;
       this._bin = decodedConfig.bin;
       this._files = decodedConfig.files;
+      this._buildFiles = decodedConfig.buildFiles;
       this._packages = decodedConfig.packages;
 
       return;
@@ -177,6 +182,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
       this._version = packageJson.version;
       this._bin = { ...(packageJson.bin || {}), ...(scaffoldly.bin || {}) };
       this._files = [...(packageJson.files || []), ...(scaffoldly.files || [])];
+      this._buildFiles = scaffoldly.buildFiles || ['.'];
       this._packages = scaffoldly.packages || [];
 
       if (serviceConfig) {
@@ -190,7 +196,10 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
         this.serviceConfig = serviceConfig;
         this._name = serviceConfig.name;
         this._packages = [...(this._packages || []), ...(serviceConfig.packages || [])];
-        this._files = [...(this._files || []), ...(serviceConfig.files || [])];
+        this._files = [...new Set([...(this._files || []), ...(serviceConfig.files || [])])];
+        this._buildFiles = [
+          ...new Set([...(this._buildFiles || []), ...(serviceConfig.buildFiles || [])]),
+        ];
         this._bin = {
           ...(this._bin || {}),
           ...(serviceConfig.bin || {}),
@@ -274,6 +283,14 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
     return files;
   }
 
+  get buildFiles(): string[] {
+    const { _buildFiles: buildFiles = [] } = this;
+    if (!buildFiles.length) {
+      buildFiles.push(DEFAULT_SRC_ROOT);
+    }
+    return buildFiles;
+  }
+
   get src(): string {
     const { src = DEFAULT_SRC_ROOT } = this.serviceConfig || this.scaffoldly;
     return src;
@@ -301,6 +318,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
           handler: service.handler || this.handler,
           src: service.src || this.src,
           files: service.files || [],
+          buildFiles: service.buildFiles || [],
           bin: service.bin || {},
           packages: service.packages || [],
           shell: service.shell,
@@ -413,6 +431,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
           version: this.version,
           bin: this.bin,
           files: this.files,
+          buildFiles: this.buildFiles,
           packages: this.packages,
         }),
       ),
