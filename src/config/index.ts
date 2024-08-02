@@ -280,15 +280,17 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
 
     // TODO: add README and LICENSE, exclude entries that start with "!"
     // TODO: .scaffoldlyignore or gitignore parser, find out how yarn/npm does it
-    return files;
+    return [...new Set(files)];
   }
 
   get buildFiles(): string[] {
     const { _buildFiles: buildFiles = [] } = this;
     if (!buildFiles.length) {
       buildFiles.push(DEFAULT_SRC_ROOT);
+    } else {
+      buildFiles.push(...this.files);
     }
-    return buildFiles;
+    return [...new Set(...buildFiles)];
   }
 
   get src(): string {
