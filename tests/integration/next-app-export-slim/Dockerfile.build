@@ -1,0 +1,28 @@
+FROM node:20-alpine as install-base
+WORKDIR /var/task
+ENV SLY_DEBUG="true"
+RUN npm install -g serve --omit=dev,optional,peer && npm cache clean --force
+
+FROM install-base as build-base
+WORKDIR /var/task
+ENV PATH="/var/task:$PATH"
+ENV PATH="/var/task/node_modules/.bin:$PATH"
+ENV SLY_DEBUG="true"
+COPY . /var/task/
+RUN next build
+
+FROM install-base as package-base
+WORKDIR /var/task
+ENV PATH="/var/task:$PATH"
+ENV PATH="/var/task/node_modules/.bin:$PATH"
+ENV SLY_DEBUG="true"
+COPY --from=build-base /var/task/out* /var/task/out
+
+FROM install-base as runtime
+WORKDIR /var/task
+ENV PATH="/var/task:$PATH"
+ENV PATH="/var/task/node_modules/.bin:$PATH"
+ENV SLY_DEBUG="true"
+COPY .entrypoint* /var/task/.entrypoint
+COPY --from=package-base /var/task/out /var/task/out
+CMD ( serve out )

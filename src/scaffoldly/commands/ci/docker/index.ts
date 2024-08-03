@@ -14,6 +14,7 @@ import { ui } from '../../../command';
 import { isDebug } from '../../../ui';
 import { BufferedWriteStream } from './util';
 import { Architecture } from '../../cd/docker';
+import { PackageService } from './packages';
 
 const BASE = 'base';
 type Path = string;
@@ -32,7 +33,7 @@ type Copy = {
   mode?: number;
 };
 
-type RunCommand = {
+export type RunCommand = {
   workdir?: string;
   cmds: string[];
   prerequisite: boolean;
@@ -278,7 +279,9 @@ export class DockerService {
     fromStages: DockerStage,
     env?: Record<string, string>,
   ): Promise<DockerFileSpec | undefined> {
-    const { packages, workdir, shell, runtime, src, buildFiles, files, scripts, bin } = config;
+    const packageService = new PackageService(this, config);
+
+    const { workdir, shell, runtime, src, buildFiles, files, scripts, bin } = config;
 
     const spec: DockerFileSpec = {
       from: `install-${name}`,
@@ -298,7 +301,7 @@ export class DockerService {
     if (mode === 'install') {
       spec.from = runtime;
 
-      const runCommands = (await this.installPackages(runtime, packages)) || [];
+      const runCommands = await packageService.commands;
 
       runCommands.push({
         cmds: scripts.install ? [scripts.install] : [],
@@ -330,11 +333,7 @@ export class DockerService {
       return spec;
     }
 
-    const paths = [join(workdir, src)];
-    // HACK: include node_modules/.bin in path
-    if (files.includes('node_modules')) {
-      paths.push(join(workdir, src, 'node_modules', '.bin'));
-    }
+    const paths = await packageService.paths;
 
     if (mode === 'build') {
       const fromStage = fromStages[`install-${name}`];
@@ -643,63 +642,6 @@ export class DockerService {
     return { imageDigest };
   }
 
-  private installPackages = async (runtime: string, packages?: string[]): Promise<RunCommand[]> => {
-    if (!packages || !packages.length) {
-      return [];
-    }
-
-    const bin = await this.checkBin(runtime, ['apk', 'apt', 'dnf', 'yum']);
-
-    switch (bin) {
-      case 'apk':
-        return [
-          {
-            prerequisite: true,
-            cmds: [
-              `apk update`,
-              `apk add --no-cache ${packages.join(' ')}`,
-              `rm -rf /var/cache/apk/*`,
-            ],
-          },
-        ];
-      case 'apt':
-        return [
-          {
-            prerequisite: true,
-            cmds: [
-              `apt update`,
-              `apt install -y --no-install-recommends ${packages.join(' ')}`,
-              `apt clean && rm -rf /var/lib/apt/lists/*`,
-            ],
-          },
-        ];
-      case 'dnf':
-        return [
-          {
-            prerequisite: true,
-            cmds: [
-              `dnf install -y ${packages.join(' ')}`,
-              `dnf clean all`,
-              `rm -rf /var/cache/dnf`,
-            ],
-          },
-        ];
-      case 'yum':
-        return [
-          {
-            prerequisite: true,
-            cmds: [
-              `yum install -y ${packages.join(' ')}`,
-              `yum clean all`,
-              `rm -rf /var/cache/yum`,
-            ],
-          },
-        ];
-      default:
-        throw new Error(`Unable to determine find a package manager in ${runtime}`);
-    }
-  };
-
   private async getImage(runtime: string): Promise<Docker.ImageInspectInfo | undefined> {
     let image: Docker.ImageInspectInfo | undefined = undefined;
 
@@ -746,7 +688,7 @@ export class DockerService {
     }
   }
 
-  private async checkBin<T extends string[]>(
+  public async checkBin<T extends string[]>(
     runtime: string,
     bins: [...T],
   ): Promise<T[number] | undefined> {

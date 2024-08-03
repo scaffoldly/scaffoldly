@@ -16,12 +16,7 @@ import { CloudResource, manageResource, ResourceOptions } from '..';
 import { NotFoundException } from './errors';
 import { DeployStatus } from '.';
 import { IamConsumer, PolicyDocument, TrustRelationship } from './iam';
-import {
-  InvokeCommand,
-  // eslint-disable-next-line import/named
-  InvokeCommandOutput,
-  LambdaClient,
-} from '@aws-sdk/client-lambda';
+import { InvokeCommand, LambdaClient } from '@aws-sdk/client-lambda';
 import { ui } from '../../../command';
 
 export type ScheduleGroup = {
