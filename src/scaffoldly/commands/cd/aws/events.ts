@@ -50,9 +50,9 @@ export type ScheduleEventResource = CloudResource<
 >;
 
 type InvokeOutput = {
-  commands: Commands;
-  body: string;
-  failed: boolean;
+  commands?: Commands;
+  body?: string;
+  failed?: boolean;
 };
 
 export type InvokeFunctionResource = CloudResource<
@@ -166,8 +166,11 @@ export class EventsService implements IamConsumer {
             this.invokeFunctionResource(this.config.name, commands),
             options,
           ).then((output) => {
+            if (commands.isEmpty({ schedule })) {
+              return;
+            }
             ui.updateBottomBar('');
-            const emoji = output.failed ? '❌' : '✅';
+            const emoji = output.failed === true ? '❌' : '✅';
             console.log(`\n${emoji} Executed \`${commands.toString({ schedule })}\``);
             if (output.body) {
               console.log(`   --> ${output.body.trim().replace('\n', '\n   -->')}`);
@@ -311,48 +314,47 @@ export class EventsService implements IamConsumer {
   }
 
   private invokeFunctionResource(name: string, commands: Commands): InvokeFunctionResource {
-    let output: string | undefined = '';
-    let failed = false;
-    const read = async () => {
-      if (!output) {
-        throw new NotFoundException('No output');
-      }
-      return {
-        body: JSON.stringify(output),
-        failed,
-      } as InvokeOutput;
-    };
-
-    const invokeCommand: InvokeCommand = new InvokeCommand({
-      FunctionName: name,
-      InvocationType: 'RequestResponse',
-      Payload: JSON.stringify(commands.encode()),
-    });
-
-    const handleResponse = (response: InvokeCommandOutput) => {
-      const { Payload } = response;
-      if (!Payload) {
-        return;
-      }
-
-      const payload = JSON.parse(Buffer.from(Payload).toString('utf-8'));
-      if ('statusCode' in payload && payload.statusCode !== 200) {
-        failed = true;
-      }
-      if ('body' in payload && typeof payload.body === 'string') {
-        output = JSON.parse(payload.body);
-      } else {
-        output = JSON.stringify(payload);
-      }
-    };
-
     return {
       client: this.lambdaClient,
-      read,
-      create: (command) => this.lambdaClient.send(command).then(handleResponse).then(read),
-      update: read,
+      read: () => {
+        throw new NotFoundException('Not implemented');
+      },
+      create: async (command) => {
+        const invokeOutput: InvokeOutput = { commands: commands };
+
+        if (commands.isEmpty()) {
+          return invokeOutput;
+        }
+
+        return this.lambdaClient.send(command).then((response) => {
+          const { Payload } = response;
+          if (!Payload) {
+            return invokeOutput;
+          }
+
+          const payload = JSON.parse(Buffer.from(Payload).toString('utf-8'));
+          if ('statusCode' in payload && payload.statusCode !== 200) {
+            invokeOutput.failed = true;
+          }
+
+          if ('body' in payload && typeof payload.body === 'string') {
+            invokeOutput.body = JSON.parse(payload.body);
+          } else {
+            invokeOutput.body = JSON.stringify(payload);
+          }
+
+          return invokeOutput;
+        });
+      },
+      update: () => {
+        throw new NotFoundException('Not implemented');
+      },
       request: {
-        create: invokeCommand,
+        create: new InvokeCommand({
+          FunctionName: name,
+          InvocationType: 'RequestResponse',
+          Payload: JSON.stringify(commands.encode()),
+        }),
       },
     };
   }

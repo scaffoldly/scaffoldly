@@ -40,6 +40,14 @@ export class Commands {
     return this;
   };
 
+  isEmpty = (filter?: { schedule?: Schedule }): boolean => {
+    const filtered = filter
+      ? this.commands.filter((command) => command.schedule === filter.schedule)
+      : this.commands;
+
+    return filtered.length === 0;
+  };
+
   toString = (filter?: { schedule?: Schedule }): string => {
     const filtered = filter
       ? this.commands.filter((command) => command.schedule === filter.schedule)

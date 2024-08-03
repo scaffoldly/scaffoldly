@@ -1,8 +1,8 @@
-FROM node:20-alpine as install-0
+FROM node:20-alpine as install-base
 WORKDIR /var/task
 ENV SLY_DEBUG="true"
 
-FROM install-0 as build-0
+FROM install-base as build-base
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
@@ -10,20 +10,20 @@ ENV SLY_DEBUG="true"
 COPY . /var/task/
 RUN next build
 
-FROM install-0 as package-0
+FROM install-base as package-base
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV SLY_DEBUG="true"
-COPY --from=build-0 /var/task/out* /var/task/out
-COPY --from=build-0 /var/task/node_modules /var/task/node_modules
+COPY --from=build-base /var/task/out* /var/task/out
+COPY --from=build-base /var/task/node_modules /var/task/node_modules
 
-FROM install-0 as runtime
+FROM install-base as runtime
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV SLY_DEBUG="true"
 COPY .entrypoint* /var/task/.entrypoint
-COPY --from=package-0 /var/task/out /var/task/out
-COPY --from=package-0 /var/task/node_modules /var/task/node_modules
+COPY --from=package-base /var/task/out /var/task/out
+COPY --from=package-base /var/task/node_modules /var/task/node_modules
 CMD ( serve out )
