@@ -161,7 +161,7 @@ export class LambdaService implements IamConsumer {
 
     const desired: MutableFields = {
       roleArn,
-      timeout: 30,
+      timeout: 900,
       memorySize: 1024,
     };
 
