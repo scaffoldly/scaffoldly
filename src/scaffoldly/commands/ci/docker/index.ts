@@ -281,7 +281,7 @@ export class DockerService {
   ): Promise<DockerFileSpec | undefined> {
     const packageService = new PackageService(this, config);
 
-    const { workdir, shell, runtime, src, buildFiles, files, scripts, bin } = config;
+    const { workdir, shell, runtime, src, files, scripts, bin } = config;
 
     const spec: DockerFileSpec = {
       from: `install-${name}`,
@@ -346,10 +346,7 @@ export class DockerService {
         },
       ];
 
-      const copy: Copy[] = buildFiles.map((file) => {
-        return { src: file, dest: file };
-      });
-
+      const copy: Copy[] = [{ src, dest: src }];
       if (src !== DEFAULT_SRC_ROOT) {
         files.forEach((file) => {
           const [from, f] = file.split(':');

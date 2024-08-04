@@ -87,23 +87,26 @@ export type PackageJson = {
 export type Routes = { [key: string]: string | undefined };
 
 export interface IScaffoldlyConfig extends IServiceConfig {
+  // Supported in top level and service level:
   get id(): string;
   get name(): string;
-  get version(): string;
   get runtime(): string;
   get handler(): string;
-  get files(): string[]; // Get copied to workdir/{file} during build and serve
-  get buildFiles(): string[]; // Get copied to workdir/{file} during build
   get bin(): PackageJsonBin; // Get copied to workdir root
-  get scripts(): { [key in Script]?: string };
+  get files(): string[]; // Get copied to workdir/{file} during build and serve
   get src(): string; // Defaults to "."
+  get packages(): string[];
+  get shell(): Shell | undefined;
+  get scripts(): { [key in Script]?: string };
+  get schedules(): { [key in Schedule]?: string };
+
+  // Top level configuration only:
+  get version(): string;
+  get buildFiles(): string[]; // Get copied to workdir/{file} during build
   get workdir(): string; // Defaults to /var/task
   get services(): Partial<IServiceConfig>[];
   get routes(): Routes;
   get secrets(): string[];
-  get packages(): string[];
-  get shell(): Shell | undefined;
-  get schedules(): { [key in Schedule]?: string };
 }
 
 export type ServiceName = string;
@@ -115,7 +118,6 @@ export interface IServiceConfig {
   handler: string;
   bin?: PackageJsonBin;
   files?: string[];
-  buildFiles?: string[];
   src: string;
   packages?: string[];
   shell?: Shell;
@@ -140,54 +142,45 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
 
   serviceConfig?: IServiceConfig;
 
-  private _name?: string;
-
-  private _version?: string;
-
-  private _bin?: PackageJsonBin;
-
-  private _files?: string[];
-
-  private _buildFiles?: string[];
-
-  private _packages?: string[];
-
   private _id = '';
+
+  private _name: string;
+
+  private _version: string;
+
+  private _bin: PackageJsonBin;
+
+  private _files: string[];
+
+  private _buildFiles: string[];
+
+  private _packages: string[];
 
   constructor(
     private strict: boolean,
     configs: {
       packageJson?: PackageJson;
-      encodedConfig?: string;
       serviceConfig?: IServiceConfig;
     } = {},
   ) {
-    // TODO Support Devcontainer JSON
-    const { packageJson, encodedConfig, serviceConfig } = configs;
+    // TODO Support Devcontainer JSON and scaffoldly.json
+    const { packageJson, serviceConfig } = configs;
     this.packageJson = packageJson;
 
-    if (encodedConfig) {
-      const decodedConfig = decode<ScaffoldlyConfig>(encodedConfig);
-      this.scaffoldly = decodedConfig;
-      this._id = decodedConfig.id;
-      this._name = decodedConfig.name;
-      this._version = decodedConfig.version;
-      this._bin = decodedConfig.bin;
-      this._files = decodedConfig.files;
-      this._buildFiles = decodedConfig.buildFiles;
-      this._packages = decodedConfig.packages;
-
-      return;
-    }
-
     if (packageJson) {
-      const { scaffoldly } = packageJson;
+      const { scaffoldly, name, version } = packageJson;
+      if (!name) {
+        throw new Error('Missing `name` in package.json');
+      }
+      if (!version) {
+        throw new Error('Missing `version` in package.json');
+      }
       if (!scaffoldly) {
         throw new Error('Missing `scaffoldly` in package.json');
       }
       this.scaffoldly = scaffoldly;
-      this._name = packageJson.name;
-      this._version = packageJson.version;
+      this._name = name;
+      this._version = version;
       this._bin = { ...(packageJson.bin || {}), ...(scaffoldly.bin || {}) };
       this._files = [...(packageJson.files || []), ...(scaffoldly.files || [])];
       this._buildFiles = scaffoldly.buildFiles || ['.'];
@@ -205,9 +198,6 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
         this._name = serviceConfig.name;
         this._packages = [...(this._packages || []), ...(serviceConfig.packages || [])];
         this._files = [...new Set([...(this._files || []), ...(serviceConfig.files || [])])];
-        this._buildFiles = [
-          ...new Set([...(this._buildFiles || []), ...(serviceConfig.buildFiles || [])]),
-        ];
         this._bin = {
           ...(this._bin || {}),
           ...(serviceConfig.bin || {}),
@@ -260,9 +250,6 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
 
   get version(): string {
     const { _version: version } = this;
-    if (!version) {
-      throw new Error('Missing `version`');
-    }
     return version;
   }
 
@@ -293,12 +280,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
 
   get buildFiles(): string[] {
     const { _buildFiles: buildFiles = [] } = this;
-    if (!buildFiles.length) {
-      buildFiles.push(DEFAULT_SRC_ROOT);
-    } else {
-      buildFiles.push(...this.files);
-    }
-    return [...new Set(...buildFiles)];
+    return [...new Set(buildFiles)];
   }
 
   get src(): string {
@@ -328,7 +310,6 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
           handler: service.handler || this.handler,
           src: service.src || this.src,
           files: service.files || [],
-          buildFiles: service.buildFiles || [],
           bin: service.bin || {},
           packages: service.packages || [],
           shell: service.shell,
