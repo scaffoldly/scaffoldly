@@ -11,11 +11,13 @@ import { NotFoundException } from './errors';
 import { DeployStatus } from '.';
 import { ui } from '../../../command';
 import { createHash } from 'crypto';
+import { IamConsumer, PolicyDocument } from './iam';
 
 export type SecretName = string;
 export type SecretVersion = string;
 
 export type Secret = {
+  secretArn: string;
   secretName: SecretName;
   uniqueId: string;
 };
@@ -30,8 +32,10 @@ export type SecretResource = CloudResource<
   undefined
 >;
 
-export class SecretService {
+export class SecretService implements IamConsumer {
   secretsManagerClient: SecretsManagerClient;
+
+  private secretDeployStatus: SecretDeployStatus = {};
 
   constructor(private config: ScaffoldlyConfig) {
     this.secretsManagerClient = new SecretsManagerClient();
@@ -42,15 +46,17 @@ export class SecretService {
     consumer: SecretConsumer,
     options: ResourceOptions,
   ): Promise<DeployStatus> {
-    const secretDeployStatus: SecretDeployStatus = {};
-
     ui.updateBottomBar('Deploying Secret');
-    const { secretName, uniqueId } = await this.manageSecret(consumer.secretValue, options);
+    const { secretName, uniqueId, secretArn } = await this.manageSecret(
+      consumer.secretValue,
+      options,
+    );
 
-    secretDeployStatus.secretName = secretName;
-    secretDeployStatus.uniqueId = uniqueId;
+    this.secretDeployStatus.secretArn = secretArn;
+    this.secretDeployStatus.secretName = secretName;
+    this.secretDeployStatus.uniqueId = uniqueId;
 
-    return { ...status, ...secretDeployStatus };
+    return { ...status, ...this.secretDeployStatus };
   }
 
   private async manageSecret(value: Uint8Array, options: ResourceOptions): Promise<Secret> {
@@ -61,7 +67,11 @@ export class SecretService {
 
     const secret = await manageResource(this.secretResource(name, value), options);
 
-    const { secretName, uniqueId } = secret;
+    const { secretArn, secretName, uniqueId } = secret;
+
+    if (!secretArn) {
+      throw new NotFoundException('Secret ARN not found');
+    }
 
     if (!secretName) {
       throw new NotFoundException('Secret not found');
@@ -71,7 +81,7 @@ export class SecretService {
       throw new NotFoundException('Secret Unique ID not found');
     }
 
-    return { secretName, uniqueId };
+    return { secretArn, secretName, uniqueId };
   }
 
   private secretResource(name: string, value: Uint8Array): SecretResource {
@@ -94,6 +104,7 @@ export class SecretService {
           const uniqueId = createHash('sha256').update(ARN).digest('hex').substring(0, 8);
 
           return {
+            secretArn: ARN,
             secretName: Name,
             uniqueId,
           } as Secret;
@@ -121,6 +132,23 @@ export class SecretService {
           SecretBinary: value,
         }),
       },
+    };
+  }
+
+  get trustRelationship(): undefined {
+    return;
+  }
+
+  get policyDocument(): PolicyDocument {
+    return {
+      Statement: [
+        {
+          Effect: 'Allow',
+          Action: ['secretsmanager:GetSecretValue'],
+          Resource: this.secretDeployStatus.secretArn ? [this.secretDeployStatus.secretArn] : [],
+        },
+      ],
+      Version: '2012-10-17',
     };
   }
 }

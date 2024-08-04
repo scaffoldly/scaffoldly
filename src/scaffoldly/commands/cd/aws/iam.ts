@@ -28,10 +28,14 @@ export type TrustRelationship = {
   }[];
 };
 
-const mergeTrustRelationships = (trustRelationships: TrustRelationship[]): TrustRelationship => {
+const mergeTrustRelationships = (
+  trustRelationships: (TrustRelationship | undefined)[],
+): TrustRelationship => {
   return {
     Version: '2012-10-17',
-    Statement: trustRelationships.flatMap((trustRelationship) => trustRelationship.Statement),
+    Statement: trustRelationships
+      .flatMap((trustRelationship) => trustRelationship?.Statement)
+      .filter((statement) => !!statement),
   };
 };
 
@@ -68,7 +72,7 @@ export type RolePolicyResource = CloudResource<
 >;
 
 export interface IamConsumer {
-  get trustRelationship(): TrustRelationship;
+  get trustRelationship(): TrustRelationship | undefined;
   get policyDocument(): PolicyDocument;
 }
 

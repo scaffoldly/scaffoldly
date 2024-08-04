@@ -107,6 +107,7 @@ export interface IScaffoldlyConfig extends IServiceConfig {
   get services(): Partial<IServiceConfig>[];
   get routes(): Routes;
   get secrets(): string[];
+  get resources(): string[];
 }
 
 export type ServiceName = string;
@@ -408,6 +409,11 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
   get schedules(): { [key in Schedule]?: string } {
     const { schedules = {} } = this.serviceConfig || this.scaffoldly;
     return schedules;
+  }
+
+  get resources(): string[] {
+    const { resources = [] } = this.scaffoldly;
+    return resources;
   }
 
   encode = (): string => {

@@ -8,6 +8,7 @@ import { SecretDeployStatus, SecretService } from './secret';
 import { GitDeployStatus, GitService } from '../git';
 import { EnvDeployStatus, EnvService } from '../env';
 import { EventsService } from './events';
+import { DynamoDbService } from './dynamodb';
 
 export type DeployStatus = GitDeployStatus &
   EnvDeployStatus &
@@ -26,6 +27,8 @@ export class AwsService {
 
   lambdaService: LambdaService;
 
+  dynamoDbService: DynamoDbService;
+
   eventsService: EventsService;
 
   constructor(
@@ -38,6 +41,7 @@ export class AwsService {
     this.iamService = new IamService(this.config);
     this.ecrService = new EcrService(this.config, this.dockerService);
     this.lambdaService = new LambdaService(this.config, this.envService);
+    this.dynamoDbService = new DynamoDbService(this.config);
     this.eventsService = new EventsService(this.config);
   }
 
@@ -62,7 +66,7 @@ export class AwsService {
     // Deploy IAM
     status = await this.iamService.predeploy(
       status,
-      [this.lambdaService, this.eventsService],
+      [this.secretService, this.lambdaService, this.dynamoDbService, this.eventsService],
       options,
     );
 
