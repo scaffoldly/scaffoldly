@@ -8,7 +8,8 @@ export class NpmPackageService {
   constructor(private config: ScaffoldlyConfig) {
     this.packages = (config.packages || [])
       .filter((p) => p.startsWith('npm:'))
-      .map((p) => p.split(':')[1]);
+      .map((p) => p.split(':').slice(-1)[0])
+      .filter((p) => !!p);
   }
 
   get paths(): Promise<string[]> {
@@ -39,7 +40,7 @@ export class NpmPackageService {
       {
         prerequisite: true,
         cmds: [
-          `npm install -g ${this.packages.join(' ')} --omit=dev,optional,peer`,
+          `npm install -g ${this.packages.join(' ')} --omit=dev --omit=optional --omit=peer`,
           `npm cache clean --force`,
         ],
       },

@@ -25,25 +25,31 @@
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
   },
-  "files": [
-    "out"
-  ],
   "scaffoldly": {
     "runtime": "alpine:3",
     "handler": "localhost:3000",
     "packages": [
-      "nodejs",
+      "npm",
       "npm:serve@14"
     ],
     "buildFiles": [
-      "*",
-      "!node_modules"
+      "!node_modules",
+      "!package-lock.json"
     ],
-    "scripts": {
-      "install": "npm install",
-      "dev": "next dev",
-      "build": "next build",
-      "start": "serve out"
-    }
+    "services": [
+      {
+        "name": "next",
+        "runtime": "node:22-alpine",
+        "files": [
+          "package.json",
+          "out"
+        ],
+        "scripts": {
+          "install": "npm install",
+          "build": "next build",
+          "start": "serve out"
+        }
+      }
+    ]
   }
 }

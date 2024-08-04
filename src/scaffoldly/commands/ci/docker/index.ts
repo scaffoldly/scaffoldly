@@ -9,12 +9,13 @@ import {
   Shell,
   ServiceName,
 } from '../../../../config';
-import { join, sep } from 'path';
+import { join, relative, sep } from 'path';
 import { ui } from '../../../command';
 import { isDebug } from '../../../ui';
 import { BufferedWriteStream } from './util';
 import { Architecture } from '../../cd/docker';
 import { PackageService } from './packages';
+import micromatch from 'micromatch';
 
 const BASE = 'base';
 type Path = string;
@@ -155,10 +156,19 @@ export class DockerService {
     writeFileSync(dockerfilePath, Buffer.from(dockerfile, 'utf-8'));
 
     const stream = tar.pack(this.cwd, {
-      // filter: (name) => {
-      //   console.log('!!! name', name);
-      //   return false;
-      // },
+      filter: (path) => {
+        const relativePath = relative(this.cwd, path);
+
+        const exclude = config.buildFiles.some((buildFile) => {
+          return !micromatch.isMatch(relativePath, buildFile, { contains: true });
+        });
+
+        if (exclude && isDebug()) {
+          ui.updateBottomBarSubtext(`Excluding ${relativePath} from tarball`);
+        }
+
+        return exclude;
+      },
     });
 
     stages.runtime.copy

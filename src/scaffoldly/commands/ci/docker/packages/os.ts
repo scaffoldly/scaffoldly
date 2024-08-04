@@ -7,7 +7,8 @@ export class OsPackageService {
   constructor(private dockerService: DockerService, private config: ScaffoldlyConfig) {
     this.packages = config.packages
       .filter((p) => p.indexOf(':') === -1 || p.startsWith('os:'))
-      .map((p) => p.split(':')[1]);
+      .map((p) => p.split(':').slice(-1)[0])
+      .filter((p) => !!p);
   }
 
   get paths(): Promise<string[]> {

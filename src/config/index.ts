@@ -183,7 +183,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
       this._version = version;
       this._bin = { ...(packageJson.bin || {}), ...(scaffoldly.bin || {}) };
       this._files = [...(packageJson.files || []), ...(scaffoldly.files || [])];
-      this._buildFiles = scaffoldly.buildFiles || ['.'];
+      this._buildFiles = scaffoldly.buildFiles || [];
       this._packages = scaffoldly.packages || [];
 
       if (serviceConfig) {
@@ -196,7 +196,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
         };
         this.serviceConfig = serviceConfig;
         this._name = serviceConfig.name;
-        this._packages = [...(this._packages || []), ...(serviceConfig.packages || [])];
+        this._packages = [...(serviceConfig.packages || [])];
         this._files = [...new Set([...(this._files || []), ...(serviceConfig.files || [])])];
         this._bin = {
           ...(this._bin || {}),
@@ -272,9 +272,6 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
 
   get files(): string[] {
     const { _files: files = [] } = this;
-
-    // TODO: add README and LICENSE, exclude entries that start with "!"
-    // TODO: .scaffoldlyignore or gitignore parser, find out how yarn/npm does it
     return [...new Set(files)];
   }
 
