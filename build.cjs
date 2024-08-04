@@ -70,7 +70,9 @@ const build = async (ts, tsOptions) => {
       sourcemap: true,
       platform: 'node',
       target: ['node18'],
-      external: [],
+      external: [
+        '*.node', // This line tells esbuild to treat .node files as external
+      ],
       loader: {
         '.node': 'file', // TODO: This is a hack to prevent esbuild from trying to bundle .node files
       },
