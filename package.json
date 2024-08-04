@@ -13,14 +13,12 @@
   "scripts": {
     "dev": "./build.cjs --watch",
     "build": "./build.cjs",
-    "scaffoldly": "node dist/scaffoldly.cjs",
-    "awslambda-entrypoint": "node dist/awslambda-entrypoint.cjs"
+    "scaffoldly": "node dist/scaffoldly.cjs"
   },
   "main": "dist/main.js",
   "bin": {
     "scaffoldly": "scripts/scaffoldly.cjs",
-    "sly": "scripts/scaffoldly.cjs",
-    "awslambda-entrypoint": "scripts/awslambda-entrypoint.cjs"
+    "sly": "scripts/scaffoldly.cjs"
   },
   "files": [
     "dist/**/*",
