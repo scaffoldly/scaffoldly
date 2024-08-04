@@ -26,7 +26,8 @@ export type SecretResource = CloudResource<
   SecretsManagerClient,
   Secret,
   CreateSecretCommand,
-  UpdateSecretCommand
+  UpdateSecretCommand,
+  undefined
 >;
 
 export class SecretService {
@@ -58,7 +59,19 @@ export class SecretService {
       throw new Error('Missing name');
     }
 
-    return manageResource(this.secretResource(name, value), options);
+    const secret = await manageResource(this.secretResource(name, value), options);
+
+    const { secretName, uniqueId } = secret;
+
+    if (!secretName) {
+      throw new NotFoundException('Secret not found');
+    }
+
+    if (!uniqueId) {
+      throw new NotFoundException('Secret Unique ID not found');
+    }
+
+    return { secretName, uniqueId };
   }
 
   private secretResource(name: string, value: Uint8Array): SecretResource {

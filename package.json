@@ -71,6 +71,7 @@
     "dotenv-expand": "^11.0.6",
     "esbuild": "^0.21.5",
     "esbuild-node-loader": "^0.8.0",
+    "esbuild-plugin-tsc": "^0.4.0",
     "eslint": "^7.2.0",
     "eslint-config-airbnb": "18.2.1",
     "eslint-config-airbnb-typescript": "14.0.2",
@@ -93,6 +94,7 @@
     "prettier": "^2.4.1",
     "promise-retry": "^2.0.1",
     "shell-quote": "^1.8.1",
+    "simple-git": "^3.25.0",
     "source-map": "^0.7.3",
     "tar-fs": "^3.0.6",
     "ts-loader": "^9.2.6",
@@ -103,7 +105,5 @@
     "yargs": "^17.3.0"
   },
   "nx": {},
-  "dependencies": {
-    "simple-git": "^3.25.0"
-  }
+  "dependencies": {}
 }

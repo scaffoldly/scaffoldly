@@ -13,7 +13,53 @@ if (fs.existsSync(path.join(__dirname, '.git'))) {
   }
 }
 
-const build = async () => {
+const configureTypescript = async () => {
+  const ts = await import('typescript');
+  const tsConfigPath = path.join(__dirname, 'tsconfig.json');
+  const { config, error } = ts.readConfigFile(tsConfigPath, ts.sys.readFile);
+  if (error) {
+    console.error(ts.formatDiagnosticsWithColorAndContext([err], ts.createCompilerHost(options)));
+    process.exit(1);
+  }
+
+  const { options, errors } = ts.parseJsonConfigFileContent(
+    config,
+    ts.sys,
+    path.dirname(tsConfigPath),
+  );
+  if (errors.length > 0) {
+    errors.forEach((err) =>
+      console.error(ts.formatDiagnosticsWithColorAndContext([err], ts.createCompilerHost(options))),
+    );
+    process.exit(1);
+  }
+
+  options.noEmit = true;
+  options.tsBuildInfoFile = path.join(__dirname, 'build', 'tsconfig.tsbuildinfo');
+
+  return { ts, tsOptions: options };
+};
+
+const typeCheck = async (entrypoints, ts, tsOptions) => {
+  const program = ts.createProgram(entrypoints, tsOptions);
+  const emitResult = program.emit();
+  const allDiagnostics = ts.getPreEmitDiagnostics(program).concat(emitResult.diagnostics);
+
+  if (allDiagnostics.length > 0) {
+    allDiagnostics.forEach((diagnostic) => {
+      if (diagnostic.file) {
+        const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start);
+        const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n');
+        console.error(`${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}\n`);
+      } else {
+        console.error(ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'));
+      }
+    });
+    throw new Error('Type checking failed');
+  }
+};
+
+const build = async (ts, tsOptions) => {
   const esbuild = await import('esbuild');
   try {
     await esbuild.build({
@@ -28,24 +74,43 @@ const build = async () => {
       loader: {
         '.node': 'file', // TODO: This is a hack to prevent esbuild from trying to bundle .node files
       },
-      logLevel: 'debug',
+      logLevel: 'info',
+      plugins: [
+        {
+          name: 'tsc',
+          setup: async (build) => {
+            await typeCheck(build.initialOptions.entryPoints, ts, tsOptions);
+          },
+        },
+      ],
     });
   } catch (error) {
-    console.error('Build failed:', error);
+    console.error('Build failed:', error.message);
   }
 };
 
-const watch = async () => {
+const watch = async (ts, tsOptions) => {
   if (process.argv.includes('--watch')) {
     const chokidar = await import('chokidar');
     console.log('Watching for changes...');
-    chokidar.watch('src/**/*.{ts,js}', { ignoreInitial: true }).on('all', (event, path) => {
-      console.log(`${event} detected at ${path}. Rebuilding...`);
-      build();
-    });
+    chokidar
+      .watch(['package.json', 'src/**/*.{ts,js}'], { ignoreInitial: true })
+      .on('all', (event, path) => {
+        console.log(`${event} detected at ${path}. Rebuilding...`);
+        build(ts, tsOptions);
+      });
   }
 };
 
-// Initial build
-build();
-watch();
+if (require.main === module) {
+  (async () => {
+    try {
+      const { ts, tsOptions } = await configureTypescript();
+      build(ts, tsOptions);
+      watch(ts, tsOptions);
+    } catch (e) {
+      console.error(e);
+      process.exit(-1);
+    }
+  })();
+}

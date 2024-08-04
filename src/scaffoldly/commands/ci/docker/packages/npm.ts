@@ -1,11 +1,11 @@
 import { join } from 'path';
-import { DockerService, RunCommand } from '..';
+import { RunCommand } from '..';
 import { ScaffoldlyConfig } from '../../../../../config';
 
 export class NpmPackageService {
   packages: string[];
 
-  constructor(private dockerService: DockerService, private config: ScaffoldlyConfig) {
+  constructor(private config: ScaffoldlyConfig) {
     this.packages = (config.packages || [])
       .filter((p) => p.startsWith('npm:'))
       .map((p) => p.split(':')[1]);
@@ -31,14 +31,7 @@ export class NpmPackageService {
     }
 
     // TODO: support yarn and npm
-    return this.dockerService.checkBin(this.config.runtime, ['npm']).then((bin) => {
-      switch (bin) {
-        case 'npm':
-          return this.npm;
-        default:
-          throw new Error(`Unable to find npm in runtime: ${this.config.runtime}`);
-      }
-    });
+    return Promise.resolve(this.npm);
   }
 
   get npm(): RunCommand[] {

@@ -13,8 +13,7 @@
     "next": "14.2.4",
     "react": "^18",
     "react-dom": "^18",
-    "scaffoldly": "file:../../..",
-    "serve": "^14.2.3"
+    "scaffoldly": "file:../../.."
   },
   "devDependencies": {
     "@types/node": "^20",
@@ -30,12 +29,18 @@
     "out"
   ],
   "scaffoldly": {
-    "runtime": "node:20-alpine",
+    "runtime": "alpine:3",
     "handler": "localhost:3000",
     "packages": [
-      "npm:serve"
+      "nodejs",
+      "npm:serve@14"
+    ],
+    "buildFiles": [
+      "*",
+      "!node_modules"
     ],
     "scripts": {
+      "install": "npm install",
       "dev": "next dev",
       "build": "next build",
       "start": "serve out"

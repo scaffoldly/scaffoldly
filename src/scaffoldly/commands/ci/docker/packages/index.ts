@@ -11,7 +11,7 @@ export class PackageService {
 
   constructor(private dockerService: DockerService, private config: ScaffoldlyConfig) {
     this.osPackages = new OsPackageService(this.dockerService, config);
-    this.npmPackages = new NpmPackageService(this.dockerService, config);
+    this.npmPackages = new NpmPackageService(config);
   }
 
   get paths(): Promise<string[]> {

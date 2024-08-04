@@ -46,6 +46,7 @@
     "build/**/*",
     "examples/**/*",
     "tests/integration/**/*",
-    "node_modules/**/*"
+    "node_modules/**/*",
+    "packages/**/*"
   ]
 }

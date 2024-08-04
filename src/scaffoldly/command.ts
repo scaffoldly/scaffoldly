@@ -180,7 +180,7 @@ export class Command {
           }
         } else {
           ui.updateBottomBar('');
-          throw error;
+          throw new Error(msg, { cause: error });
         }
       });
 
