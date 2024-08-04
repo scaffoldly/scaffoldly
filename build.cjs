@@ -106,7 +106,7 @@ if (require.main === module) {
   (async () => {
     try {
       const { ts, tsOptions } = await configureTypescript();
-      build(ts, tsOptions);
+      await build(ts, tsOptions);
       watch(ts, tsOptions);
     } catch (e) {
       console.error(e);
