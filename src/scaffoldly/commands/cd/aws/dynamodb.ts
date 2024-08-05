@@ -12,7 +12,10 @@ export class DynamoDbService implements IamConsumer {
     return;
   }
 
-  get policyDocument(): PolicyDocument {
+  get policyDocument(): PolicyDocument | undefined {
+    if (!this.tableArns.length) {
+      return;
+    }
     return {
       Version: '2012-10-17',
       Statement: [

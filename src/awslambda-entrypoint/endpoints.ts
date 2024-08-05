@@ -3,7 +3,7 @@ import axios, { AxiosResponse, AxiosResponseHeaders, RawAxiosResponseHeaders } f
 import net from 'net';
 import { EndpointProxyRequest, EndpointResponse } from './types';
 import { isDebug, log } from './log';
-import { APIGatewayProxyEventV2 } from 'aws-lambda';
+import { ALBEvent, ALBEventQueryStringParameters, APIGatewayProxyEventV2 } from 'aws-lambda';
 import { Commands, Routes } from '../config';
 import { pathToRegexp } from 'path-to-regexp';
 import { execa } from 'execa';
@@ -33,6 +33,25 @@ function convertHeaders(
 
     return acc;
   }, {} as { [header: string]: boolean | number | string });
+}
+
+function convertToURLSearchParams(
+  params: ALBEventQueryStringParameters | undefined,
+): URLSearchParams {
+  // Initialize URLSearchParams
+  const searchParams = new URLSearchParams();
+
+  // Check if params is not undefined
+  if (params) {
+    for (const [key, value] of Object.entries(params)) {
+      // Only append keys with defined values
+      if (value !== undefined) {
+        searchParams.append(key, value);
+      }
+    }
+  }
+
+  return searchParams;
 }
 
 const waitForEndpoint = async (
@@ -103,7 +122,10 @@ export const endpointProxy = async ({
   deadline,
 }: EndpointProxyRequest): Promise<EndpointResponse> => {
   // TDOO: fix event type for Function URL type
-  const rawEvent = JSON.parse(event) as Partial<APIGatewayProxyEventV2 | string>;
+  const rawEvent = JSON.parse(event) as Partial<APIGatewayProxyEventV2 | ALBEvent | string>;
+
+  log('Received event', { rawEvent });
+
   if (typeof rawEvent === 'string' && rawEvent.startsWith(`${packageJson.name}@`)) {
     const commands = Commands.decode(rawEvent);
     log('Received scheduled event', { commands });
@@ -146,20 +168,41 @@ export const endpointProxy = async ({
     throw new Error(`Unsupported event: ${JSON.stringify(rawEvent)}`);
   }
 
-  const {
-    requestContext,
-    rawPath,
-    rawQueryString,
-    headers: rawHeaders,
-    body: rawBody,
-    isBase64Encoded,
-  } = rawEvent;
+  const { requestContext, headers: rawHeaders, body: rawBody, isBase64Encoded } = rawEvent;
 
   if (!requestContext) {
     throw new Error('No request context found in event');
   }
 
-  const method = requestContext.http.method;
+  let method: string | undefined = undefined;
+  if ('http' in requestContext) {
+    method = requestContext.http.method;
+  }
+  if ('elb' in requestContext && 'httpMethod' in rawEvent) {
+    method = rawEvent.httpMethod;
+  }
+  if (!method) {
+    throw new Error('No method found in event');
+  }
+
+  let rawPath: string | undefined = undefined;
+  if ('http' in requestContext) {
+    rawPath = requestContext.http.path;
+  }
+  if ('elb' in requestContext && 'path' in rawEvent) {
+    rawPath = rawEvent.path;
+  }
+  if (!rawPath) {
+    throw new Error('No path found in event');
+  }
+
+  let urlSearchParams: URLSearchParams | undefined = undefined;
+  if ('http' in requestContext && 'rawQueryString' in rawEvent) {
+    urlSearchParams = new URLSearchParams(rawEvent.rawQueryString);
+  }
+  if ('elb' in requestContext && 'queryStringParameters' in rawEvent) {
+    urlSearchParams = convertToURLSearchParams(rawEvent.queryStringParameters);
+  }
 
   const handler = findHandler(routes, rawPath);
 
@@ -174,13 +217,9 @@ export const endpointProxy = async ({
     throw new Error(`${handler} took longer than ${timeout} milliseconds to start.`);
   }
 
-  if (!rawPath) {
-    throw new Error('No path found in event');
-  }
-
   const url = new URL(rawPath, endpoint);
-  if (rawQueryString) {
-    url.search = new URLSearchParams(rawQueryString).toString();
+  if (urlSearchParams) {
+    url.search = urlSearchParams.toString();
   }
 
   const decodedBody = isBase64Encoded && rawBody ? Buffer.from(rawBody, 'base64') : rawBody;

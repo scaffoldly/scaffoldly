@@ -48,10 +48,12 @@ export type PolicyDocument = {
   }[];
 };
 
-const mergePolicyDocuments = (policyDocuments: PolicyDocument[]): PolicyDocument => {
+const mergePolicyDocuments = (policyDocuments: (PolicyDocument | undefined)[]): PolicyDocument => {
   return {
     Version: '2012-10-17',
-    Statement: policyDocuments.flatMap((policyDocument) => policyDocument.Statement),
+    Statement: policyDocuments
+      .flatMap((policyDocument) => policyDocument?.Statement)
+      .filter((statement) => !!statement),
   };
 };
 
@@ -73,7 +75,7 @@ export type RolePolicyResource = CloudResource<
 
 export interface IamConsumer {
   get trustRelationship(): TrustRelationship | undefined;
-  get policyDocument(): PolicyDocument;
+  get policyDocument(): PolicyDocument | undefined;
 }
 
 export class IamService {
