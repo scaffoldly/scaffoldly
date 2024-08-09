@@ -36,7 +36,7 @@ export class DockerService {
     ui.updateBottomBar(`Building ${name}`);
     const { imageName, imageTag } = await new CloudResource<BuildInfo, BuildInfo>(
       {
-        describe: (resource) => `Image: ${resource.imageName}:${resource.imageTag}`,
+        describe: (resource) => `Image: ${resource.imageName}`,
         read: () => this.dockerCiService.describeBuild(),
         update: () =>
           this.dockerCiService.build(this.config, 'build', status.repositoryUri, status.buildEnv),
