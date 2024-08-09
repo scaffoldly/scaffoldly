@@ -28,8 +28,7 @@
     "schedules": {
       "@immediately": "echo 'Hello from @immediately'",
       "@frequently": "echo 'Hello from @frequently'",
-      "@hourly": "echo 'Hello from @hourly'",
-      "@daily": "echo 'Hello from @daily'"
+      "@hourly": "echo 'Hello from @hourly'"
     }
   }
 }

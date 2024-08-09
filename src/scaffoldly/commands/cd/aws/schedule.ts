@@ -2,6 +2,7 @@ import { Commands, ScaffoldlyConfig, Schedule } from '../../../../config';
 import {
   CreateScheduleCommand,
   CreateScheduleGroupCommand,
+  DeleteScheduleCommand,
   // eslint-disable-next-line import/named
   FlexibleTimeWindow,
   GetScheduleGroupCommand,
@@ -149,9 +150,9 @@ export class ScheduleService implements IamConsumer {
       ([schedule, commands]) => schedule !== '@immediately' && !commands.isEmpty(),
     );
 
-    // const undesiredSchedules = Object.entries(schedules).filter(
-    //   ([schedule, commands]) => schedule !== '@immediately' && commands.isEmpty(),
-    // );
+    const undesiredSchedules = Object.entries(schedules).filter(
+      ([schedule, commands]) => schedule !== '@immediately' && commands.isEmpty(),
+    );
 
     await new CloudResource<{ schedules: string[] }, ListSchedulesCommandOutput>(
       {
@@ -198,15 +199,34 @@ export class ScheduleService implements IamConsumer {
                 ),
             ),
           ),
+        dispose: () =>
+          Promise.all(
+            undesiredSchedules.map(([schedule]) =>
+              this.schedulerClient.send(
+                new DeleteScheduleCommand({
+                  Name: sanitizeSchedule(schedule as Schedule),
+                  GroupName: status.scheduleGroup,
+                }),
+              ),
+            ),
+          ),
       },
       (existing) => {
         return {
           schedules: (existing.Schedules || [])
-            .filter((s) => !!s.Name)
+            .filter(
+              (s) =>
+                !!s.Name &&
+                desiredSchedules.some(
+                  ([schedule]) => sanitizeSchedule(schedule as Schedule) === s.Name,
+                ),
+            )
             .map((s) => s.Name) as string[],
         };
       },
-    ).manage(options);
+    )
+      .manage(options)
+      .dispose();
 
     // const { scheduleGroup } = await manageResource(
     //   this.scheduleGroupResource(this.config.name),

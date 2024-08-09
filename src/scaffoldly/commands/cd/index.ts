@@ -4,13 +4,6 @@ import { ui } from '../../command';
 import promiseRetry from 'promise-retry';
 import _ from 'lodash';
 
-export type CloudClient<ReadCommand, CreateCommand, UpdateCommand, DisposeCommand> = {
-  send<T>(command: ReadCommand): Promise<T>;
-  send<T>(command: CreateCommand): Promise<T>;
-  send<T>(command: UpdateCommand): Promise<T>;
-  send<T>(command: DisposeCommand): Promise<T>;
-};
-
 type Differences = {
   [key: string]: unknown | Differences;
 };
@@ -43,9 +36,11 @@ export type ResourceExtractor<Resource, ReadCommandOutput> = (
   output: Partial<ReadCommandOutput>,
 ) => Partial<Resource> | undefined;
 
-export class CloudResource<Resource, ReadCommandOutput> {
+export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<Partial<Resource>> {
+  private options: ResourceOptions = {};
+  private desired?: Partial<ReadCommandOutput>;
+
   constructor(
-    // public readonly client: CloudClient<ReadCommand, CreateCommand, UpdateCommand, DisposeCommand>,
     public readonly requests: {
       describe: (resource: Partial<Resource>) => string;
       read: () => Promise<ReadCommandOutput>;
@@ -55,6 +50,47 @@ export class CloudResource<Resource, ReadCommandOutput> {
     },
     private readonly resourceExtractor: ResourceExtractor<Resource, ReadCommandOutput>,
   ) {}
+
+  then<TResult1 = Partial<Resource>, TResult2 = never>(
+    onfulfilled?:
+      | ((value: Partial<Resource>) => TResult1 | PromiseLike<TResult1>)
+      | undefined
+      | null,
+    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null,
+  ): PromiseLike<TResult1 | TResult2> {
+    return this._manage(this.options, this.desired).then(onfulfilled, onrejected);
+  }
+
+  public manage(
+    options: ResourceOptions,
+    desired?: Partial<ReadCommandOutput>,
+  ): CloudResource<Resource, ReadCommandOutput> {
+    this.options = options;
+    this.desired = desired;
+    return this;
+  }
+
+  public async dispose(): Promise<Partial<Resource>> {
+    let existing = await this;
+
+    if (!existing) {
+      return {} as Partial<Resource>;
+    }
+
+    const { dispose } = this.requests;
+    if (!dispose) {
+      return existing;
+    }
+
+    await dispose(existing).catch(() => {});
+    const current = await this.read(this.options)().catch(() => ({} as Partial<Resource>));
+
+    if (!current) {
+      return {} as Partial<Resource>;
+    }
+
+    return current;
+  }
 
   private read(
     options: ResourceOptions,
@@ -176,15 +212,7 @@ export class CloudResource<Resource, ReadCommandOutput> {
     return this.read(options, desired)();
   }
 
-  // private async dispose<T>(): Promise<Partial<T>> {
-  //   const { dispose } = this.requests;
-  //   if (!dispose) {
-  //     return {} as Partial<T>;
-  //   }
-  //   return this.client.send<T>(dispose);
-  // }
-
-  async manage(
+  async _manage(
     options: ResourceOptions,
     desired?: Partial<ReadCommandOutput>,
   ): Promise<Partial<Resource>> {
@@ -225,13 +253,13 @@ export class CloudResource<Resource, ReadCommandOutput> {
 
     switch (action) {
       case 'create':
-        message = `✅ Created`;
+        message = `✨ Created`;
         break;
       case 'update':
         message = `✅ Updated`;
         break;
       case 'dispose':
-        message = `🗑️ Disposed`;
+        message = `🗑️  Disposed`;
         break;
     }
 
