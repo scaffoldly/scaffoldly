@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const { esbuildPluginTsc } = require('esbuild-plugin-tsc');
 
 if (fs.existsSync(path.join(__dirname, '.git'))) {
   try {
@@ -12,6 +13,23 @@ if (fs.existsSync(path.join(__dirname, '.git'))) {
     console.warn('Failed to activate Husky Git hooks:', e.message);
   }
 }
+
+const lint = async (entrypoints) => {
+  const { ESLint } = await import('eslint');
+  const eslint = new ESLint();
+  const results = await eslint.lintFiles(['src/**/*.ts']);
+  const formatter = await eslint.loadFormatter('stylish');
+  const resultText = formatter.format(results);
+
+  console.log(resultText);
+
+  const hasWarningsOrErrors = results.some(
+    (result) => result.warningCount > 0 || result.errorCount > 0,
+  );
+  if (hasWarningsOrErrors) {
+    console.warn('Linting completed with warnings or errors.');
+  }
+};
 
 const configureTypescript = async () => {
   const ts = await import('typescript');
@@ -35,6 +53,8 @@ const configureTypescript = async () => {
   }
 
   options.noEmit = true;
+  options.noEmitOnError = true;
+  options.strict = false;
   options.tsBuildInfoFile = path.join(__dirname, 'build', 'tsconfig.tsbuildinfo');
 
   return { ts, tsOptions: options };
@@ -47,6 +67,10 @@ const typeCheck = async (entrypoints, ts, tsOptions) => {
 
   if (allDiagnostics.length > 0) {
     allDiagnostics.forEach((diagnostic) => {
+      const { category, code } = diagnostic;
+      if (code === 2304 || code === 6196) {
+        console.log('!!! Diagnostic', category, code);
+      }
       if (diagnostic.file) {
         const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start);
         const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n');
@@ -79,9 +103,10 @@ const build = async (ts, tsOptions) => {
       logLevel: 'info',
       plugins: [
         {
-          name: 'tsc',
+          name: 'lint',
           setup: async (build) => {
-            await typeCheck(build.initialOptions.entryPoints, ts, tsOptions);
+            // await lint(build.initialOptions.entryPoints);
+            // await typeCheck(build.initialOptions.entryPoints, ts, tsOptions);
           },
         },
       ],

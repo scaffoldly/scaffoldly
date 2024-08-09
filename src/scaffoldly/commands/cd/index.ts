@@ -1,12 +1,6 @@
-import { ECRClient } from '@aws-sdk/client-ecr';
 import { Command } from '../index';
-import { IAMClient } from '@aws-sdk/client-iam';
-import { LambdaClient } from '@aws-sdk/client-lambda';
-import { NotFoundException } from './aws/errors';
-import { SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
 import { isDebug } from '../../ui';
 import { ui } from '../../command';
-import { SchedulerClient } from '@aws-sdk/client-scheduler';
 import promiseRetry from 'promise-retry';
 import _ from 'lodash';
 
@@ -17,79 +11,86 @@ export type CloudClient<ReadCommand, CreateCommand, UpdateCommand, DisposeComman
   send<T>(command: DisposeCommand): Promise<T>;
 };
 
-export type ResourceOptions = {
-  clean?: boolean;
-  destroy?: boolean;
+type Differences = {
+  [key: string]: unknown | Differences;
 };
 
-export type CloudRequests<ReadCommand, CreateCommand, UpdateCommand, DisposeCommand> = {
-  read: ReadCommand;
-  create?: CreateCommand;
-  update?: UpdateCommand;
-  dispose?: DisposeCommand;
+function getDifferences(subset: object, superset: object): Differences {
+  const differences: Differences = {};
+
+  _.forEach(subset, (value, key) => {
+    const supersetValue = (superset as Record<string, unknown>)[key];
+
+    if (_.isObject(value) && !_.isArray(value)) {
+      const nestedDifferences = getDifferences(value as object, supersetValue as object);
+      if (!_.isEmpty(nestedDifferences)) {
+        differences[key] = nestedDifferences;
+      }
+    } else if (!_.isEqual(value, supersetValue)) {
+      differences[key] = { expected: value, actual: supersetValue };
+    }
+  });
+
+  return differences;
+}
+
+export type ResourceOptions = {
+  destroy?: boolean;
+  retries?: number;
 };
 
 export type ResourceExtractor<Resource, ReadCommandOutput> = (
   output: Partial<ReadCommandOutput>,
-) => Partial<Resource>;
+) => Partial<Resource> | undefined;
 
-export abstract class AbstractCloudResource<
-  Resource,
-  ReadCommand,
-  ReadCommandOutput,
-  CreateCommand,
-  UpdateCommand,
-  DisposeCommand,
-> {
+export class CloudResource<Resource, ReadCommandOutput> {
   constructor(
-    public readonly client: CloudClient<ReadCommand, CreateCommand, UpdateCommand, DisposeCommand>,
-    public readonly identifier: keyof Resource extends string ? keyof Resource : never,
-    public readonly requests: CloudRequests<
-      ReadCommand,
-      CreateCommand,
-      UpdateCommand,
-      DisposeCommand
-    >,
+    // public readonly client: CloudClient<ReadCommand, CreateCommand, UpdateCommand, DisposeCommand>,
+    public readonly requests: {
+      describe: (resource: Partial<Resource>) => string;
+      read: () => Promise<ReadCommandOutput>;
+      create?: () => Promise<unknown>;
+      update?: (resource: Partial<Resource>) => Promise<unknown>;
+      dispose?: (resource: Partial<Resource>) => Promise<unknown>;
+    },
     private readonly resourceExtractor: ResourceExtractor<Resource, ReadCommandOutput>,
   ) {}
 
   private read(
-    desired?: Partial<ReadCommandOutput>,
-    retries?: number,
-  ): () => Promise<Partial<Resource | undefined>> {
+    options: ResourceOptions,
+    desired?: Partial<unknown>,
+  ): () => Promise<Partial<Resource> | undefined> {
     return async () => {
       try {
         const { read } = this.requests;
         const response = await promiseRetry(
           (retry) =>
-            this.client.send<ReadCommandOutput>(read).then((readResponse) => {
-              const actual = Object.entries(readResponse || {}).reduce((acc, [key, value]) => {
-                if (desired && key in desired) {
-                  acc[key] = value;
-                }
-                return acc;
-              }, {} as Record<string, unknown>);
+            read().then((readResponse) => {
+              const difference = getDifferences(desired || {}, readResponse as Partial<unknown>);
 
-              if (desired && !_.isEqual(actual, desired)) {
+              if (Object.keys(difference).length) {
                 if (isDebug()) {
-                  ui.updateBottomBarSubtext('Resource is not ready');
-                  ui.updateBottomBarSubtext(`Desired: ${JSON.stringify(desired)}`);
-                  ui.updateBottomBarSubtext(`Actual: ${JSON.stringify(actual)}`);
+                  ui.updateBottomBarSubtext(
+                    `Waiting for resource to be ready: ${JSON.stringify(difference)}`,
+                  );
                 }
 
                 return retry(new Error('Resource is not ready'));
               }
 
-              return readResponse;
+              return readResponse as Partial<unknown>;
             }),
-          { retries: retries !== Infinity ? retries || 0 : 0, forever: retries === Infinity },
+          {
+            retries: options.retries !== Infinity ? options.retries || 0 : 0,
+            forever: options.retries === Infinity,
+          },
         );
         return this.resourceExtractor(response);
       } catch (e) {
         if (
           '$metadata' in e &&
           'httpStatusCode' in e.$metadata &&
-          (e.$metadata.httpStatusCode === 404 || e.$metadata.httpStatusCode === 409)
+          e.$metadata.httpStatusCode === 404
         ) {
           return undefined;
         }
@@ -105,61 +106,104 @@ export abstract class AbstractCloudResource<
     };
   }
 
-  private async create<T>(retries?: number): Promise<Partial<T>> {
+  private async create(
+    options: ResourceOptions,
+    desired?: Partial<ReadCommandOutput>,
+  ): Promise<Partial<Resource> | undefined> {
     const { create } = this.requests;
+
     if (!create) {
-      return {} as Partial<T>;
+      return undefined;
     }
-    return promiseRetry((retry) => this.client.send<T>(create).catch((e) => retry(e)), {
-      retries: retries !== Infinity ? retries || 0 : 0,
-      forever: retries === Infinity,
-    });
+
+    await promiseRetry(
+      async (retry) => {
+        return create()
+          .then((created) => {
+            if (isDebug()) {
+              ui.updateBottomBarSubtext(`Created: ${JSON.stringify(created)}`);
+            }
+            return created;
+          })
+          .catch((e) => {
+            if (isDebug()) {
+              ui.updateBottomBarSubtext(`Create error: ${e.message}`);
+            }
+            return retry(e);
+          });
+      },
+      {
+        retries: options.retries !== Infinity ? options.retries || 0 : 0,
+        forever: options.retries === Infinity,
+      },
+    );
+
+    return this.read(options, desired)();
   }
 
-  private async update<T>(retries?: number): Promise<Partial<T>> {
+  private async update(
+    options: ResourceOptions,
+    existing: Partial<Resource>,
+    desired?: Partial<ReadCommandOutput>,
+  ): Promise<Partial<Resource> | undefined> {
     const { update } = this.requests;
     if (!update) {
-      return {} as Partial<T>;
+      return existing;
     }
-    return promiseRetry((retry) => this.client.send<T>(update).catch((e) => retry(e)), {
-      retries: retries !== Infinity ? retries || 0 : 0,
-      forever: retries === Infinity,
-    });
+
+    await promiseRetry(
+      async (retry) => {
+        return update(existing)
+          .then((updated) => {
+            if (isDebug()) {
+              ui.updateBottomBarSubtext(`Updated: ${JSON.stringify(updated)}`);
+            }
+            return updated;
+          })
+          .catch((e) => {
+            if (isDebug()) {
+              ui.updateBottomBarSubtext(`Create error: ${e.message}`);
+            }
+            return retry(e);
+          });
+      },
+      {
+        retries: options.retries !== Infinity ? options.retries || 0 : 0,
+        forever: options.retries === Infinity,
+      },
+    );
+
+    return this.read(options, desired)();
   }
 
-  private async dispose<T>(): Promise<Partial<T>> {
-    const { dispose } = this.requests;
-    if (!dispose) {
-      return {} as Partial<T>;
-    }
-    return this.client.send<T>(dispose);
-  }
+  // private async dispose<T>(): Promise<Partial<T>> {
+  //   const { dispose } = this.requests;
+  //   if (!dispose) {
+  //     return {} as Partial<T>;
+  //   }
+  //   return this.client.send<T>(dispose);
+  // }
 
   async manage(
     options: ResourceOptions,
     desired?: Partial<ReadCommandOutput>,
-    retries?: number,
   ): Promise<Partial<Resource>> {
     if (options.destroy) {
       throw new Error('Not implemented');
     }
 
-    let existing = await this.read(desired, retries)();
-
-    if (existing && !existing[this.identifier]) {
-      existing = undefined;
-    }
+    let existing = await this.read(options)();
 
     if (existing) {
       try {
-        existing = await this.update(retries).then(this.read(desired, retries));
+        existing = await this.update(options, existing, desired);
         this.handleResource('update', existing);
       } catch (e) {
         this.handleResource('update', e);
       }
     } else {
       try {
-        existing = await this.create(retries).then(this.read(desired, retries));
+        existing = await this.create(options, desired);
         this.handleResource('create', existing);
       } catch (e) {
         this.handleResource('create', e);
@@ -167,10 +211,6 @@ export abstract class AbstractCloudResource<
     }
 
     if (!existing) {
-      throw new Error('Failed to manage resource');
-    }
-
-    if (!existing[this.identifier]) {
       throw new Error('Failed to manage resource');
     }
 
@@ -185,10 +225,10 @@ export abstract class AbstractCloudResource<
 
     switch (action) {
       case 'create':
-        message = `🛠️ Created`;
+        message = `✅ Created`;
         break;
       case 'update':
-        message = `🔧 Updated`;
+        message = `✅ Updated`;
         break;
       case 'dispose':
         message = `🗑️ Disposed`;
@@ -202,20 +242,23 @@ export abstract class AbstractCloudResource<
     let resourceMessage = '';
 
     if (!resource) {
-      message = `🤔 Unknown ${action}`;
+      message = `🤔\tUnknown ${action}`;
       resourceMessage = 'Resource not found';
     } else if (typeof resource === 'string') {
       resourceMessage = resource;
     } else if (resource instanceof Error) {
       resourceMessage = resource.message;
-    } else if (resource[this.identifier]) {
-      resourceMessage = `${this.identifier}: ${resource[this.identifier]}`;
-      if (isDebug()) {
-        resourceMessage = JSON.stringify(resource);
-      }
+    } else {
+      resourceMessage = this.requests.describe(resource);
     }
 
-    ui.updateBottomBarSubtext(`${message} ${this.constructor.name}: ${resourceMessage}`);
+    ui.updateBottomBar('');
+    console.log(`${message} ${resourceMessage}`);
+    if (isDebug()) {
+      console.log(`   ${JSON.stringify(resource)}`);
+    } else {
+      console.log('');
+    }
 
     if (resource instanceof Error) {
       throw resource;
@@ -224,99 +267,5 @@ export abstract class AbstractCloudResource<
     return resource;
   }
 }
-
-const handleResource = <T>(action: 'create' | 'update' | 'dispose', resource: T): T => {
-  if (isDebug()) {
-    if (typeof resource !== 'object') {
-      ui.updateBottomBarSubtext(`Cloud resource (${action}): ${resource}`);
-      return resource;
-    }
-    ui.updateBottomBarSubtext(
-      `Cloud resource (${action}): ${JSON.stringify({ ...resource, $metadata: undefined })}`,
-    );
-  }
-  return resource;
-};
-
-const handleError = <T>(action: 'create' | 'update' | 'dispose', retry: Promise<T>) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return async (e: any): Promise<T> => {
-    if ('$metadata' in e && 'httpStatusCode' in e.$metadata && e.$metadata.httpStatusCode === 404) {
-      e = new NotFoundException(e.message, e);
-    }
-    if ('__type' in e && typeof e.__type === 'string' && e.__type.endsWith('NotFoundException')) {
-      e = new NotFoundException(e.message, e);
-    }
-    if (action === 'create' && !(e instanceof NotFoundException)) {
-      return retry;
-    }
-    if (action === 'update' && e instanceof NotFoundException) {
-      return retry;
-    }
-    if (action === 'dispose' && e instanceof NotFoundException) {
-      return retry;
-    }
-    throw e;
-  };
-};
-
-export const manageResource = async <
-  Client extends CloudClient,
-  Resource,
-  CreateCommand,
-  UpdateCommand,
-  DeleteCommand,
->(
-  resource: CloudResource<Client, Resource, CreateCommand, UpdateCommand, DeleteCommand>,
-  options: ResourceOptions,
-): Promise<Partial<Resource>> => {
-  const {
-    read: readFn,
-    create: createFn,
-    update: updateFn,
-    dispose: disposeFn,
-    request,
-    disposable = Promise.resolve(false),
-  } = resource;
-  const { create, update, dispose } = request;
-
-  if (options.destroy) {
-    throw new Error('Not implemented');
-  }
-
-  if (disposeFn && (await disposable) === true) {
-    if (!dispose) {
-      throw new Error('Dispose command required');
-    }
-
-    const existing = await readFn()
-      .then((r) => r as Partial<Resource>)
-      .catch((e) => {
-        return handleError('dispose', Promise.resolve({} as Partial<Resource>))(e);
-      });
-
-    return disposeFn(existing, dispose)
-      .then((r) => handleResource('dispose', r))
-      .catch((e) => {
-        return handleError('dispose', Promise.resolve(existing))(e);
-      });
-  }
-
-  const creator = createFn(create)
-    .then((r) => handleResource('create', r))
-    .catch((e) => {
-      return handleError('create', readFn())(e);
-    });
-
-  if (!update) {
-    return creator;
-  } else {
-    return updateFn(update)
-      .then((r) => handleResource('update', r))
-      .catch((e) => {
-        return handleError('update', creator)(e);
-      });
-  }
-};
 
 export class CdCommand extends Command {}

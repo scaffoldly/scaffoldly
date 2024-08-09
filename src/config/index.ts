@@ -128,7 +128,7 @@ export interface IServiceConfig {
 
 export type PackageJsonBin = { [key: string]: string };
 
-export type Script = 'develop' | 'install' | 'build' | 'package' | 'start';
+export type Script = 'prepare' | 'develop' | 'install' | 'build' | 'package' | 'start';
 
 export type Schedule = '@immediately' | '@frequently' | '@hourly' | '@daily';
 

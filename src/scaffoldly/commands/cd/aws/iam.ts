@@ -5,12 +5,11 @@ import {
   IAMClient,
   PutRolePolicyCommand,
   UpdateAssumeRolePolicyCommand,
-  // eslint-disable-next-line import/named
-  Role,
   GetRolePolicyCommand,
+  GetRoleCommandOutput,
+  GetRolePolicyCommandOutput,
 } from '@aws-sdk/client-iam';
-import { CloudResource, manageResource, ResourceOptions } from '..';
-import { NotFoundException } from './errors';
+import { CloudResource, ResourceOptions } from '..';
 import { DeployStatus } from '.';
 
 export type IamDeployStatus = {
@@ -42,6 +41,7 @@ const mergeTrustRelationships = (
 export type PolicyDocument = {
   Version: string;
   Statement: {
+    Sid?: string;
     Effect: 'Allow';
     Action: string[];
     Resource: string[];
@@ -56,22 +56,6 @@ const mergePolicyDocuments = (policyDocuments: (PolicyDocument | undefined)[]): 
       .filter((statement) => !!statement),
   };
 };
-
-export type RoleResource = CloudResource<
-  IAMClient,
-  Role,
-  CreateRoleCommand,
-  UpdateAssumeRolePolicyCommand,
-  undefined
->;
-
-export type RolePolicyResource = CloudResource<
-  IAMClient,
-  PolicyDocument,
-  PutRolePolicyCommand,
-  PutRolePolicyCommand,
-  undefined
->;
 
 export interface IamConsumer {
   get trustRelationship(): TrustRelationship | undefined;
@@ -92,113 +76,78 @@ export class IamService {
   ): Promise<DeployStatus> {
     const iamDeployStatus: IamDeployStatus = {};
 
-    const { roleArn } = await this.manageIamRole(
-      mergeTrustRelationships(consumers.map((consumer) => consumer.trustRelationship)),
-      mergePolicyDocuments(consumers.map((consumer) => consumer.policyDocument)),
-      options,
+    const { name } = this.config;
+
+    const trustRelationship = mergeTrustRelationships(
+      consumers.map((consumer) => consumer.trustRelationship),
     );
+
+    const { roleArn } = await new CloudResource<
+      { roleArn: string; roleName: string },
+      GetRoleCommandOutput
+    >(
+      {
+        describe: (existing) => `Role: ${existing.roleName}`,
+        read: () => this.iamClient.send(new GetRoleCommand({ RoleName: name })),
+        create: () =>
+          this.iamClient.send(
+            new CreateRoleCommand({
+              RoleName: name,
+              AssumeRolePolicyDocument: JSON.stringify(trustRelationship),
+            }),
+          ),
+        update: (existing) =>
+          this.iamClient.send(
+            new UpdateAssumeRolePolicyCommand({
+              RoleName: existing.roleName,
+              PolicyDocument: JSON.stringify(trustRelationship),
+            }),
+          ),
+      },
+      (output) => {
+        return {
+          roleArn: output.Role?.Arn,
+          roleName: output.Role?.RoleName,
+        };
+      },
+    ).manage(options);
 
     iamDeployStatus.roleArn = roleArn;
 
-    return { ...status, ...iamDeployStatus };
-  }
-
-  private async manageIamRole(
-    trustRelationship: TrustRelationship,
-    policyDocument: PolicyDocument,
-    options: ResourceOptions,
-  ): Promise<{ roleArn: string }> {
-    const { name } = this.config;
-    if (!name) {
-      throw new Error('Missing name');
-    }
-
-    const role = await manageResource(this.roleResource(name, trustRelationship), options);
-
-    if (!role) {
-      throw new Error('Unable to create or update role');
-    }
-
-    const { Arn: roleArn } = role;
-
-    if (!roleArn) {
-      throw new Error('Missing roleArn');
-    }
-
-    await manageResource(
-      this.rolePolicyResource(role, 'scaffoldly-policy', policyDocument),
-      options,
+    const policyDocument = mergePolicyDocuments(
+      consumers.map((consumer) => consumer.policyDocument),
     );
 
-    return { roleArn };
-  }
-
-  private roleResource(name: string, trustRelationship: TrustRelationship): RoleResource {
-    const read = async () => {
-      return this.iamClient
-        .send(new GetRoleCommand({ RoleName: name }))
-        .then((response) => {
-          if (!response.Role) {
-            throw new NotFoundException('Role not found');
-          }
-          return response.Role;
-        })
-        .catch((e) => {
-          if (e.name === 'NotFoundException') {
-            throw new NotFoundException('Role not found', e);
-          }
-          throw e;
-        });
-    };
-
-    return {
-      client: this.iamClient,
-      read,
-      create: (command) => this.iamClient.send(command).then(read),
-      update: (command) => this.iamClient.send(command).then(read),
-      request: {
-        create: new CreateRoleCommand({
-          RoleName: name,
-          AssumeRolePolicyDocument: JSON.stringify(trustRelationship),
-        }),
-        update: new UpdateAssumeRolePolicyCommand({
-          RoleName: name,
-          PolicyDocument: JSON.stringify(trustRelationship),
-        }),
+    await new CloudResource<{ roleName: String; policyName: string }, GetRolePolicyCommandOutput>(
+      {
+        describe: (existing) => `Role Policy: ${existing.policyName} (on ${existing.roleName})`,
+        read: () =>
+          this.iamClient.send(new GetRolePolicyCommand({ RoleName: name, PolicyName: name })),
+        create: () =>
+          this.iamClient.send(
+            new PutRolePolicyCommand({
+              RoleName: name,
+              PolicyName: name,
+              PolicyDocument: JSON.stringify(policyDocument),
+            }),
+          ),
+        update: () =>
+          this.iamClient.send(
+            new PutRolePolicyCommand({
+              RoleName: name,
+              PolicyName: name,
+              PolicyDocument: JSON.stringify(policyDocument),
+            }),
+          ),
       },
-    };
-  }
-
-  private rolePolicyResource(
-    role: Partial<Role>,
-    name: string,
-    policyDocument: PolicyDocument,
-  ): RolePolicyResource {
-    const read = async () => {
-      const response = await this.iamClient.send(
-        new GetRolePolicyCommand({ RoleName: role.RoleName, PolicyName: name }),
-      );
-      if (!response.PolicyDocument) {
-        throw new NotFoundException('Policy not found');
-      }
-      return JSON.parse(decodeURIComponent(response.PolicyDocument)) as PolicyDocument;
-    };
-
-    const putRolePolicyCommand = new PutRolePolicyCommand({
-      RoleName: role.RoleName,
-      PolicyName: name,
-      PolicyDocument: JSON.stringify(policyDocument),
-    });
-
-    return {
-      client: this.iamClient,
-      read,
-      create: (command) => this.iamClient.send(command).then(read),
-      update: (command) => this.iamClient.send(command).then(read),
-      request: {
-        create: putRolePolicyCommand,
-        update: putRolePolicyCommand,
+      (output) => {
+        return {
+          roleName: output.RoleName,
+          policyName: output.PolicyName,
+        };
       },
-    };
+    ).manage(options);
+
+    return { ...status, ...iamDeployStatus };
   }
 }

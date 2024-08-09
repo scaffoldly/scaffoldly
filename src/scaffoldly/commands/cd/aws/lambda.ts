@@ -7,65 +7,29 @@ import {
   LambdaClient,
   UpdateFunctionCodeCommand,
   UpdateFunctionConfigurationCommand,
-  // eslint-disable-next-line import/named
   FunctionConfiguration,
-  // eslint-disable-next-line import/named
-  FunctionCodeLocation,
-  // eslint-disable-next-line import/named
   AddPermissionRequest,
   Architecture,
+  GetFunctionCommandOutput,
+  GetFunctionUrlConfigCommandOutput,
+  UpdateFunctionUrlConfigCommand,
+  GetPolicyCommand,
+  GetPolicyCommandOutput,
 } from '@aws-sdk/client-lambda';
 import { ScaffoldlyConfig } from '../../../../config';
 import { IamConsumer, PolicyDocument, TrustRelationship } from './iam';
-import promiseRetry from 'promise-retry';
 import { ui } from '../../../command';
 import _ from 'lodash';
 import { DeployStatus } from '.';
-import { NotFoundException } from './errors';
-import { CloudResource, manageResource, ResourceOptions } from '..';
+import { CloudResource, ResourceOptions } from '..';
 import { EnvService } from '../env';
 
 export type LambdaDeployStatus = {
   functionArn?: string;
+  functionArchitecture?: Architecture;
   imageUri?: string;
   origin?: string;
 };
-
-export type FunctionResource = CloudResource<
-  LambdaClient,
-  FunctionConfiguration,
-  CreateFunctionCommand,
-  UpdateFunctionConfigurationCommand,
-  undefined
->;
-
-export type CodeResource = CloudResource<
-  LambdaClient,
-  FunctionCodeLocation,
-  UpdateFunctionCodeCommand,
-  undefined,
-  undefined
->;
-
-export type PermissionResource = CloudResource<
-  LambdaClient,
-  AddPermissionRequest,
-  AddPermissionCommand,
-  undefined,
-  undefined
->;
-
-type FunctionUrl = {
-  origin: string;
-};
-
-export type UrlResource = CloudResource<
-  LambdaClient,
-  FunctionUrl,
-  CreateFunctionUrlConfigCommand,
-  undefined,
-  undefined
->;
 
 export class LambdaService implements IamConsumer {
   lambdaClient: LambdaClient;
@@ -77,68 +41,40 @@ export class LambdaService implements IamConsumer {
   public async predeploy(status: DeployStatus, options: ResourceOptions): Promise<DeployStatus> {
     const lambdaDeployStatus: LambdaDeployStatus = {};
 
-    ui.updateBottomBar('Preparing function');
-    const configuration = await manageResource(
-      this.functionResource(this.config.name, status),
-      options,
-    );
-    lambdaDeployStatus.functionArn = configuration.FunctionArn;
+    ui.updateBottomBar('Preparing Lambda Function');
+    const configuration = await this.configureFunction(status, options);
+    status.functionArn = configuration.FunctionArn;
+    status.functionArchitecture = configuration.Architectures?.[0];
 
-    ui.updateBottomBar('Setting permissions');
-    await manageResource(
-      this.permissionResource(this.config.name, 'InvokeFunctionUrl', {
-        Action: 'lambda:InvokeFunctionUrl',
-        Principal: '*',
-        FunctionUrlAuthType: 'NONE',
-      }),
-      options,
-    );
-
-    // await manageResource(
-    //   this.permissionResource(this.config.name, 'InvokeElasticLoadBalancing', {
-    //     Action: 'lambda:InvokeFunction',
-    //     Principal: 'elasticloadbalancing.amazonaws.com',
-    //   }),
-    //   options,
-    // );
-
-    ui.updateBottomBar(`Updating URL`);
-    const { origin } = await manageResource(this.urlResource(this.config.name), options);
+    ui.updateBottomBar('Preparing Function URL');
+    const origin = await this.configureOrigin(status, options);
     lambdaDeployStatus.origin = origin;
+
+    ui.updateBottomBar('Preparing Function Permissions');
+    await this.configurePermissions(status, options);
 
     return { ...status, ...lambdaDeployStatus };
   }
 
   public async deploy(status: DeployStatus, options: ResourceOptions): Promise<DeployStatus> {
-    const lambdaStatus: LambdaDeployStatus = {};
+    const lambdaDeployStatus: LambdaDeployStatus = {};
 
-    ui.updateBottomBar('Updating Lambda function');
-    const configuration = await manageResource(
-      this.functionResource(this.config.name, status),
-      options,
-    );
-    lambdaStatus.functionArn = configuration.FunctionArn;
+    ui.updateBottomBar('Publishing Code');
+    const imageUri = await this.publishCode(status, options);
+    lambdaDeployStatus.imageUri = imageUri;
 
-    const code = await manageResource(this.codeResource(this.config.name, status), options);
-    lambdaStatus.imageUri = code.ImageUri;
+    // ui.updateBottomBar('Updating Function URL');
+    // const origin = await this.configureOrigin(status, options);
+    // lambdaDeployStatus.origin = origin;
 
-    return { ...status, ...lambdaStatus };
+    return { ...status, ...lambdaDeployStatus };
   }
 
-  private functionResource(name: string, status: DeployStatus): FunctionResource {
-    type MutableFields = {
-      roleArn: string;
-      timeout: number;
-      memorySize: number;
-    };
-
-    let { repositoryUri, imageDigest } = status;
-    if (!repositoryUri || !imageDigest) {
-      // Use the Hello World Image if either is unknown, it's the initial deploy
-      // TODO: multi-platform builds for hello world
-      repositoryUri = '557208059266.dkr.ecr.us-east-1.amazonaws.com/scaffoldly-hello-world';
-      imageDigest = 'sha256:3b5a30e673defa489f2bbb0ed36b558dd22ecc866eaa37a1b81713e32d55560c';
-    }
+  private async configureFunction(
+    status: DeployStatus,
+    options: ResourceOptions,
+  ): Promise<FunctionConfiguration> {
+    const { name } = this.config;
 
     const { architecture } = status;
     const architectures: Architecture[] = [];
@@ -153,296 +89,202 @@ export class LambdaService implements IamConsumer {
         throw new Error(`Unsupported architecture: ${architecture}`);
     }
 
-    const { roleArn } = status;
-
-    if (!roleArn) {
-      throw new Error('Missing role ARN');
-    }
-
-    const desired: MutableFields = {
-      roleArn,
-      timeout: 900,
-      memorySize: 1024,
+    const desired: Partial<GetFunctionCommandOutput> = {
+      Configuration: {
+        Role: status.roleArn,
+        Timeout: 900,
+        MemorySize: 1024,
+        Environment: {
+          Variables: this.envService.runtimeEnv,
+        },
+        LastUpdateStatus: 'Successful',
+        State: 'Active',
+      },
     };
 
-    const read = () =>
-      promiseRetry(
-        (retry) =>
-          this.lambdaClient
-            .send(new GetFunctionCommand({ FunctionName: name }))
-            .then((response) => {
-              if (!response.Configuration) {
-                throw new NotFoundException('Function configuration not found');
-              }
+    let { repositoryUri, imageDigest } = status;
+    if (!repositoryUri || !imageDigest) {
+      // Use the Hello World Image if either is unknown, it's the initial deploy
+      // TODO: multi-platform builds for hello world
+      // TODO: Ship a better hello world image
+      repositoryUri = '557208059266.dkr.ecr.us-east-1.amazonaws.com/scaffoldly-hello-world';
+      imageDigest = 'sha256:3b5a30e673defa489f2bbb0ed36b558dd22ecc866eaa37a1b81713e32d55560c';
+    }
 
-              const actual: Partial<MutableFields> = {
-                roleArn: response.Configuration.Role,
-                timeout: response.Configuration.Timeout,
-                memorySize: response.Configuration.MemorySize,
-              };
-
-              if (
-                response.Configuration.Architectures &&
-                response.Configuration.Architectures.length &&
-                response.Configuration.Architectures[0] !== architectures[0]
-              ) {
-                return retry(
-                  new Error(
-                    `Configured architecture ${response.Configuration.Architectures[0]} is immutable.`,
-                  ),
-                );
-              }
-
-              if (!_.isEqual(actual, desired)) {
-                return retry(
-                  new Error(
-                    `Timed out waiting for ${name} to update with configuration: ${JSON.stringify(
-                      desired,
-                    )}`,
-                  ),
-                );
-              }
-              if (response.Configuration.LastUpdateStatus !== 'Successful') {
-                return retry(new Error(`Timed out waiting for ${name} update to be successful.`));
-              }
-              if (response.Configuration.State !== 'Active') {
-                return retry(new Error(`Timed out waiting for ${name} to become active.`));
-              }
-
-              return response.Configuration;
-            })
-            .catch((e) => {
-              if (e.name === 'ResourceNotFoundException') {
-                throw new NotFoundException('Function not found', e);
-              }
-              throw e;
+    const configuration = await new CloudResource<FunctionConfiguration, GetFunctionCommandOutput>(
+      {
+        describe: (existing) => `Lambda Function: ${existing.FunctionName}`,
+        read: () => this.lambdaClient.send(new GetFunctionCommand({ FunctionName: name })),
+        create: () =>
+          this.lambdaClient.send(
+            new CreateFunctionCommand({
+              Code: {
+                ImageUri: `${repositoryUri}@${imageDigest}`,
+              },
+              FunctionName: name,
+              Publish: false,
+              PackageType: 'Image',
+              Architectures: architectures,
+              ImageConfig: {
+                EntryPoint: ['.entrypoint'],
+                Command: [],
+              },
+              Role: desired.Configuration?.Role,
+              Timeout: desired.Configuration?.Timeout,
+              MemorySize: desired.Configuration?.MemorySize,
+              Environment: desired.Configuration?.Environment,
             }),
-        { factor: 1, retries: 60 },
-      );
-
-    return {
-      client: this.lambdaClient,
-      read,
-      create: async (command) =>
-        // Using retry b/c of Role creation race condition
-        promiseRetry((retry) => this.lambdaClient.send(command).catch(retry)).then(read),
-      update: async (command) => this.lambdaClient.send(command).then(read),
-      request: {
-        create: new CreateFunctionCommand({
-          Code: {
-            ImageUri: `${repositoryUri}@${imageDigest}`,
-          },
-          ImageConfig: {
-            EntryPoint: status.entrypoint,
-            Command: [],
-          },
-          FunctionName: name,
-          Role: desired.roleArn,
-          Publish: false,
-          PackageType: 'Image',
-          Timeout: desired.timeout,
-          MemorySize: desired.memorySize,
-          Architectures: architectures,
-          Environment: {
-            Variables: {
-              ...this.envService.runtimeEnv,
-              // Disable version checking in config since we're deploying hello world image
-              // This is so we can deploy a function and generate a Function URL without needing a build first
-              // TODO: Remove this crap
-              SLY_SERVE: this.config.serveCommands.encode(),
-            },
-          },
-        }),
-        update: new UpdateFunctionConfigurationCommand({
-          FunctionName: name,
-          Role: desired.roleArn,
-          Timeout: desired.timeout,
-          MemorySize: desired.memorySize,
-          Environment: {
-            Variables: this.envService.runtimeEnv,
-          },
-          ImageConfig: {
-            EntryPoint: status.entrypoint,
-            Command: [],
-          },
-        }),
-      },
-    };
-  }
-
-  private codeResource(name: string, status: DeployStatus): CodeResource {
-    type MutableFields = {
-      imageUri: string;
-    };
-
-    const { repositoryUri, imageDigest } = status;
-    if (!repositoryUri) {
-      throw new Error('Missing repository URI');
-    }
-    if (!imageDigest) {
-      throw new Error('Missing image digest');
-    }
-
-    const desired: MutableFields = {
-      imageUri: `${repositoryUri}@${imageDigest}`,
-    };
-
-    const read = () =>
-      promiseRetry(
-        (retry) =>
-          this.lambdaClient
-            .send(new GetFunctionCommand({ FunctionName: name }))
-            .then((response) => {
-              if (!response.Code) {
-                throw new NotFoundException('Function code not found');
-              }
-
-              if (!response.Configuration) {
-                throw new NotFoundException('Function configuration not found');
-              }
-
-              const actual: Partial<MutableFields> = {
-                imageUri: response.Code.ImageUri,
-              };
-
-              if (!_.isEqual(actual, desired)) {
-                return retry(
-                  new Error(`Timed out waiting for ${name} to update code configuration`),
-                );
-              }
-
-              // TODO make this a helper function
-              if (response.Configuration.LastUpdateStatus !== 'Successful') {
-                return retry(new Error(`Timed out waiting for ${name} update to be successful.`));
-              }
-              if (response.Configuration.State !== 'Active') {
-                return retry(new Error(`Timed out waiting for ${name} to become active.`));
-              }
-
-              return response.Code;
-            })
-            .catch((e) => {
-              if (e.name === 'ResourceNotFoundException') {
-                throw new NotFoundException('Function not found', e);
-              }
-              throw e;
+          ),
+        update: (existing) =>
+          this.lambdaClient.send(
+            new UpdateFunctionConfigurationCommand({
+              FunctionName: existing.FunctionName,
+              ImageConfig: {
+                EntryPoint: ['.entrypoint'],
+                Command: [],
+              },
+              Role: desired.Configuration?.Role,
+              Timeout: desired.Configuration?.Timeout,
+              MemorySize: desired.Configuration?.MemorySize,
+              Environment: desired.Configuration?.Environment,
             }),
-        { factor: 1, retries: 60 },
-      );
+          ),
+      },
+      (output) => output?.Configuration,
+    ).manage(
+      {
+        ...options,
+        retries: Infinity,
+      },
+      desired,
+    );
 
-    return {
-      client: this.lambdaClient,
-      read,
-      create: async (command: UpdateFunctionCodeCommand) => {
-        if (!command) {
-          return read();
-        }
-        return promiseRetry((retry) => this.lambdaClient.send(command).catch(retry).then(read), {
-          factor: 1,
-          retries: 60,
-        });
-      },
-      update: read,
-      request: {
-        create: new UpdateFunctionCodeCommand({
-          FunctionName: name,
-          ImageUri: desired.imageUri,
-          Publish: true,
-        }),
-      },
-    };
+    return configuration;
   }
 
-  private permissionResource(
-    functionName: string,
-    permissionName: string,
-    permission: Partial<AddPermissionRequest>,
-  ): PermissionResource {
-    if (!permission.Principal) {
-      throw new Error('Missing principal in permission');
-    }
-    if (!permission.Action) {
-      throw new Error('Missing action in permission');
-    }
-    const permissionRequest: AddPermissionRequest = {
-      ...permission,
-      FunctionName: functionName,
-      StatementId: permissionName,
-      Principal: permission.Principal,
-      Action: permission.Action,
-    };
+  private async configureOrigin(
+    _status: DeployStatus,
+    options: ResourceOptions,
+  ): Promise<string | undefined> {
+    const { name } = this.config;
 
-    const read = () => {
-      // TODO: Find API to fetch permissions
-      return Promise.resolve(permissionRequest);
-    };
+    const { functionUrl } = await new CloudResource<
+      { functionUrl: string },
+      GetFunctionUrlConfigCommandOutput
+    >(
+      {
+        describe: (existing) => `Function URL: ${existing.functionUrl}`,
+        read: () => this.lambdaClient.send(new GetFunctionUrlConfigCommand({ FunctionName: name })),
+        create: () =>
+          this.lambdaClient.send(
+            new CreateFunctionUrlConfigCommand({
+              FunctionName: name,
+              AuthType: 'NONE',
+              InvokeMode: 'BUFFERED',
+              // TODO: Qualifier
+            }),
+          ),
+        update: () =>
+          this.lambdaClient.send(
+            new UpdateFunctionUrlConfigCommand({
+              FunctionName: name,
+              AuthType: 'NONE',
+              InvokeMode: 'BUFFERED',
+              // TODO: Qualifier
+            }),
+          ),
+      },
+      (output) => {
+        return { functionUrl: output.FunctionUrl };
+      },
+    ).manage(options);
 
-    return {
-      client: this.lambdaClient,
-      read,
-      create: async (command: AddPermissionCommand) => {
-        return this.lambdaClient
-          .send(command)
-          .catch((e) => {
-            if (e.name === 'ResourceConflictException') {
-              return read();
-            }
-            throw e;
-          })
-          .then(read);
-      },
-      update: read,
-      request: {
-        create: new AddPermissionCommand({
-          ...permissionRequest,
-          FunctionName: functionName,
-          StatementId: permissionName,
-        }),
-      },
-    };
+    return functionUrl;
   }
 
-  private urlResource(name: string): UrlResource {
-    const read = () =>
-      this.lambdaClient
-        .send(new GetFunctionUrlConfigCommand({ FunctionName: name }))
-        .then((response) => {
-          if (!response.FunctionUrl) {
-            throw new NotFoundException('Function URL not found');
-          }
-          const url = new URL(response.FunctionUrl);
-          return { origin: url.origin } as FunctionUrl;
-        })
-        .catch((e) => {
-          if (e.name === 'ResourceNotFoundException') {
-            throw new NotFoundException('Function URL not found', e);
-          }
-          throw e;
-        });
+  private async configurePermissions(
+    _status: DeployStatus,
+    options: ResourceOptions,
+  ): Promise<void> {
+    const { name } = this.config;
 
-    return {
-      client: this.lambdaClient,
-      read,
-      create: async (command: CreateFunctionUrlConfigCommand) => {
-        return this.lambdaClient
-          .send(command)
-          .catch((e) => {
-            if (e.name === 'ResourceConflictException') {
-              return read();
-            }
-            throw e;
-          })
-          .then(read);
+    const requests: AddPermissionRequest[] = [
+      {
+        FunctionName: name,
+        StatementId: 'InvokeFunctionUrl',
+        Action: 'lambda:InvokeFunctionUrl',
+        Principal: '*',
+        FunctionUrlAuthType: 'NONE',
       },
-      update: read,
-      request: {
-        create: new CreateFunctionUrlConfigCommand({
-          AuthType: 'NONE', // TODO: Make configurable
-          FunctionName: name,
-          InvokeMode: 'BUFFERED', // TODO: Make configurable
-        }),
+    ];
+
+    await new CloudResource<{ policy: PolicyDocument }, GetPolicyCommandOutput>(
+      {
+        describe: (existing) =>
+          `Function Policies: ${existing.policy?.Statement.map((s) => s.Sid)}`,
+        read: () => this.lambdaClient.send(new GetPolicyCommand({ FunctionName: name })),
+        create: () =>
+          Promise.all(
+            requests.map((request) => this.lambdaClient.send(new AddPermissionCommand(request))),
+          ),
+        update: (existing) => {
+          return Promise.all(
+            // TODO: Diff check
+            requests
+              .filter(
+                (request) =>
+                  !existing.policy?.Statement?.find(
+                    (statement) => statement.Sid === request.StatementId,
+                  ),
+              )
+              .map((request) => this.lambdaClient.send(new AddPermissionCommand(request))),
+          );
+        },
+      },
+      (output) => {
+        return { policy: JSON.parse(output.Policy || '{}') };
+      },
+    ).manage(options);
+  }
+
+  private async publishCode(
+    status: DeployStatus,
+    options: ResourceOptions,
+  ): Promise<string | undefined> {
+    const { name } = this.config;
+
+    const desired: Partial<GetFunctionCommandOutput> = {
+      Code: {
+        ImageUri: `${status.repositoryUri}@${status.imageDigest}`,
+      },
+      Configuration: {
+        LastUpdateStatus: 'Successful',
+        State: 'Active',
       },
     };
+
+    const { imageUri } = await new CloudResource<{ imageUri: string }, GetFunctionCommandOutput>(
+      {
+        describe: (existing) => `Function Image: ${existing.imageUri}`,
+        read: () => this.lambdaClient.send(new GetFunctionCommand({ FunctionName: name })),
+        update: () =>
+          this.lambdaClient.send(
+            new UpdateFunctionCodeCommand({
+              FunctionName: name,
+              Architectures: status.functionArchitecture
+                ? [status.functionArchitecture]
+                : undefined,
+              ImageUri: desired.Code?.ImageUri,
+              Publish: true,
+            }),
+          ),
+      },
+      (output) => {
+        return { imageUri: output.Code?.ImageUri };
+      },
+    ).manage({ ...options, retries: Infinity }, desired);
+
+    return imageUri;
   }
 
   get trustRelationship(): TrustRelationship {
@@ -472,7 +314,6 @@ export class LambdaService implements IamConsumer {
             'logs:PutLogEvents',
             'xray:PutTraceSegments',
             'xray:PutTelemetryRecords',
-            'secretsmanager:GetSecretValue', // TODO: Reduce to just the managed secret
           ],
           Resource: ['*'],
           Effect: 'Allow',

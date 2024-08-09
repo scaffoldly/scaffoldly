@@ -162,7 +162,7 @@ export class Command {
       .help()
       .wrap(null)
       .version(version)
-      .fail((msg, error) => {
+      .fail((_msg, error) => {
         if (isAxiosError(error)) {
           if (error.response && error.response.status === 401) {
             ui.updateBottomBar('');
@@ -180,7 +180,7 @@ export class Command {
           }
         } else {
           ui.updateBottomBar('');
-          throw new Error(msg, { cause: error });
+          throw error;
         }
       });
 

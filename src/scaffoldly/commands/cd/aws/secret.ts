@@ -2,11 +2,11 @@ import { ScaffoldlyConfig, SecretConsumer } from '../../../../config';
 import {
   SecretsManagerClient,
   CreateSecretCommand,
-  UpdateSecretCommand,
   DescribeSecretCommand,
   PutSecretValueCommand,
+  DescribeSecretCommandOutput,
 } from '@aws-sdk/client-secrets-manager';
-import { CloudResource, manageResource, ResourceOptions } from '..';
+import { CloudResource, ResourceOptions } from '..';
 import { NotFoundException } from './errors';
 import { DeployStatus } from '.';
 import { ui } from '../../../command';
@@ -16,21 +16,11 @@ import { IamConsumer, PolicyDocument } from './iam';
 export type SecretName = string;
 export type SecretVersion = string;
 
-export type Secret = {
-  secretArn: string;
-  secretName: SecretName;
-  uniqueId: string;
+export type SecretDeployStatus = {
+  secretId?: string;
+  secretName?: string;
+  uniqueId?: string;
 };
-
-export type SecretDeployStatus = Partial<Secret>;
-
-export type SecretResource = CloudResource<
-  SecretsManagerClient,
-  Secret,
-  CreateSecretCommand,
-  UpdateSecretCommand,
-  undefined
->;
 
 export class SecretService implements IamConsumer {
   secretsManagerClient: SecretsManagerClient;
@@ -46,106 +36,63 @@ export class SecretService implements IamConsumer {
     consumer: SecretConsumer,
     options: ResourceOptions,
   ): Promise<DeployStatus> {
-    ui.updateBottomBar('Deploying Secret');
-    const { secretName, uniqueId, secretArn } = await this.manageSecret(
-      consumer.secretValue,
-      options,
-    );
+    const { name } = this.config;
 
-    this.secretDeployStatus.secretArn = secretArn;
+    ui.updateBottomBar('Deploying Secret');
+
+    const { secretId, secretName, uniqueId } = await new CloudResource<
+      { secretId: string; secretName: string; uniqueId: string },
+      DescribeSecretCommandOutput
+    >(
+      {
+        describe: (existing) => `Secret: ${existing.secretName}`,
+        read: () => this.secretsManagerClient.send(new DescribeSecretCommand({ SecretId: name })),
+        create: () =>
+          this.secretsManagerClient.send(
+            new CreateSecretCommand({ Name: name, SecretBinary: consumer.secretValue }),
+          ),
+        update: (existing) =>
+          this.secretsManagerClient.send(
+            new PutSecretValueCommand({
+              SecretId: existing.secretId,
+              SecretBinary: consumer.secretValue,
+            }),
+          ),
+      },
+      (output) => {
+        const arn = output.ARN;
+        if (!arn) {
+          throw new NotFoundException('Secret ARN not found');
+        }
+        return {
+          secretId: output.ARN,
+          secretName: output.Name,
+          uniqueId: createHash('sha256').update(arn).digest('hex').substring(0, 8),
+        };
+      },
+    ).manage(options);
+
+    this.secretDeployStatus.secretId = secretId;
     this.secretDeployStatus.secretName = secretName;
     this.secretDeployStatus.uniqueId = uniqueId;
 
     return { ...status, ...this.secretDeployStatus };
   }
 
-  private async manageSecret(value: Uint8Array, options: ResourceOptions): Promise<Secret> {
-    const { name } = this.config;
-    if (!name) {
-      throw new Error('Missing name');
-    }
-
-    const secret = await manageResource(this.secretResource(name, value), options);
-
-    const { secretArn, secretName, uniqueId } = secret;
-
-    if (!secretArn) {
-      throw new NotFoundException('Secret ARN not found');
-    }
-
-    if (!secretName) {
-      throw new NotFoundException('Secret not found');
-    }
-
-    if (!uniqueId) {
-      throw new NotFoundException('Secret Unique ID not found');
-    }
-
-    return { secretArn, secretName, uniqueId };
-  }
-
-  private secretResource(name: string, value: Uint8Array): SecretResource {
-    // const secretHash = Buffer.from(value).toString('base64');
-
-    const read = async (): Promise<Secret> => {
-      return this.secretsManagerClient
-        .send(new DescribeSecretCommand({ SecretId: name }))
-        .then((response) => {
-          const { Name, ARN } = response;
-          if (!Name) {
-            throw new NotFoundException('Secret not found');
-          }
-          if (!ARN) {
-            throw new NotFoundException('Secret ARN not found');
-          }
-
-          // AWS appends a unique id to the end of the ARN.
-          // It is safe to hash and use as a Unique Identifier elsewhere.
-          const uniqueId = createHash('sha256').update(ARN).digest('hex').substring(0, 8);
-
-          return {
-            secretArn: ARN,
-            secretName: Name,
-            uniqueId,
-          } as Secret;
-        })
-        .catch((e) => {
-          if (e.name === 'ResourceNotFoundException') {
-            throw new NotFoundException('Secret not found', e);
-          }
-          throw e;
-        });
-    };
-
-    return {
-      client: this.secretsManagerClient,
-      read,
-      create: async (command) => this.secretsManagerClient.send(command).then(read),
-      update: (command) => this.secretsManagerClient.send(command).then(read),
-      request: {
-        create: new CreateSecretCommand({
-          Name: name,
-          SecretBinary: value,
-        }),
-        update: new PutSecretValueCommand({
-          SecretId: name,
-          SecretBinary: value,
-        }),
-      },
-    };
-  }
-
   get trustRelationship(): undefined {
     return;
   }
 
-  get policyDocument(): PolicyDocument {
+  get policyDocument(): PolicyDocument | undefined {
+    if (!this.secretDeployStatus.secretId) {
+      return;
+    }
     return {
       Statement: [
         {
           Effect: 'Allow',
           Action: ['secretsmanager:GetSecretValue'],
-          Resource: this.secretDeployStatus.secretArn ? [this.secretDeployStatus.secretArn] : [],
+          Resource: [this.secretDeployStatus.secretId],
         },
       ],
       Version: '2012-10-17',

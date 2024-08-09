@@ -1,12 +1,10 @@
 FROM node:20-alpine as install-base
 WORKDIR /var/task
-ENV SLY_DEBUG="true"
 
 FROM install-base as build-base
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
-ENV SLY_DEBUG="true"
 COPY . /var/task/
 RUN next build
 
@@ -14,7 +12,6 @@ FROM install-base as package-base
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
-ENV SLY_DEBUG="true"
 COPY --from=build-base /var/task/.next* /var/task/.next
 COPY --from=build-base /var/task/public /var/task/public
 COPY --from=build-base /var/task/node_modules /var/task/node_modules
@@ -23,7 +20,6 @@ FROM install-base as runtime
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
-ENV SLY_DEBUG="true"
 COPY .entrypoint* /var/task/.entrypoint
 COPY --from=package-base /var/task/.next /var/task/.next
 COPY --from=package-base /var/task/public /var/task/public

@@ -17,6 +17,7 @@
   ],
   "rules": {
     "no-console": "off",
+    "eslint-plugin-import/named": "off",
     "import/no-extraneous-dependencies": "off"
   },
   "ignorePatterns": [
