@@ -17,7 +17,13 @@ import {
 import { CloudResource, ResourceOptions } from '..';
 import { DeployStatus } from '.';
 import { IamConsumer, PolicyDocument, TrustRelationship } from './iam';
-import { InvokeCommand, LambdaClient } from '@aws-sdk/client-lambda';
+import {
+  InvokeCommand,
+  // eslint-disable-next-line import/named
+  InvokeCommandOutput,
+  LambdaClient,
+} from '@aws-sdk/client-lambda';
+import { NotFoundException } from './errors';
 
 export type ScheduleStatus = {
   scheduleGroup?: string;
@@ -145,7 +151,10 @@ export class ScheduleService implements IamConsumer {
   }
 
   public async deploy(status: DeployStatus, options: ResourceOptions): Promise<DeployStatus> {
+    const { name } = this.config;
+
     const schedules = mapSchedules(this.config);
+
     const desiredSchedules = Object.entries(schedules).filter(
       ([schedule, commands]) => schedule !== '@immediately' && !commands.isEmpty(),
     );
@@ -227,6 +236,64 @@ export class ScheduleService implements IamConsumer {
     )
       .manage(options)
       .dispose();
+
+    if (!schedules['@immediately'].isEmpty()) {
+      let invokeCommandOutput: InvokeCommandOutput | undefined = undefined;
+      const outputPrefix = '   ==> ';
+      await new CloudResource<InvokeOutput, Partial<InvokeCommandOutput>>(
+        {
+          describe: (output) =>
+            `Invocation for '@immediately' command:\n${outputPrefix}${output.body
+              ?.split('\n')
+              .join(`\n${outputPrefix}`)}`,
+          read: () => {
+            if (!invokeCommandOutput) {
+              throw new NotFoundException('Not invoked');
+            }
+            return Promise.resolve(invokeCommandOutput);
+          },
+          create: () =>
+            this.lambdaClient
+              .send(
+                new InvokeCommand({
+                  FunctionName: name,
+                  InvocationType: 'RequestResponse',
+                  Payload: JSON.stringify(schedules['@immediately'].encode()),
+                }),
+              )
+              .then((response) => {
+                invokeCommandOutput = response;
+                return response;
+              }),
+        },
+        (output) => {
+          if (!output) {
+            return { commands: schedules['@immediately'] };
+          }
+
+          const { Payload } = output;
+          let failed = true;
+          let body = '';
+
+          if (!Payload) {
+            return { commands: schedules['@immediately'], failed, body };
+          }
+
+          const payload = JSON.parse(Buffer.from(Payload).toString('utf-8'));
+          if ('statusCode' in payload && payload.statusCode === 200) {
+            failed = false;
+          }
+
+          if ('body' in payload && typeof payload.body === 'string') {
+            body = JSON.parse(payload.body);
+          } else {
+            body = JSON.stringify(payload);
+          }
+
+          return { commands: schedules['@immediately'], failed, body };
+        },
+      ).manage(options);
+    }
 
     // const { scheduleGroup } = await manageResource(
     //   this.scheduleGroupResource(this.config.name),

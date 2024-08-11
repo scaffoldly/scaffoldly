@@ -3,6 +3,7 @@ import { isDebug } from '../../ui';
 import { ui } from '../../command';
 import promiseRetry from 'promise-retry';
 import _ from 'lodash';
+import { NotFoundException } from './aws/errors';
 
 type Differences = {
   [key: string]: unknown | Differences;
@@ -70,6 +71,39 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
     return this;
   }
 
+  async _manage(
+    options: ResourceOptions,
+    desired?: Partial<ReadCommandOutput>,
+  ): Promise<Partial<Resource>> {
+    if (options.destroy) {
+      throw new Error('Not implemented');
+    }
+
+    let existing = await this.read(options)();
+
+    if (existing) {
+      try {
+        existing = await this.update(options, existing, desired);
+        this.handleResource('update', existing);
+      } catch (e) {
+        this.handleResource('update', e);
+      }
+    } else {
+      try {
+        existing = await this.create(options, desired);
+        this.handleResource('create', existing);
+      } catch (e) {
+        this.handleResource('create', e);
+      }
+    }
+
+    if (!existing) {
+      throw new Error('Failed to manage resource');
+    }
+
+    return existing;
+  }
+
   public async dispose(): Promise<Partial<Resource>> {
     let existing = await this;
 
@@ -123,6 +157,9 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
         );
         return this.resourceExtractor(response);
       } catch (e) {
+        if (e instanceof NotFoundException) {
+          return undefined;
+        }
         if (
           '$metadata' in e &&
           'httpStatusCode' in e.$metadata &&
@@ -212,39 +249,6 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
     return this.read(options, desired)();
   }
 
-  async _manage(
-    options: ResourceOptions,
-    desired?: Partial<ReadCommandOutput>,
-  ): Promise<Partial<Resource>> {
-    if (options.destroy) {
-      throw new Error('Not implemented');
-    }
-
-    let existing = await this.read(options)();
-
-    if (existing) {
-      try {
-        existing = await this.update(options, existing, desired);
-        this.handleResource('update', existing);
-      } catch (e) {
-        this.handleResource('update', e);
-      }
-    } else {
-      try {
-        existing = await this.create(options, desired);
-        this.handleResource('create', existing);
-      } catch (e) {
-        this.handleResource('create', e);
-      }
-    }
-
-    if (!existing) {
-      throw new Error('Failed to manage resource');
-    }
-
-    return existing;
-  }
-
   private async handleResource(
     action: 'create' | 'update' | 'dispose',
     resource: Partial<Resource | undefined> | Error,
@@ -253,7 +257,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
 
     switch (action) {
       case 'create':
-        message = `✨ Created`;
+        message = `✅ Created`;
         break;
       case 'update':
         message = `✅ Updated`;

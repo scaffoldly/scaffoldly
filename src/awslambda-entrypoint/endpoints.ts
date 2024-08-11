@@ -131,9 +131,8 @@ export const endpointProxy = async ({
     log('Received scheduled event', { commands });
 
     try {
-      const { all } = await execa(commands.toString(), {
+      const foo = await execa(commands.toString(), {
         shell: true,
-        stdout: 'inherit',
         env: { ...process.env, ...env },
         verbose: isDebug,
         all: true, // Capture stdout and stderr into "all"
@@ -144,7 +143,7 @@ export const endpointProxy = async ({
         payload: {
           statusCode: 200,
           headers: {},
-          body: JSON.stringify(all),
+          body: JSON.stringify(foo.all),
           isBase64Encoded: false,
         },
       };
