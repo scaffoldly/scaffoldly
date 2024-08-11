@@ -1,0 +1,7 @@
+changelog:
+  exclude:
+    authors:
+      - '@immediately'
+      - '@frequently'
+      - '@hourly'
+      - '@daily'

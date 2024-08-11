@@ -130,6 +130,7 @@ export type PackageJsonBin = { [key: string]: string };
 
 export type Script = 'prepare' | 'develop' | 'install' | 'build' | 'package' | 'start';
 
+// DEVNOTE: Edit .github/release.yml if more '@-schedules` are added
 export type Schedule = '@immediately' | '@frequently' | '@hourly' | '@daily';
 
 export interface SecretConsumer {
