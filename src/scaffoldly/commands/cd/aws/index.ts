@@ -7,7 +7,7 @@ import { DockerDeployStatus, DockerService } from '../docker';
 import { SecretDeployStatus, SecretService } from './secret';
 import { GitDeployStatus, GitService } from '../git';
 import { EnvDeployStatus, EnvService } from '../env';
-import { EventsService } from './events';
+import { ScheduleService, ScheduleStatus } from './schedule';
 import { DynamoDbService } from './dynamodb';
 
 export type DeployStatus = GitDeployStatus &
@@ -16,7 +16,8 @@ export type DeployStatus = GitDeployStatus &
   EcrDeployStatus &
   IamDeployStatus &
   SecretDeployStatus &
-  LambdaDeployStatus;
+  LambdaDeployStatus &
+  ScheduleStatus;
 
 export class AwsService {
   secretService: SecretService;
@@ -29,7 +30,7 @@ export class AwsService {
 
   dynamoDbService: DynamoDbService;
 
-  eventsService: EventsService;
+  scheduleService: ScheduleService;
 
   constructor(
     private config: ScaffoldlyConfig,
@@ -42,7 +43,7 @@ export class AwsService {
     this.ecrService = new EcrService(this.config, this.dockerService);
     this.lambdaService = new LambdaService(this.config, this.envService);
     this.dynamoDbService = new DynamoDbService(this.config);
-    this.eventsService = new EventsService(this.config);
+    this.scheduleService = new ScheduleService(this.config);
   }
 
   async predeploy(status: DeployStatus, options: ResourceOptions): Promise<DeployStatus> {
@@ -66,12 +67,15 @@ export class AwsService {
     // Deploy IAM
     status = await this.iamService.predeploy(
       status,
-      [this.secretService, this.lambdaService, this.dynamoDbService, this.eventsService],
+      [this.secretService, this.lambdaService, this.dynamoDbService, this.scheduleService],
       options,
     );
 
     // Pre-Deploy Lambda (Creates the Function URL and other pre-deploy steps)
     status = await this.lambdaService.predeploy(status, options);
+
+    // Pre-Deploy Schedules
+    status = await this.scheduleService.predeploy(status, options);
 
     // Pre-Deploy Environment Variables
     status = await this.envService.predeploy(status, options);
@@ -90,7 +94,7 @@ export class AwsService {
     status = await this.lambdaService.deploy(status, options);
 
     // Deploy Events
-    status = await this.eventsService.deploy(status, options);
+    status = await this.scheduleService.deploy(status, options);
 
     return status;
   }

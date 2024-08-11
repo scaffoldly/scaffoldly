@@ -1,8 +1,7 @@
-import { DockerService as DockerCiService } from '../../ci/docker';
-import { ResourceOptions } from '..';
+import { BuildInfo, DockerService as DockerCiService, PushInfo } from '../../ci/docker';
+import { CloudResource, ResourceOptions } from '..';
 import { ScaffoldlyConfig } from '../../../../config';
 import { DeployStatus } from '../aws';
-import { ui } from '../../../command';
 import { RegistryAuthConsumer } from '../aws/ecr';
 
 export type Architecture = 'arm64' | 'amd64';
@@ -11,7 +10,6 @@ export type DockerDeployStatus = {
   imageTag?: string;
   imageName?: string;
   imageDigest?: string;
-  entrypoint?: string[];
 };
 
 export class DockerService {
@@ -32,27 +30,39 @@ export class DockerService {
   ): Promise<DeployStatus> {
     const dockerStatus: DockerDeployStatus = {};
 
-    ui.updateBottomBar(`Building ${this.config.name}`);
-    const { imageName, entrypoint, imageTag } = await this.dockerCiService.build(
-      this.config,
-      'build',
-      status.repositoryUri,
-      status.buildEnv,
-    );
+    const { imageName, imageTag } = await new CloudResource<BuildInfo, BuildInfo>(
+      {
+        describe: (resource) => {
+          return { type: 'Image', label: resource.imageName };
+        },
+        read: () => this.dockerCiService.describeBuild(),
+        update: () =>
+          this.dockerCiService.build(this.config, 'build', status.repositoryUri, status.buildEnv),
+      },
+      (existing) => existing,
+    ).manage(options);
+
     dockerStatus.imageTag = imageTag;
     dockerStatus.imageName = imageName;
-    dockerStatus.entrypoint = entrypoint;
+
+    if (!imageName) {
+      throw new Error('Missing image name');
+    }
 
     const authConfig = await consumer.authConfig;
 
-    ui.updateBottomBar(`Pushing ${imageTag}`);
-    // TODO: Move push to this class
-    const { imageDigest } = await this.dockerCiService.push(imageName, authConfig);
-    dockerStatus.imageDigest = imageDigest;
+    const { imageDigest } = await new CloudResource<PushInfo, PushInfo>(
+      {
+        describe: (resource) => {
+          return { type: 'Image Digest', label: resource.imageDigest };
+        },
+        read: () => this.dockerCiService.describePush(),
+        update: (resource) => this.dockerCiService.push(resource.imageName, authConfig),
+      },
+      (existing) => existing,
+    ).manage(options);
 
-    if (options.clean) {
-      throw new Error('Not implemented');
-    }
+    dockerStatus.imageDigest = imageDigest;
 
     return { ...status, ...dockerStatus };
   }

@@ -17,6 +17,9 @@ import { Architecture } from '../../cd/docker';
 import { PackageService } from './packages';
 import micromatch from 'micromatch';
 
+export type BuildInfo = { imageName?: string; imageTag?: string; entrypoint?: string[] };
+export type PushInfo = { imageName?: string; imageDigest?: string };
+
 const BASE = 'base';
 type Path = string;
 
@@ -108,6 +111,12 @@ const splitPath = (path: string): [string, string] => {
 export class DockerService {
   docker: Docker;
 
+  private imageName?: string;
+
+  private imageTag?: string;
+
+  private imageDigest?: string;
+
   constructor(private cwd: string) {
     this.docker = new Docker();
   }
@@ -131,22 +140,28 @@ export class DockerService {
     }
   }
 
+  async describeBuild(): Promise<BuildInfo> {
+    // TODO: Dynamic entrypoint
+    // DEVNOTE: Entrypoint is set during prebuild so it must be known before deploy
+    return { imageName: this.imageName, imageTag: this.imageTag, entrypoint: ['.entrypoint'] };
+  }
+
   async build(
     config: ScaffoldlyConfig,
     mode: Script,
     repositoryUri?: string,
     env?: Record<string, string>,
-  ): Promise<{ imageName: string; imageTag: string; entrypoint: string[] }> {
+  ): Promise<void> {
+    const tag = config.id ? `${config.version}-${config.id}` : config.version;
+
+    const imageTag = `${config.name}:${tag}`;
+    const imageName = repositoryUri ? `${repositoryUri}:${tag}` : imageTag;
+
     const stages = await this.createStages(config, mode, env);
 
     if (isDebug()) {
       console.log('Stages:', JSON.stringify(stages, null, 2));
     }
-
-    const tag = config.id ? `${config.version}-${config.id}` : config.version;
-
-    const imageTag = `${config.name}:${tag}`;
-    const imageName = repositoryUri ? `${repositoryUri}:${tag}` : imageTag;
 
     // todo add dockerfile to tar instead of writing it to cwd
     // const dockerfile = this.renderSpec(spec);
@@ -186,8 +201,6 @@ export class DockerService {
         );
       });
 
-    const entrypoint = (stages.runtime.copy || []).filter((c) => c.entrypoint).map((c) => c.dest);
-
     const { runtime } = config;
     if (!runtime) {
       throw new Error('Missing runtime');
@@ -215,11 +228,10 @@ export class DockerService {
       );
     });
 
-    return {
-      imageName,
-      imageTag,
-      entrypoint: entrypoint,
-    };
+    this.imageName = imageName;
+    this.imageTag = imageTag;
+
+    // TODO: Return SHA
   }
 
   async createStages(
@@ -617,7 +629,15 @@ export class DockerService {
     return dockerfile;
   };
 
-  public async push(imageName: string, authConfig: AuthConfig): Promise<{ imageDigest: string }> {
+  public async describePush(): Promise<PushInfo> {
+    return { imageName: this.imageName, imageDigest: this.imageDigest };
+  }
+
+  public async push(imageName?: string, authConfig?: AuthConfig): Promise<void> {
+    if (!imageName) {
+      throw new Error('Missing image name');
+    }
+
     const image = this.docker.getImage(imageName);
 
     const pushStream = await image.push({ authconfig: authConfig });
@@ -640,13 +660,7 @@ export class DockerService {
       (evt) => 'aux' in evt && !!evt.aux && typeof evt.aux !== 'string' && 'Digest' in evt.aux,
     ) as AuxEvent<AuxDigestEvent>;
 
-    const imageDigest = event?.aux?.Digest;
-
-    if (!imageDigest) {
-      throw new Error('Failed to push image');
-    }
-
-    return { imageDigest };
+    this.imageDigest = event?.aux?.Digest;
   }
 
   private async getImage(runtime: string): Promise<Docker.ImageInspectInfo | undefined> {
