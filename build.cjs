@@ -67,10 +67,6 @@ const typeCheck = async (entrypoints, ts, tsOptions) => {
 
   if (allDiagnostics.length > 0) {
     allDiagnostics.forEach((diagnostic) => {
-      const { category, code } = diagnostic;
-      if (code === 2304 || code === 6196) {
-        console.log('!!! Diagnostic', category, code);
-      }
       if (diagnostic.file) {
         const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start);
         const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n');
@@ -106,7 +102,7 @@ const build = async (ts, tsOptions) => {
           name: 'lint',
           setup: async (build) => {
             // await lint(build.initialOptions.entryPoints);
-            // await typeCheck(build.initialOptions.entryPoints, ts, tsOptions);
+            await typeCheck(build.initialOptions.entryPoints, ts, tsOptions);
           },
         },
       ],
