@@ -2,7 +2,6 @@ import { BuildInfo, DockerService as DockerCiService, PushInfo } from '../../ci/
 import { CloudResource, ResourceOptions } from '..';
 import { ScaffoldlyConfig } from '../../../../config';
 import { DeployStatus } from '../aws';
-import { ui } from '../../../command';
 import { RegistryAuthConsumer } from '../aws/ecr';
 
 export type Architecture = 'arm64' | 'amd64';
@@ -31,12 +30,11 @@ export class DockerService {
   ): Promise<DeployStatus> {
     const dockerStatus: DockerDeployStatus = {};
 
-    const { name } = this.config;
-
-    ui.updateBottomBar(`Building ${name}`);
     const { imageName, imageTag } = await new CloudResource<BuildInfo, BuildInfo>(
       {
-        describe: (resource) => `Image: ${resource.imageName}`,
+        describe: (resource) => {
+          return { type: 'Image', label: resource.imageName };
+        },
         read: () => this.dockerCiService.describeBuild(),
         update: () =>
           this.dockerCiService.build(this.config, 'build', status.repositoryUri, status.buildEnv),
@@ -53,10 +51,11 @@ export class DockerService {
 
     const authConfig = await consumer.authConfig;
 
-    ui.updateBottomBar(`Pushing ${name}`);
     const { imageDigest } = await new CloudResource<PushInfo, PushInfo>(
       {
-        describe: (resource) => `Image Digest: ${resource.imageDigest}`,
+        describe: (resource) => {
+          return { type: 'Image Digest', label: resource.imageDigest };
+        },
         read: () => this.dockerCiService.describePush(),
         update: (resource) => this.dockerCiService.push(resource.imageName, authConfig),
       },

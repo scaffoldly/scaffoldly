@@ -18,7 +18,6 @@ import {
 } from '@aws-sdk/client-lambda';
 import { ScaffoldlyConfig } from '../../../../config';
 import { IamConsumer, PolicyDocument, TrustRelationship } from './iam';
-import { ui } from '../../../command';
 import _ from 'lodash';
 import { DeployStatus } from '.';
 import { CloudResource, ResourceOptions } from '..';
@@ -41,16 +40,13 @@ export class LambdaService implements IamConsumer {
   public async predeploy(status: DeployStatus, options: ResourceOptions): Promise<DeployStatus> {
     const lambdaDeployStatus: LambdaDeployStatus = {};
 
-    ui.updateBottomBar('Preparing Lambda Function');
     const configuration = await this.configureFunction(status, options);
     status.functionArn = configuration.FunctionArn;
     status.functionArchitecture = configuration.Architectures?.[0];
 
-    ui.updateBottomBar('Preparing Function URL');
     const origin = await this.configureOrigin(status, options);
     lambdaDeployStatus.origin = origin;
 
-    ui.updateBottomBar('Preparing Function Permissions');
     await this.configurePermissions(status, options);
 
     return { ...status, ...lambdaDeployStatus };
@@ -59,11 +55,9 @@ export class LambdaService implements IamConsumer {
   public async deploy(status: DeployStatus, options: ResourceOptions): Promise<DeployStatus> {
     const lambdaDeployStatus: LambdaDeployStatus = {};
 
-    ui.updateBottomBar('Publishing Code');
     const imageUri = await this.publishCode(status, options);
     lambdaDeployStatus.imageUri = imageUri;
 
-    // ui.updateBottomBar('Updating Function URL');
     // const origin = await this.configureOrigin(status, options);
     // lambdaDeployStatus.origin = origin;
 
@@ -113,7 +107,9 @@ export class LambdaService implements IamConsumer {
 
     const configuration = await new CloudResource<FunctionConfiguration, GetFunctionCommandOutput>(
       {
-        describe: (existing) => `Lambda Function: ${existing.FunctionName}`,
+        describe: (resource) => {
+          return { type: 'Lambda Function', label: resource.FunctionName };
+        },
         read: () => this.lambdaClient.send(new GetFunctionCommand({ FunctionName: name })),
         create: () =>
           this.lambdaClient.send(
@@ -173,7 +169,9 @@ export class LambdaService implements IamConsumer {
       GetFunctionUrlConfigCommandOutput
     >(
       {
-        describe: (existing) => `Function URL: ${existing.functionUrl}`,
+        describe: (resource) => {
+          return { type: 'Function URL', label: resource.functionUrl };
+        },
         read: () => this.lambdaClient.send(new GetFunctionUrlConfigCommand({ FunctionName: name })),
         create: () =>
           this.lambdaClient.send(
@@ -220,8 +218,12 @@ export class LambdaService implements IamConsumer {
 
     await new CloudResource<{ policy: PolicyDocument }, GetPolicyCommandOutput>(
       {
-        describe: (existing) =>
-          `Function Policies: ${existing.policy?.Statement.map((s) => s.Sid)}`,
+        describe: (resource) => {
+          return {
+            type: 'Function Policies',
+            label: `${resource.policy?.Statement?.map((s) => s.Sid)}`,
+          };
+        },
         read: () => this.lambdaClient.send(new GetPolicyCommand({ FunctionName: name })),
         create: () =>
           Promise.all(
@@ -265,7 +267,9 @@ export class LambdaService implements IamConsumer {
 
     const { imageUri } = await new CloudResource<{ imageUri: string }, GetFunctionCommandOutput>(
       {
-        describe: (existing) => `Function Image: ${existing.imageUri}`,
+        describe: (resource) => {
+          return { type: 'Function Code', label: resource.imageUri?.split('/').pop() };
+        },
         read: () => this.lambdaClient.send(new GetFunctionCommand({ FunctionName: name })),
         update: () =>
           this.lambdaClient.send(

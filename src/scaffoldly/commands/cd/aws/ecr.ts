@@ -7,7 +7,6 @@ import {
   // eslint-disable-next-line import/named
   DescribeRepositoriesCommandOutput,
 } from '@aws-sdk/client-ecr';
-import { ui } from '../../../command';
 import { ScaffoldlyConfig } from '../../../../config';
 import { AuthConfig } from 'dockerode';
 import { CloudResource, ResourceOptions } from '..';
@@ -37,11 +36,11 @@ export class EcrService implements RegistryAuthConsumer {
 
     const { name } = this.config;
 
-    ui.updateBottomBar('Configuring ECR repository');
-
     const repository = await new CloudResource<Repository, DescribeRepositoriesCommandOutput>(
       {
-        describe: (existing) => `Repository: ${existing.repositoryName}`,
+        describe: (resource) => {
+          return { type: 'ECR Repository', label: resource.repositoryName };
+        },
         read: () =>
           this.ecrClient.send(new DescribeRepositoriesCommand({ repositoryNames: [name] })),
         create: () => this.ecrClient.send(new CreateRepositoryCommand({ repositoryName: name })),
@@ -53,7 +52,6 @@ export class EcrService implements RegistryAuthConsumer {
 
     ecrDeployStatus.repositoryUri = repository.repositoryUri;
 
-    ui.updateBottomBar('Determining architecture');
     const architecture = await this.dockerService.architecture;
     ecrDeployStatus.architecture = architecture;
 

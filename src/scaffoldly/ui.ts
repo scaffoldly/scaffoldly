@@ -78,7 +78,10 @@ export class BottomBar {
 
       let count = 0;
       this.interval = setInterval(() => {
-        let message = `${PRIMARY_LOADING[count % PRIMARY_LOADING.length]} ${text}...`;
+        let message = `${PRIMARY_LOADING[count % PRIMARY_LOADING.length]} ${text.substring(
+          0,
+          process.stdout.columns - 10,
+        )}...`;
         if (this.subtext) {
           message = `${message}\n${SECONDARY_SPACES}${
             SECONDARY_LOADING[count % SECONDARY_LOADING.length]

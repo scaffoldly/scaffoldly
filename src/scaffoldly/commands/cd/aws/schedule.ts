@@ -56,8 +56,8 @@ export type ScheduledEvent = {
 
 type InvokeOutput = {
   commands?: Commands;
-  body?: string;
   failed?: boolean;
+  lines?: string[];
 };
 
 // export type InvokeFunctionResource = CloudResource<
@@ -134,7 +134,9 @@ export class ScheduleService implements IamConsumer {
       GetScheduleGroupCommandOutput
     >(
       {
-        describe: (resource) => `Schedule Group: ${resource.scheduleGroup}`,
+        describe: (resource) => {
+          return { type: 'Schedule Group', label: resource.scheduleGroup };
+        },
         read: () =>
           this.schedulerClient.send(new GetScheduleGroupCommand({ Name: this.config.name })),
         create: () =>
@@ -165,7 +167,9 @@ export class ScheduleService implements IamConsumer {
 
     await new CloudResource<{ schedules: string[] }, ListSchedulesCommandOutput>(
       {
-        describe: (resources) => `Schedules: ${resources.schedules?.join(', ')}`,
+        describe: (resource) => {
+          return { type: 'Schedules', label: resource.schedules?.join(', ') };
+        },
         read: () =>
           this.schedulerClient.send(new ListSchedulesCommand({ GroupName: status.scheduleGroup })),
         update: () =>
@@ -238,19 +242,59 @@ export class ScheduleService implements IamConsumer {
       .dispose();
 
     if (!schedules['@immediately'].isEmpty()) {
-      let invokeCommandOutput: InvokeCommandOutput | undefined = undefined;
+      let invokeOutput: InvokeOutput | undefined = undefined;
+
       const outputPrefix = '   ==> ';
-      await new CloudResource<InvokeOutput, Partial<InvokeCommandOutput>>(
+
+      const parseOutput = (output: Partial<InvokeCommandOutput>): InvokeOutput => {
+        if (!output) {
+          return { commands: schedules['@immediately'] };
+        }
+
+        const { Payload } = output;
+        let failed = true;
+        let body = '';
+
+        if (!Payload) {
+          return { commands: schedules['@immediately'], failed, lines: [] };
+        }
+
+        const payload = JSON.parse(Buffer.from(Payload).toString('utf-8'));
+        if ('statusCode' in payload && payload.statusCode === 200) {
+          failed = false;
+        }
+
+        if ('body' in payload && typeof payload.body === 'string') {
+          body = JSON.parse(payload.body);
+        } else {
+          body = JSON.stringify(payload);
+        }
+
+        const lines = body.split('\n').map((line) => `${outputPrefix}${line}`);
+        lines.unshift(''); // Add a blank line at the beginning
+
+        if (failed) {
+          throw new Error(lines.join('\n'));
+        }
+
+        return { commands: schedules['@immediately'], failed, lines };
+      };
+
+      await new CloudResource<InvokeOutput, InvokeOutput>(
         {
-          describe: (output) =>
-            `Invocation for '@immediately' command:\n${outputPrefix}${output.body
-              ?.split('\n')
-              .join(`\n${outputPrefix}`)}`,
+          describe: (resource) => {
+            const type = 'Invocation for @immediately';
+            if (resource.failed) {
+              // Don't show lines they will be in the error when it's outputted
+              return { type };
+            }
+            return { type, label: resource.lines?.join('\n') };
+          },
           read: () => {
-            if (!invokeCommandOutput) {
+            if (!invokeOutput) {
               throw new NotFoundException('Not invoked');
             }
-            return Promise.resolve(invokeCommandOutput);
+            return Promise.resolve(invokeOutput);
           },
           create: () =>
             this.lambdaClient
@@ -262,36 +306,11 @@ export class ScheduleService implements IamConsumer {
                 }),
               )
               .then((response) => {
-                invokeCommandOutput = response;
-                return response;
+                invokeOutput = parseOutput(response);
+                return invokeOutput;
               }),
         },
-        (output) => {
-          if (!output) {
-            return { commands: schedules['@immediately'] };
-          }
-
-          const { Payload } = output;
-          let failed = true;
-          let body = '';
-
-          if (!Payload) {
-            return { commands: schedules['@immediately'], failed, body };
-          }
-
-          const payload = JSON.parse(Buffer.from(Payload).toString('utf-8'));
-          if ('statusCode' in payload && payload.statusCode === 200) {
-            failed = false;
-          }
-
-          if ('body' in payload && typeof payload.body === 'string') {
-            body = JSON.parse(payload.body);
-          } else {
-            body = JSON.stringify(payload);
-          }
-
-          return { commands: schedules['@immediately'], failed, body };
-        },
+        (output) => output,
       ).manage(options);
     }
 

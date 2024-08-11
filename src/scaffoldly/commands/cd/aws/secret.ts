@@ -9,7 +9,6 @@ import {
 import { CloudResource, ResourceOptions } from '..';
 import { NotFoundException } from './errors';
 import { DeployStatus } from '.';
-import { ui } from '../../../command';
 import { createHash } from 'crypto';
 import { IamConsumer, PolicyDocument } from './iam';
 
@@ -38,14 +37,14 @@ export class SecretService implements IamConsumer {
   ): Promise<DeployStatus> {
     const { name } = this.config;
 
-    ui.updateBottomBar('Deploying Secret');
-
     const { secretId, secretName, uniqueId } = await new CloudResource<
       { secretId: string; secretName: string; uniqueId: string },
       DescribeSecretCommandOutput
     >(
       {
-        describe: (existing) => `Secret: ${existing.secretName}`,
+        describe: (resource) => {
+          return { type: 'Secret', label: resource.secretName };
+        },
         read: () => this.secretsManagerClient.send(new DescribeSecretCommand({ SecretId: name })),
         create: () =>
           this.secretsManagerClient.send(

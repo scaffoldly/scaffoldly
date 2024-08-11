@@ -14,7 +14,6 @@ import { outputStream } from '../scaffoldly';
 import { BottomBar, isHeadless } from './ui';
 import Prompt from 'inquirer/lib/ui/prompt';
 import { DevCommand } from './commands/ci/dev';
-import { BuildCommand } from './commands/ci/build';
 import { DeployCommand } from './commands/cd/deploy';
 
 process.addListener('SIGINT', () => {
@@ -45,8 +44,6 @@ export class Command {
 
   private dev: DevCommand;
 
-  private build: BuildCommand;
-
   private deploy: DeployCommand;
 
   private show: ShowCommand;
@@ -57,7 +54,6 @@ export class Command {
     this.show = new ShowCommand(this.apiHelper, this.messagesHelper);
     this.login = new LoginCommand(this.apiHelper, this.messagesHelper);
     this.dev = new DevCommand();
-    this.build = new BuildCommand();
     this.deploy = new DeployCommand();
   }
 
@@ -117,23 +113,6 @@ export class Command {
         describe: `Launch a development environment`,
         handler: ({ withToken }) =>
           this.loginWrapper(() => this.dev.handle(), isHeadless(), withToken as string | undefined),
-        builder: {
-          withToken: {
-            demand: false,
-            type: 'string',
-            description: 'Skip authentication and save the provided token to ~/.scaffoldly/',
-          },
-        },
-      })
-      .command({
-        command: 'build',
-        describe: `Build the environment`,
-        handler: ({ withToken }) =>
-          this.loginWrapper(
-            () => this.build.handle(),
-            isHeadless(),
-            withToken as string | undefined,
-          ),
         builder: {
           withToken: {
             demand: false,

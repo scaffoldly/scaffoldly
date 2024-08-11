@@ -87,7 +87,9 @@ export class IamService {
       GetRoleCommandOutput
     >(
       {
-        describe: (existing) => `Role: ${existing.roleName}`,
+        describe: (resource) => {
+          return { type: 'IAM Role', label: resource.roleName };
+        },
         read: () => this.iamClient.send(new GetRoleCommand({ RoleName: name })),
         create: () =>
           this.iamClient.send(
@@ -120,7 +122,9 @@ export class IamService {
 
     await new CloudResource<{ roleName: String; policyName: string }, GetRolePolicyCommandOutput>(
       {
-        describe: (existing) => `Role Policy: ${existing.policyName} (on ${existing.roleName})`,
+        describe: (resource) => {
+          return { type: 'IAM Role Policy', label: resource.policyName };
+        },
         read: () =>
           this.iamClient.send(new GetRolePolicyCommand({ RoleName: name, PolicyName: name })),
         create: () =>

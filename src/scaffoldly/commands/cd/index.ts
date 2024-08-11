@@ -43,7 +43,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
 
   constructor(
     public readonly requests: {
-      describe: (resource: Partial<Resource>) => string;
+      describe: (resource: Partial<Resource>) => { type: string; label?: string };
       read: () => Promise<ReadCommandOutput>;
       create?: () => Promise<unknown>;
       update?: (resource: Partial<Resource>) => Promise<unknown>;
@@ -79,21 +79,24 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
       throw new Error('Not implemented');
     }
 
+    this.handleResource('Reading', {});
     let existing = await this.read(options)();
 
     if (existing) {
       try {
+        this.handleResource('Updating', existing);
         existing = await this.update(options, existing, desired);
-        this.handleResource('update', existing);
+        this.handleResource('Updated', existing);
       } catch (e) {
-        this.handleResource('update', e);
+        this.handleResource('Updated', e);
       }
     } else {
       try {
+        this.handleResource('Creating', existing);
         existing = await this.create(options, desired);
-        this.handleResource('create', existing);
+        this.handleResource('Created', existing);
       } catch (e) {
-        this.handleResource('create', e);
+        this.handleResource('Created', e);
       }
     }
 
@@ -250,46 +253,85 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
   }
 
   private async handleResource(
-    action: 'create' | 'update' | 'dispose',
+    action: 'Reading' | 'Creating' | 'Created' | 'Updating' | 'Updated',
     resource: Partial<Resource | undefined> | Error,
   ): Promise<Partial<Resource | undefined>> {
-    let message = '';
+    let verb:
+      | 'Reading'
+      | 'Creating'
+      | 'Created'
+      | 'Updating'
+      | 'Updated'
+      | 'Failed to Create'
+      | 'Failed to Update' = action;
+    let emoji = '🤔';
+    let type = 'Resource';
+    let label: string | undefined;
 
     switch (action) {
-      case 'create':
-        message = `✅ Created`;
+      case 'Created':
+      case 'Updated':
+        emoji = '✅';
         break;
-      case 'update':
-        message = `✅ Updated`;
-        break;
-      case 'dispose':
-        message = `🗑️  Disposed`;
+      case 'Reading':
+      case 'Creating':
+      case 'Updating':
+        emoji = '';
         break;
     }
 
     if (resource instanceof Error) {
-      message = `❌ Failed to ${action}`;
+      emoji = '❌';
+      switch (action) {
+        case 'Created':
+          verb = 'Failed to Create';
+          break;
+        case 'Updated':
+          verb = 'Failed to Update';
+          break;
+      }
+      const description = this.requests.describe({});
+      type = description.type;
+      label = description.label;
+    } else {
+      const description = this.requests.describe(resource || {});
+      type = description.type;
+      label = description.label;
     }
 
+    let message = `${emoji ? `${emoji} ` : ''}${verb} ${type}`;
     let resourceMessage = '';
 
     if (!resource) {
-      message = `🤔\tUnknown ${action}`;
-      resourceMessage = 'Resource not found';
+      resourceMessage = 'Unknown Resource';
     } else if (typeof resource === 'string') {
       resourceMessage = resource;
     } else if (resource instanceof Error) {
       resourceMessage = resource.message;
     } else {
-      resourceMessage = this.requests.describe(resource);
+      if (label) {
+        resourceMessage = `: ${label}`;
+      }
     }
 
-    ui.updateBottomBar('');
-    console.log(`${message} ${resourceMessage}`);
-    if (isDebug()) {
-      console.log(`   ${JSON.stringify(resource)}`);
-    } else {
-      console.log('');
+    switch (verb) {
+      case 'Created':
+      case 'Updated':
+      case 'Failed to Create':
+      case 'Failed to Update':
+        ui.updateBottomBar('');
+        console.log(`${message}${resourceMessage}`);
+        if (isDebug()) {
+          console.log(`   ${JSON.stringify(resource)}`);
+        } else {
+          console.log('');
+        }
+        break;
+      case 'Reading':
+      case 'Creating':
+      case 'Updating':
+        ui.updateBottomBar(`${message}${resourceMessage}`);
+        break;
     }
 
     if (resource instanceof Error) {
