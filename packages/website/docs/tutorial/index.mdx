@@ -1,0 +1,99 @@
+---
+sidebar_position: 1
+---
+
+# Tutorial
+
+Let's discover how to use **Scaffoldly** to deploy a **NextJS** application in **AWS Lambda** in **less than 5 minutes**.
+
+In this tutorial you will:
+
+1.  Create a new [NextJS App](https://nextjs.org)
+1.  Add [`scaffoldly`](https://npmjs.com/package/scaffoldly) as a dependency
+1.  Update the `package.json` with `scaffoldly` configuration
+1.  Deploy the NextJS Application to AWS Lambda
+
+### What you'll need
+
+- [Node.js](https://nodejs.org/en/download/) version 18.0 or above
+- [Docker](https://docs.docker.com/get-docker/) version 20.0 or above
+
+## Generate a NextJS App
+
+Generate a NextJS App using `create-next-app`:
+
+```bash
+npx create-next-app@latest my-app
+```
+
+For more information, see the [NextJS documentation](https://nextjs.org/docs/getting-started/installation).
+
+## Add `scaffoldly` as a Dependency
+
+```bash npm2yarn
+cd my-app
+npm install --save-dev scaffoldly
+```
+
+The `cd` command changes the directory you're working with. In order to work with your newly created NextJS App, you'll need to navigate the terminal there.
+
+The `install` command installs the `scaffoldly` package as a development dependency in your project.
+
+## Modify `package.json`
+
+Edit the project's `package.json`:
+
+### Add `scaffoldly` config
+
+```json title="package.json"
+{
+  "scaffoldly": {
+    "runtime": "node:20-alpine",
+    "handler": "localhost:3000",
+    "files": [".next", "public", "node_modules"],
+    "scripts": {
+      "dev": "next dev",
+      "build": "next build",
+      "start": "next start"
+    }
+  }
+}
+```
+
+### Modify `scripts` config
+
+Now that `scaffoldly` has it's own `scripts` configuration, you can modify the `scripts` section of your `package.json` to delegate `scaffoldly` to run the commands.
+
+- change `next dev` to be `scaffoldly dev`
+- change `next build` to be `scaffoldly build`
+- change `next start` to be `scaffoldly start`
+- **add** `deploy` to be `scaffoldly deploy`
+
+```json title="package.json"
+{
+  "scripts": {
+    "dev": "scaffoldly dev",
+    "build": "scaffoldly build",
+    "start": "scaffoldly start"
+    "deploy": "scaffoldly deploy"
+  }
+}
+```
+
+## Start your application
+
+Run the development server:
+
+```bash npm2yarn
+npm run dev
+```
+
+The `dev` command builds and runs a Docker container, and runs `next dev` inside the container, ready for you to view at http://localhost:3000/.
+
+## Deploy your application to AWS Lambda
+
+Run the deploy command:
+
+```bash npm2yarn
+npm run deploy
+```
