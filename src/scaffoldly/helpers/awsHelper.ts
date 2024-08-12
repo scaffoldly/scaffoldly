@@ -10,7 +10,7 @@ export class AwsHelper {
     try {
       const sts = this.apiHelper.stsApi();
       const identity = await sts.send(new GetCallerIdentityCommand({}));
-      return identity.Arn;
+      return identity.UserId;
     } catch (e) {
       return undefined;
     }
