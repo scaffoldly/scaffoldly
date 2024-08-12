@@ -5,6 +5,8 @@ import { Octokit } from 'octokit';
 export class ApiHelper {
   private dev = false;
 
+  private octokit?: Octokit;
+
   constructor(private argv: string[]) {
     this.dev = this.argv.includes('--dev');
 
@@ -21,10 +23,16 @@ IN DEVELOPMENT MODE
   }
 
   githubApi(withToken: string): Octokit {
-    return new Octokit({
+    if (this.octokit) {
+      return this.octokit;
+    }
+    const octokit = new Octokit({
       auth: withToken,
       userAgent: this.userAgent(),
     });
+
+    this.octokit = octokit;
+    return octokit;
   }
 
   userAgent(): string {

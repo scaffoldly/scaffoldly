@@ -31,7 +31,7 @@ WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
 COPY --from=build-docusaurus /var/task/package.json /var/task/package.json
-COPY --from=build-docusaurus /var/task/build /var/task/build
+COPY --from=build-docusaurus /var/task/build* /var/task/build
 
 FROM install-base as runtime
 WORKDIR /var/task

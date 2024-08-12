@@ -15,6 +15,7 @@ import { BottomBar, isHeadless } from './ui';
 import Prompt from 'inquirer/lib/ui/prompt';
 import { DevCommand } from './commands/ci/dev';
 import { DeployCommand } from './commands/cd/deploy';
+import { GitService } from './commands/cd/git';
 
 process.addListener('SIGINT', () => {
   console.log('Exiting!');
@@ -48,13 +49,16 @@ export class Command {
 
   private show: ShowCommand;
 
+  private gitService: GitService;
+
   constructor(argv: string[]) {
     this.apiHelper = new ApiHelper(argv);
     this.messagesHelper = new MessagesHelper(argv);
     this.show = new ShowCommand(this.apiHelper, this.messagesHelper);
-    this.login = new LoginCommand(this.apiHelper, this.messagesHelper);
-    this.dev = new DevCommand();
-    this.deploy = new DeployCommand();
+    this.gitService = new GitService();
+    this.login = new LoginCommand(this.apiHelper, this.messagesHelper, this.gitService);
+    this.dev = new DevCommand(this.gitService);
+    this.deploy = new DeployCommand(this.gitService);
   }
 
   public async run(argv: string[]): Promise<void> {
@@ -180,7 +184,11 @@ export class Command {
     } catch (e) {
       if (e instanceof NoTokenError) {
         if (!headless) {
-          const githubLogin = new GithubHelper(this.apiHelper, this.messagesHelper);
+          const githubLogin = new GithubHelper(
+            this.apiHelper,
+            this.messagesHelper,
+            this.gitService,
+          );
           await githubLogin.promptLogin(withToken);
           await fn();
         } else {

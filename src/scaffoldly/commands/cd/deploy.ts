@@ -9,17 +9,14 @@ import { EnvService } from './env';
 import { DockerService } from './docker';
 
 export class DeployCommand extends CdCommand {
-  gitService: GitService;
-
   envService: EnvService;
 
   awsService: AwsService;
 
   dockerService: DockerService;
 
-  constructor() {
-    super();
-    this.gitService = new GitService(this.cwd);
+  constructor(private gitService: GitService) {
+    super(gitService.cwd);
     this.envService = new EnvService(this.cwd, this.config);
     this.dockerService = new DockerService(this.config, new DockerCiService(this.cwd));
     this.awsService = new AwsService(

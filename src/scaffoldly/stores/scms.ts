@@ -1,104 +1,110 @@
 import { Octokit } from 'octokit';
-import os from 'os';
-import path from 'path';
+import { homedir, platform } from 'os';
+import { join } from 'path';
 import fs from 'fs';
-import { ERROR_LOADING_FILE, NOT_LOGGED_IN } from '../messages';
-import { ui } from '../command';
+import { NOT_LOGGED_IN } from '../messages';
 import { ApiHelper } from '../helpers/apiHelper';
 import { MessagesHelper } from '../helpers/messagesHelper';
-
-export const CONFIG_DIR = `${path.join(os.homedir(), '.scaffoldly')}`;
+import { parse } from 'yaml';
+import { GitService, Origin } from '../commands/cd/git';
 
 export type Scm = 'github';
-
-type GithubFile = {
-  login: string;
-  token: string;
-};
 
 export type ScmClients = {
   github?: Octokit;
 };
 
 export class NoTokenError extends Error {
-  constructor() {
-    super('No token!');
+  constructor(message?: string) {
+    super(message || 'No token!');
   }
 }
 
-export class Scms {
-  githubFile: string;
+type GhHostsFile = {
+  [host: string]: { oauth_token?: string; user?: string; git_protocol?: string };
+};
 
+export class Scms {
   constructor(
     private apiHelper: ApiHelper,
     private messagesHelper: MessagesHelper,
-    configDir = CONFIG_DIR,
-  ) {
-    this.githubFile = path.join(configDir, 'github-token.json');
+    private gitService: GitService,
+  ) {}
 
-    if (!fs.existsSync(configDir)) {
-      fs.mkdirSync(configDir, {
-        mode: 0o700,
-      });
+  private getTokenFromEnv(): string | undefined {
+    return process.env.GITHUB_TOKEN;
+  }
+
+  private getTokenFromGhCli(origin: Origin): string | undefined {
+    const searchPaths = [join(homedir(), join('.config', 'gh', 'hosts.yml'))];
+    if (platform() === 'win32' && process.env.APPDATA) {
+      searchPaths.push(join(process.env.APPDATA, 'GitHub CLI', 'hosts.yml'));
     }
+
+    const hostsPath = searchPaths.find((p) => fs.existsSync(p));
+    if (!hostsPath) {
+      return;
+    }
+
+    try {
+      const content = fs.readFileSync(hostsPath).toString();
+      const data = parse(content) as GhHostsFile;
+
+      const hostData = data[origin.host];
+      if (!hostData) {
+        return;
+      }
+
+      return hostData.oauth_token;
+    } catch (e) {
+      if (e instanceof Error) {
+        return;
+      }
+    }
+
+    return undefined;
   }
 
-  async loadClients(): Promise<ScmClients> {
-    const clients: ScmClients = {};
-    clients.github = this.getOctokit();
-    return clients;
-  }
-
-  public saveGithubToken(login: string, token?: string): string {
-    fs.writeFileSync(this.githubFile, JSON.stringify({ login, token } as GithubFile), {
-      mode: 0o600,
-    });
-    ui.updateBottomBar('');
-    console.log(`Token cached in: ${this.githubFile}`);
-    return this.githubFile;
-  }
-
-  public getGithubToken(withToken?: string): string | undefined {
+  public async getGithubToken(withToken?: string): Promise<string | undefined> {
     if (withToken) {
       return withToken;
     }
 
-    const githubFileExists = fs.existsSync(this.githubFile);
-
-    if (!githubFileExists) {
-      throw new NoTokenError();
-    }
-
-    try {
-      const { token } = JSON.parse(fs.readFileSync(this.githubFile).toString()) as GithubFile;
+    let token = this.getTokenFromEnv();
+    if (token) {
       return token;
-    } catch (e) {
-      if (e instanceof Error) {
-        ui.updateBottomBar('');
-        console.warn(ERROR_LOADING_FILE(this.githubFile, e));
-        return;
-      }
-      throw e;
     }
+
+    const origin = await this.gitService.origin;
+    if (!origin) {
+      throw new NoTokenError('Unable to determine origin');
+    }
+
+    token = this.getTokenFromGhCli(origin);
+
+    if (token) {
+      return token;
+    }
+
+    throw new Error("Couldn't find a GitHub token");
   }
 
-  private getOctokit(): Octokit | undefined {
-    const token = this.getGithubToken();
-    if (!token) {
-      return;
-    }
+  private async getOctokit(token: string): Promise<Octokit | undefined> {
     return this.apiHelper.githubApi(token);
   }
 
   public async getLogin(withToken?: string): Promise<string> {
-    const token = withToken || this.getGithubToken(withToken);
+    const token = await this.getGithubToken(withToken);
+
     if (!token) {
-      throw new Error('Unable to get token');
+      throw new NoTokenError('Unable to find a GitHub Token');
     }
 
-    const octokit = new Octokit({ auth: token });
+    const octokit = await this.getOctokit(token);
 
-    ui.updateBottomBar('Fetching GitHub identity...');
+    if (!octokit) {
+      throw new NoTokenError('Unable to create Octokit instance');
+    }
 
     try {
       const { data: user } = await octokit.rest.users.getAuthenticated();

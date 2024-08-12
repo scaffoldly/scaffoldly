@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "scaffoldly": "scaffoldly",
     "dev": "scaffoldly dev",
     "build": "scaffoldly build",
     "start": "scaffoldly start",

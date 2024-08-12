@@ -7,13 +7,9 @@ export type Cwd = string;
 export class Command {
   private _config: ScaffoldlyConfig;
 
-  constructor() {
+  constructor(public readonly cwd: string) {
     const packageJson = this.packageJson;
     this._config = new ScaffoldlyConfig(true, { packageJson });
-  }
-
-  get cwd(): Cwd {
-    return process.cwd();
   }
 
   get packageJson(): PackageJson {

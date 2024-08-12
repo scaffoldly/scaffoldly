@@ -3,26 +3,26 @@ import { event } from './events';
 import { ApiHelper } from './apiHelper';
 import { MessagesHelper } from './messagesHelper';
 import { NOT_LOGGED_IN } from '../messages';
+import { GitService } from '../commands/cd/git';
 
 export class GithubHelper {
   scms: Scms;
 
-  constructor(private apiHelper: ApiHelper, private messagesHelper: MessagesHelper) {
-    this.scms = new Scms(this.apiHelper, this.messagesHelper);
+  constructor(
+    private apiHelper: ApiHelper,
+    private messagesHelper: MessagesHelper,
+    private gitService: GitService,
+  ) {
+    this.scms = new Scms(this.apiHelper, this.messagesHelper, this.gitService);
   }
 
   async promptLogin(withToken?: string): Promise<void> {
     event('fn:promptLogin');
 
-    const accessToken = withToken || process.env.GITHUB_TOKEN;
+    const login = await this.scms.getLogin(withToken);
 
-    if (!accessToken) {
+    if (!login) {
       throw new Error(NOT_LOGGED_IN(this.messagesHelper.processName));
     }
-
-    const login = await this.scms.getLogin();
-
-    const location = this.scms.saveGithubToken(login, accessToken);
-    console.log(`Saved GitHub credentials to ${location}`);
   }
 }

@@ -4,6 +4,7 @@ import { Scms } from '../stores/scms';
 import { AwsHelper } from '../helpers/awsHelper';
 import { ui } from '../command';
 import { MessagesHelper } from '../helpers/messagesHelper';
+import { GitService } from './cd/git';
 
 export type ShowSubcommands = 'identity';
 
@@ -19,12 +20,15 @@ export type IdentityResponse = {
 };
 
 export class ShowCommand {
+  gitService: GitService;
+
   scms: Scms;
 
   awsHelper: AwsHelper;
 
   constructor(private apiHelper: ApiHelper, private messagesHelper: MessagesHelper) {
-    this.scms = new Scms(this.apiHelper, this.messagesHelper);
+    this.gitService = new GitService(process.cwd());
+    this.scms = new Scms(this.apiHelper, this.messagesHelper, this.gitService);
     this.awsHelper = new AwsHelper(this.apiHelper);
   }
 
@@ -46,12 +50,12 @@ export class ShowCommand {
   }
 
   public async fetchIdentity(withToken?: string): Promise<IdentityResponse> {
-    const accessToken = withToken || this.scms.getGithubToken(withToken);
+    const githubToken = await this.scms.getGithubToken(withToken);
     const identityResponse: IdentityResponse = {};
 
-    if (accessToken) {
+    if (githubToken) {
       identityResponse.github = {
-        identity: await this.scms.getLogin(withToken),
+        identity: await this.scms.getLogin(githubToken),
       };
     }
 
