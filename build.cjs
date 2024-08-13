@@ -5,7 +5,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 const { esbuildPluginTsc } = require('esbuild-plugin-tsc');
 
-if (fs.existsSync(path.join(__dirname, '.git'))) {
+if (fs.existsSync(path.join(__dirname, '..', '.git'))) {
   try {
     console.log("Activating Husky's Git hooks...");
     execSync(path.join(__dirname, 'node_modules', '.bin', 'husky'), { stdio: 'inherit' });
@@ -83,7 +83,7 @@ const build = async (ts, tsOptions) => {
   const esbuild = await import('esbuild');
   try {
     await esbuild.build({
-      entryPoints: ['src/scaffoldly.ts', 'src/awslambda-entrypoint.ts'],
+      entryPoints: ['src/scaffoldly.ts', 'src/github-action.ts', 'src/awslambda-entrypoint.ts'],
       bundle: true,
       outdir: 'dist',
       minify: true,

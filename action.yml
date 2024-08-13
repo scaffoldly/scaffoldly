@@ -1,0 +1,31 @@
+ame: Scaffoldly GitHub Action
+description: Deploy a Scaffoldly Application
+branding:
+  icon: 'arrow-up-circle'
+  color: 'gray-dark'
+inputs:
+  token:
+    description: The GitHub Token to use for deployment
+    required: false
+    default: ${{ github.token }}
+  role:
+    description: The AWS Role to use for deployment
+    required: true
+  destroy:
+    description: If the application should be destroyed
+    required: false
+    default: false
+outputs:
+  origin:
+    description: The URL of the deployed application
+  stage:
+    description: The inferred stage from the branch or PR name
+  deployed:
+    description: If the stack was deployed.
+  destroyed:
+    description: If the stack was destroyed.
+runs:
+  using: 'node20'
+  pre: 'dist/github-action.js'
+  main: 'dist/github-action.js'
+  post: 'dist/github-action.js'
