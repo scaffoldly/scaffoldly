@@ -31,15 +31,6 @@ const {
 } = process.env;
 
 export class Action {
-  private gitService: GitService;
-
-  private deployCommand: DeployCommand;
-
-  constructor() {
-    this.gitService = new GitService(this.cwd);
-    this.deployCommand = new DeployCommand(this.gitService);
-  }
-
   async pre(state: State): Promise<State> {
     state.stage = this.stage;
 
@@ -178,7 +169,8 @@ export class Action {
 
     await this.updateDeployment(state, 'in_progress');
 
-    console.log('!!! cwd', this.gitService.cwd);
+    const gitService = new GitService(this.cwd);
+    const deployCommand = new DeployCommand(gitService);
 
     if (state.action === 'destroy') {
       // TODO: Ensure not a protected branch
@@ -190,7 +182,7 @@ export class Action {
     if (state.action === 'deploy') {
       notice(`Deploying ${this.stage}...`);
 
-      await this.deployCommand.handle();
+      await deployCommand.handle();
       // await exec(['./node_modules/.bin/serverless', 'deploy', '--verbose', '--stage', this.stage]);
     }
 
