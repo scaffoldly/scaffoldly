@@ -8,6 +8,10 @@ inputs:
     description: The GitHub Token to use for deployment
     required: false
     default: ${{ github.token }}
+  working-directory:
+    description: The working directory to deploy from
+    required: false
+    default: '.'
   aws-role:
     description: The AWS Role to use for deployment
     required: true
