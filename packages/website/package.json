@@ -60,7 +60,7 @@
     ],
     "buildFiles": [
       "!node_modules",
-      "!package-lock.json"
+      "!yarn.lock"
     ],
     "services": [
       {
@@ -71,7 +71,7 @@
           "build"
         ],
         "scripts": {
-          "install": "npm install",
+          "install": "yarn",
           "build": "docusaurus build",
           "start": "serve build"
         }

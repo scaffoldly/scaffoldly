@@ -6,7 +6,7 @@ RUN npm install -g serve@14 --omit=dev --omit=optional --omit=peer && npm cache 
 FROM node:22-alpine as install-docusaurus
 WORKDIR /var/task
 COPY . /var/task/
-RUN npm install
+RUN yarn
 
 FROM install-base as build-base
 WORKDIR /var/task
