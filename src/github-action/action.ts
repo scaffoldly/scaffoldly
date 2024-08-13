@@ -35,7 +35,7 @@ export class Action {
   private deployCommand: DeployCommand;
 
   constructor() {
-    this.gitService = new GitService();
+    this.gitService = new GitService(this.cwd);
     this.deployCommand = new DeployCommand(this.gitService);
   }
 
@@ -61,11 +61,11 @@ export class Action {
     }
 
     const region =
-      getInput('awsRegion') ||
+      getInput('aws-region') ||
       process.env.AWS_DEFAULT_REGION ||
       process.env.AWS_REGION ||
       'us-east-1';
-    const role = getInput('awsRole') || process.env.SCAFFOLDLY_AWS_ROLE;
+    const role = getInput('aws-role') || process.env.SCAFFOLDLY_AWS_ROLE;
 
     const idToken = await this.idToken;
     const logsUrl = await this.logsUrl;
@@ -272,6 +272,16 @@ export class Action {
     });
   }
 
+  get cwd(): string {
+    const cwd = getInput('working-directory') || process.cwd();
+    try {
+      process.chdir(cwd);
+    } catch (e) {
+      throw new Error(`Unable to change working directory to ${cwd}: ${e.message}`);
+    }
+    return cwd;
+  }
+
   get stage(): string {
     const branchName = GITHUB_REF?.split('/').slice(2).join('/') || '';
     debug(`Branch Name: ${branchName}`);
@@ -311,7 +321,7 @@ export class Action {
   }
 
   get githubToken(): string {
-    const token = getInput('githubToken');
+    const token = getInput('github-token');
     if (!token) {
       throw new Error('Missing GITHUB_TOKEN');
     }

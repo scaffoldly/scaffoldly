@@ -4,14 +4,14 @@ branding:
   icon: 'arrow-up-circle'
   color: 'gray-dark'
 inputs:
-  githubToken:
+  github-token:
     description: The GitHub Token to use for deployment
     required: false
     default: ${{ github.token }}
-  awsRole:
+  aws-role:
     description: The AWS Role to use for deployment
     required: true
-  awsRegion:
+  aws-region:
     description: The AWS Region to deploy to
     required: true
     default: 'us-east-1'
