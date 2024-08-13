@@ -4,13 +4,17 @@ branding:
   icon: 'arrow-up-circle'
   color: 'gray-dark'
 inputs:
-  token:
+  githubToken:
     description: The GitHub Token to use for deployment
     required: false
     default: ${{ github.token }}
-  role:
+  awsRole:
     description: The AWS Role to use for deployment
     required: true
+  awsRegion:
+    description: The AWS Region to deploy to
+    required: true
+    default: 'us-east-1'
   destroy:
     description: If the application should be destroyed
     required: false

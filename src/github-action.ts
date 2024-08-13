@@ -1,6 +1,6 @@
 import { Action } from './github-action/action';
 import { State } from './github-action/state';
-import { setFailed, saveState, debug } from '@actions/core';
+import { setFailed, saveState, getState, debug } from '@actions/core';
 
 export const run = async (stage?: 'pre' | 'main' | 'post'): Promise<void> => {
   console.log('!!! stage', stage);
@@ -15,10 +15,10 @@ export const run = async (stage?: 'pre' | 'main' | 'post'): Promise<void> => {
         state = await action.pre(state);
         break;
       case 'main':
-        state = await action.main(state);
+        state = await action.main(JSON.parse(getState('state')) as State);
         break;
       case 'post':
-        state = await action.post(state);
+        state = await action.post(JSON.parse(getState('state')) as State);
         break;
       default:
         throw new Error(`Invalid stage: ${stage}`);

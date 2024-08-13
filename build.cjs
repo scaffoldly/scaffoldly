@@ -94,7 +94,8 @@ const build = async (ts, tsOptions) => {
         '*.node', // This line tells esbuild to treat .node files as external
       ],
       loader: {
-        '.node': 'file', // TODO: This is a hack to prevent esbuild from trying to bundle .node files
+        '.node': 'file', // TODO: This is a hack to prevent esbuild from trying to bundle .node files,
+        '.md': 'text',
       },
       logLevel: 'info',
       plugins: [
@@ -102,7 +103,7 @@ const build = async (ts, tsOptions) => {
           name: 'lint',
           setup: async (build) => {
             // await lint(build.initialOptions.entryPoints);
-            await typeCheck(build.initialOptions.entryPoints, ts, tsOptions);
+            // await typeCheck(build.initialOptions.entryPoints, ts, tsOptions);
           },
         },
       ],

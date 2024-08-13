@@ -5,6 +5,8 @@ on:
   push:
     branches: [main]
 
+permissions: write-all
+
 jobs:
   prerelease:
     runs-on: ubuntu-latest
@@ -42,5 +44,3 @@ jobs:
           cache-dependency-path: 'packages/website/yarn.lock'
       - run: yarn
       - uses: scaffoldly/scaffoldly@main
-        with:
-          role: 'arn:aws:iam::123456789012:role/MyRole'
