@@ -37,6 +37,7 @@ export const run = async (stage?: 'pre' | 'main' | 'post'): Promise<void> => {
     if (state.failed && state.shortMessage) {
       setFailed(state.shortMessage);
       state.shortMessage = undefined;
+      process.exit(1);
     }
 
     setOutput('stage', state.stage);
@@ -56,14 +57,3 @@ export const run = async (stage?: 'pre' | 'main' | 'post'): Promise<void> => {
     saveState('state', JSON.stringify(state));
   }
 };
-
-if (require.main === module) {
-  (async () => {
-    try {
-      await run();
-    } catch (e) {
-      console.error(e);
-      process.exit(-1);
-    }
-  })();
-}
