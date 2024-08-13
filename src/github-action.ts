@@ -1,8 +1,9 @@
 import { Action } from './github-action/action';
 import { State } from './github-action/state';
-import { setFailed, saveState, getState, debug, setOutput, summary } from '@actions/core';
+import { saveState, getState, debug, setOutput, summary } from '@actions/core';
 
 export const run = async (stage?: 'pre' | 'main' | 'post'): Promise<void> => {
+  console.log('!!! process.env', JSON.stringify(process.env));
   const action = new Action();
 
   let state: State = {};
@@ -35,8 +36,7 @@ export const run = async (stage?: 'pre' | 'main' | 'post'): Promise<void> => {
     }
   } finally {
     if (state.failed && state.shortMessage) {
-      setFailed(state.shortMessage);
-      state.shortMessage = undefined;
+      action.updateDeployment(state, 'failure');
       process.exit(1);
     }
 

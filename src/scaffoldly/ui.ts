@@ -1,5 +1,9 @@
 import inquirer from 'inquirer';
 
+export const isInteractive = (): boolean => {
+  return process.stdout.isTTY && process.stdin.isTTY;
+};
+
 export const isHeadless = (): boolean => {
   return !!process.argv.find((arg) => arg === '--headless');
 };
@@ -38,7 +42,7 @@ export class BottomBar {
       return;
     }
 
-    if (text && isDebug()) {
+    if (text && (isDebug() || !isInteractive())) {
       console.log(`${SECONDARY_SPACES}${text.trim()}`);
       return;
     }
@@ -51,7 +55,7 @@ export class BottomBar {
       return;
     }
 
-    if (text && isDebug()) {
+    if (text && (isDebug() || !isInteractive())) {
       console.log(text.trim());
       return;
     }

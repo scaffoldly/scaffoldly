@@ -1,4 +1,12 @@
-import { debug, getIDToken, exportVariable, notice, error, getInput } from '@actions/core';
+import {
+  debug,
+  getIDToken,
+  exportVariable,
+  notice,
+  error,
+  getInput,
+  setFailed,
+} from '@actions/core';
 import { context, getOctokit } from '@actions/github';
 import { warn } from 'console';
 import {
@@ -441,6 +449,10 @@ export class Action {
   ): Promise<State> {
     const octokit = getOctokit(this.githubToken);
     const { deploymentId, commentId } = state;
+
+    if (status === 'failure' && state.shortMessage) {
+      setFailed(state.shortMessage);
+    }
 
     if (deploymentId) {
       try {
