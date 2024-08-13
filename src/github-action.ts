@@ -2,16 +2,27 @@ import { Action } from './github-action/action';
 import { State } from './github-action/state';
 import { setFailed, saveState, debug } from '@actions/core';
 
-console.log('!!! process env', JSON.stringify(process.env));
-console.log('!!! process.argv', JSON.stringify(process.argv));
+export const run = async (stage?: 'pre' | 'main' | 'post'): Promise<void> => {
+  console.log('!!! stage', stage);
 
-export const run = async (): Promise<void> => {
   const action = new Action();
 
   let state: State = {};
 
   try {
-    state = await action.pre(state);
+    switch (stage) {
+      case 'pre':
+        state = await action.pre(state);
+        break;
+      case 'main':
+        state = await action.main(state);
+        break;
+      case 'post':
+        state = await action.post(state);
+        break;
+      default:
+        throw new Error(`Invalid stage: ${stage}`);
+    }
     debug('updated state: ' + JSON.stringify(state));
   } catch (e) {
     if (!(e instanceof Error)) {
