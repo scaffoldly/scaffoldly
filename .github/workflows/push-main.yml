@@ -40,9 +40,6 @@ jobs:
           cache: 'yarn'
           cache-dependency-path: packages/website/yarn.lock
 
-      - run: yarn
-        working-directory: packages/website
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 

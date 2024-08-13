@@ -26,7 +26,7 @@
     "rehype-prism": "^2.3.2",
     "remark-gfm": "^4.0.0",
     "remark-prism": "^1.3.6",
-    "scaffoldly": "1.0.19",
+    "scaffoldly": "file:../..",
     "serve": "^14.2.3"
   },
   "devDependencies": {
@@ -60,7 +60,7 @@
     ],
     "buildFiles": [
       "!node_modules",
-      "!yarn.lock"
+      "!package-lock.json"
     ],
     "services": [
       {
@@ -71,7 +71,7 @@
           "build"
         ],
         "scripts": {
-          "install": "yarn",
+          "install": "npm install",
           "build": "docusaurus build",
           "start": "serve build"
         }
