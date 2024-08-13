@@ -159,12 +159,13 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
   private _packages: string[];
 
   constructor(
-    private strict: boolean,
     configs: {
       packageJson?: PackageJson;
       serviceConfig?: IServiceConfig;
     } = {},
   ) {
+    console.log('!!! process env', process.env);
+
     // TODO Support Devcontainer JSON and scaffoldly.json
     const { packageJson, serviceConfig } = configs;
     this.packageJson = packageJson;
@@ -300,7 +301,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
   get services(): ScaffoldlyConfig[] {
     const { services = [] } = this.scaffoldly;
     return services.map((service, ix) => {
-      return new ScaffoldlyConfig(this.strict, {
+      return new ScaffoldlyConfig({
         packageJson: this.packageJson,
         serviceConfig: {
           id: service.id || '',

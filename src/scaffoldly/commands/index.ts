@@ -9,7 +9,7 @@ export class Command {
 
   constructor(public readonly cwd: string) {
     const packageJson = this.packageJson;
-    this._config = new ScaffoldlyConfig(true, { packageJson });
+    this._config = new ScaffoldlyConfig({ packageJson });
   }
 
   get packageJson(): PackageJson | undefined {
