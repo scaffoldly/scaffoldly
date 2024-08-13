@@ -3,6 +3,7 @@ import { State } from './github-action/state';
 import { setFailed, saveState, debug } from '@actions/core';
 
 console.log('!!! process env', JSON.stringify(process.env));
+console.log('!!! process.argv', JSON.stringify(process.argv));
 
 export const run = async (): Promise<void> => {
   const action = new Action();

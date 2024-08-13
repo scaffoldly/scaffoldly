@@ -26,6 +26,6 @@ outputs:
     description: If the stack was destroyed.
 runs:
   using: 'node20'
-  pre: 'dist/github-action.js'
-  main: 'dist/github-action.js'
-  post: 'dist/github-action.js'
+  pre: dist/github-action.js --pre
+  main: dist/github-action.js
+  post: dist/github-action.js --post
