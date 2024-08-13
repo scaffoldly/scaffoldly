@@ -1,10 +1,8 @@
 import { Action } from './github-action/action';
 import { State } from './github-action/state';
-import { setFailed, saveState, getState, debug } from '@actions/core';
+import { setFailed, saveState, getState, debug, setOutput, summary } from '@actions/core';
 
 export const run = async (stage?: 'pre' | 'main' | 'post'): Promise<void> => {
-  console.log('!!! stage', stage);
-
   const action = new Action();
 
   let state: State = {};
@@ -25,15 +23,34 @@ export const run = async (stage?: 'pre' | 'main' | 'post'): Promise<void> => {
     }
     debug('updated state: ' + JSON.stringify(state));
   } catch (e) {
+    debug(`Error: ${e}`);
+    state.failed = true;
+
     if (!(e instanceof Error)) {
       throw e;
     }
-    debug(`${e}`);
-    setFailed(e.message);
+
+    if (!state.shortMessage && e.message) {
+      state.shortMessage = e.message;
+    }
   } finally {
     if (state.failed && state.shortMessage) {
       setFailed(state.shortMessage);
       state.shortMessage = undefined;
+    }
+
+    setOutput('stage', state.stage);
+    setOutput('deployed', state.action === 'deploy');
+    setOutput('destroyed', state.action === 'destroy');
+
+    if (state.httpApiUrl) {
+      setOutput('httpApiUrl', state.httpApiUrl);
+    }
+
+    if (stage === 'post' && state.longMessage) {
+      summary.addRaw(state.longMessage, true);
+      await summary.write({ overwrite: true });
+      state.longMessage = undefined;
     }
 
     saveState('state', JSON.stringify(state));

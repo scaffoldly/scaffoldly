@@ -72,7 +72,7 @@ export class Action {
     try {
       if (!role || !role.trim()) {
         throw new Error(
-          `Unknown or missing role. Please make sure DEPLOYMENT_ROLE is set in GitHub Actions Variables.`,
+          `Unknown or missing role. Please make sure SCAFFOLDLY_AWS_ROLE is set in GitHub Actions Variables.`,
         );
       }
 
