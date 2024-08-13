@@ -9,14 +9,16 @@ type Differences = {
   [key: string]: unknown | Differences;
 };
 
-function getDifferences(subset: object, superset: object): Differences {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getDifferences(subset: any, superset: any): Differences {
   const differences: Differences = {};
 
   _.forEach(subset, (value, key) => {
     const supersetValue = (superset as Record<string, unknown>)[key];
 
     if (_.isObject(value) && !_.isArray(value)) {
-      const nestedDifferences = getDifferences(value as object, supersetValue as object);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const nestedDifferences = getDifferences(value as any, supersetValue as any);
       if (!_.isEmpty(nestedDifferences)) {
         differences[key] = nestedDifferences;
       }
@@ -39,6 +41,7 @@ export type ResourceExtractor<Resource, ReadCommandOutput> = (
 
 export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<Partial<Resource>> {
   private options: ResourceOptions = {};
+
   private desired?: Partial<ReadCommandOutput>;
 
   constructor(
@@ -57,6 +60,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
       | ((value: Partial<Resource>) => TResult1 | PromiseLike<TResult1>)
       | undefined
       | null,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null,
   ): PromiseLike<TResult1 | TResult2> {
     return this._manage(this.options, this.desired).then(onfulfilled, onrejected);
@@ -108,7 +112,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
   }
 
   public async dispose(): Promise<Partial<Resource>> {
-    let existing = await this;
+    const existing = await this;
 
     if (!existing) {
       return {} as Partial<Resource>;
@@ -299,7 +303,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
       label = description.label;
     }
 
-    let message = `${emoji ? `${emoji} ` : ''}${verb} ${type}`;
+    const message = `${emoji ? `${emoji} ` : ''}${verb} ${type}`;
     let resourceMessage = '';
 
     if (!resource) {

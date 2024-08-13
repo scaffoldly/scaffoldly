@@ -17,6 +17,8 @@ import {
 } from './messages';
 import { boolean } from 'boolean';
 import { State } from './state';
+import { GitService } from '../scaffoldly/commands/cd/git';
+import { DeployCommand } from '../scaffoldly/commands/cd/deploy';
 
 const {
   GITHUB_REPOSITORY,
@@ -28,6 +30,15 @@ const {
 } = process.env;
 
 export class Action {
+  private gitService: GitService;
+
+  private deployCommand: DeployCommand;
+
+  constructor() {
+    this.gitService = new GitService();
+    this.deployCommand = new DeployCommand(this.gitService);
+  }
+
   async pre(state: State): Promise<State> {
     state.stage = this.stage;
 
@@ -166,15 +177,17 @@ export class Action {
 
     await this.updateDeployment(state, 'in_progress');
 
-    // TODO: Add support for other CLI tools
+    console.log('!!! cwd', this.gitService.cwd);
 
     if (state.action === 'destroy') {
       notice(`Destroying ${this.stage}...`);
-      // await exec(['./node_modules/.bin/serverless', 'remove', '--verbose', '--stage', this.stage]);
+      throw new Error('Not implemented');
     }
 
     if (state.action === 'deploy') {
       notice(`Deploying ${this.stage}...`);
+
+      await this.deployCommand.handle();
       // await exec(['./node_modules/.bin/serverless', 'deploy', '--verbose', '--stage', this.stage]);
     }
 

@@ -7,18 +7,22 @@ import {
   LambdaClient,
   UpdateFunctionCodeCommand,
   UpdateFunctionConfigurationCommand,
+  // eslint-disable-next-line import/named
   FunctionConfiguration,
+  // eslint-disable-next-line import/named
   AddPermissionRequest,
   Architecture,
+  // eslint-disable-next-line import/named
   GetFunctionCommandOutput,
+  // eslint-disable-next-line import/named
   GetFunctionUrlConfigCommandOutput,
   UpdateFunctionUrlConfigCommand,
   GetPolicyCommand,
+  // eslint-disable-next-line import/named
   GetPolicyCommandOutput,
 } from '@aws-sdk/client-lambda';
 import { ScaffoldlyConfig } from '../../../../config';
 import { IamConsumer, PolicyDocument, TrustRelationship } from './iam';
-import _ from 'lodash';
 import { DeployStatus } from '.';
 import { CloudResource, ResourceOptions } from '..';
 import { EnvService } from '../env';

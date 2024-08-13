@@ -6,7 +6,9 @@ import {
   PutRolePolicyCommand,
   UpdateAssumeRolePolicyCommand,
   GetRolePolicyCommand,
+  // eslint-disable-next-line import/named
   GetRoleCommandOutput,
+  // eslint-disable-next-line import/named
   GetRolePolicyCommandOutput,
 } from '@aws-sdk/client-iam';
 import { CloudResource, ResourceOptions } from '..';
@@ -120,7 +122,7 @@ export class IamService {
       consumers.map((consumer) => consumer.policyDocument),
     );
 
-    await new CloudResource<{ roleName: String; policyName: string }, GetRolePolicyCommandOutput>(
+    await new CloudResource<{ roleName: string; policyName: string }, GetRolePolicyCommandOutput>(
       {
         describe: (resource) => {
           return { type: 'IAM Role Policy', label: resource.policyName };

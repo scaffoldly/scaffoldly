@@ -4,6 +4,7 @@ import {
   CreateSecretCommand,
   DescribeSecretCommand,
   PutSecretValueCommand,
+  // eslint-disable-next-line import/named
   DescribeSecretCommandOutput,
 } from '@aws-sdk/client-secrets-manager';
 import { CloudResource, ResourceOptions } from '..';

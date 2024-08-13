@@ -3,6 +3,7 @@ import {
   CreateRepositoryCommand,
   DescribeRepositoriesCommand,
   GetAuthorizationTokenCommand,
+  // eslint-disable-next-line import/named
   Repository,
   // eslint-disable-next-line import/named
   DescribeRepositoriesCommandOutput,
