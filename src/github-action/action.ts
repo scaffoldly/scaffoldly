@@ -19,6 +19,7 @@ import { boolean } from 'boolean';
 import { State } from './state';
 import { GitService } from '../scaffoldly/commands/cd/git';
 import { DeployCommand } from '../scaffoldly/commands/cd/deploy';
+import path from 'path';
 
 const {
   GITHUB_REPOSITORY,
@@ -273,12 +274,18 @@ export class Action {
   }
 
   get cwd(): string {
-    const cwd = getInput('working-directory') || process.cwd();
-    try {
-      process.chdir(cwd);
-    } catch (e) {
-      throw new Error(`Unable to change working directory to ${cwd}: ${e.message}`);
+    const workingDirectory = getInput('working-directory') || undefined;
+    let cwd = process.cwd();
+
+    if (workingDirectory) {
+      cwd = path.join(cwd, workingDirectory);
+      try {
+        process.chdir(cwd);
+      } catch (e) {
+        throw new Error(`Unable to change working directory to ${cwd}: ${e.message}`);
+      }
     }
+
     return cwd;
   }
 
