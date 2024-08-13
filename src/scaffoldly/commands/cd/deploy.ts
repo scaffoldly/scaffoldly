@@ -28,6 +28,8 @@ export class DeployCommand extends CdCommand {
   }
 
   async handle(): Promise<void> {
+    console.log('!!! process env', JSON.stringify(process.env));
+
     event('deploy');
 
     const options: ResourceOptions = {}; // TODO: Add options

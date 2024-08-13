@@ -180,6 +180,8 @@ export class Action {
     console.log('!!! cwd', this.gitService.cwd);
 
     if (state.action === 'destroy') {
+      // TODO: Ensure not a protected branch
+      //       - If so, make sure destroy on action is explicitly set
       notice(`Destroying ${this.stage}...`);
       throw new Error('Not implemented');
     }

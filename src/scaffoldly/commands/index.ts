@@ -12,10 +12,14 @@ export class Command {
     this._config = new ScaffoldlyConfig(true, { packageJson });
   }
 
-  get packageJson(): PackageJson {
-    const packageJson = JSON.parse(readFileSync(join(this.cwd, 'package.json'), 'utf8'));
+  get packageJson(): PackageJson | undefined {
+    try {
+      const packageJson = JSON.parse(readFileSync(join(this.cwd, 'package.json'), 'utf8'));
 
-    return packageJson;
+      return packageJson;
+    } catch (e) {
+      return undefined;
+    }
   }
 
   get config(): ScaffoldlyConfig {

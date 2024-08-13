@@ -346,4 +346,8 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
   }
 }
 
-export class CdCommand extends Command {}
+export class CdCommand extends Command {
+  constructor(public readonly cwd: string) {
+    super(cwd);
+  }
+}
