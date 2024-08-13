@@ -44,3 +44,5 @@ jobs:
           cache-dependency-path: 'packages/website/yarn.lock'
       - run: yarn
       - uses: scaffoldly/scaffoldly@main
+        with:
+          awsRole: 'arn:aws:iam::557208059266:role/github'
