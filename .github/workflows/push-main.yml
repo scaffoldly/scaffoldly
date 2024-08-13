@@ -31,19 +31,25 @@ jobs:
 
   deploy-website:
     runs-on: ubuntu-latest
-    needs: prerelease
+    # needs: prerelease
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'yarn'
-          cache-dependency-path: 'packages/website/yarn.lock'
+          cache-dependency-path: |
+            yarn.lock
+            packages/website/yarn.lock
+
+      - run: yarn && yarn build
+        working-directory: .
 
       - run: yarn
         working-directory: packages/website
 
-      - uses: scaffoldly/scaffoldly@main
+      # DEVNOTE: Any changes to pre won't show up until the next push
+      - uses: ./
         with:
           aws-role: 'arn:aws:iam::557208059266:role/github'
           working-directory: packages/website

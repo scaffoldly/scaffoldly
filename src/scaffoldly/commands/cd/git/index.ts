@@ -46,7 +46,6 @@ export class GitService {
       })
       .then((remote) =>
         this.git.remote(['show', remote?.name || 'origin']).then((show) => {
-          console.log('!!! remote', remote);
           if (!show) {
             return undefined;
           }

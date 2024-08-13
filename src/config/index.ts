@@ -164,8 +164,6 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
       serviceConfig?: IServiceConfig;
     } = {},
   ) {
-    console.log('!!! process env', process.env);
-
     // TODO Support Devcontainer JSON and scaffoldly.json
     const { packageJson, serviceConfig } = configs;
     this.packageJson = packageJson;

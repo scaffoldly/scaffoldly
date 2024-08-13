@@ -99,6 +99,7 @@ export class Action {
       }
 
       exportVariable('AWS_DEFAULT_REGION', region);
+      exportVariable('AWS_REGION', region);
       exportVariable('AWS_ACCESS_KEY_ID', accessKeyId);
       exportVariable('AWS_SECRET_ACCESS_KEY', secretAccessKey);
       exportVariable('AWS_SESSION_TOKEN', sessionToken);
