@@ -118,7 +118,7 @@ export class DockerService {
   private imageDigest?: string;
 
   constructor(private cwd: string) {
-    this.docker = new Docker();
+    this.docker = new Docker({ version: 'v1.46' });
   }
 
   private handleDockerEvent(type: 'Pull' | 'Build' | 'Push', event: DockerEvent) {
@@ -226,7 +226,7 @@ export class DockerService {
     const buildStream = await this.docker.buildImage(stream, {
       dockerfile: dockerfilePath.replace(this.cwd, DEFAULT_SRC_ROOT),
       t: imageName,
-      // version: '2', // FYI: Not in the type
+      version: '2', // FYI: Not in the type
     } as ImageBuildOptions);
 
     await new Promise<DockerEvent[]>((resolve, reject) => {
@@ -526,7 +526,7 @@ export class DockerService {
   };
 
   renderSpec = (mode: Script, spec: DockerFileSpec | undefined, ix: number): string => {
-    const lines = ['# syntax=docker/dockerfile:1.9'];
+    const lines = [];
 
     if (!spec) {
       if (isDebug()) {
