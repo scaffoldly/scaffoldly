@@ -226,6 +226,8 @@ export class DockerService {
     const buildStream = await this.docker.buildImage(stream, {
       dockerfile: dockerfilePath.replace(this.cwd, DEFAULT_SRC_ROOT),
       t: imageName,
+      q: true,
+      pull: 'always',
       version: '2', // FYI: Not in the type
     } as ImageBuildOptions);
 
