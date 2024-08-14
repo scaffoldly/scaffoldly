@@ -153,6 +153,8 @@ export class DockerService {
     mode: Script,
     env?: Record<string, string>,
   ): Promise<string> {
+    await this.getImages(config.runtimes);
+
     const stages = await this.createStages(config, mode, env);
 
     if (isDebug()) {
@@ -227,7 +229,6 @@ export class DockerService {
       dockerfile: dockerfilePath.replace(this.cwd, DEFAULT_SRC_ROOT),
       t: imageName,
       q: true,
-      pull: 'always',
       version: '2', // FYI: Not in the type
     } as ImageBuildOptions);
 
@@ -678,6 +679,12 @@ export class DockerService {
     ) as AuxEvent<AuxDigestEvent>;
 
     this.imageDigest = event?.aux?.Digest;
+  }
+
+  private async getImages(runtimes: string[]): Promise<Docker.ImageInspectInfo[]> {
+    const images = await Promise.all(runtimes.map((runtime) => this.getImage(runtime)));
+
+    return images.filter((image) => !!image) as Docker.ImageInspectInfo[];
   }
 
   private async getImage(runtime: string): Promise<Docker.ImageInspectInfo | undefined> {

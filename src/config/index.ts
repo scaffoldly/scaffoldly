@@ -416,6 +416,11 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
     return resources;
   }
 
+  get runtimes(): string[] {
+    const runtimes = [this.runtime, ...this.services.map((service) => service.runtime)];
+    return [...new Set(runtimes)];
+  }
+
   encode = (): string => {
     return `${pkg.name}@${pkg.version}:${base58.encode(
       new TextEncoder().encode(
