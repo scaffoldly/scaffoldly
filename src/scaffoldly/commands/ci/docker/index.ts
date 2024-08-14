@@ -118,7 +118,7 @@ export class DockerService {
   private imageDigest?: string;
 
   constructor(private cwd: string) {
-    this.docker = new Docker({ version: 'v1.46' });
+    this.docker = new Docker({ version: 'v1.45' });
   }
 
   private handleDockerEvent(type: 'Pull' | 'Build' | 'Push', event: DockerEvent) {
