@@ -40,14 +40,14 @@ jobs:
           cache: 'npm'
           cache-dependency-path: packages/website/package-lock.json
 
-      - run: |
-          npm install
-          npm run --silent scaffoldly -- dockerfile > Dockerfile
-          cat Dockerfile
-          docker build . -f Dockerfile
-        working-directory: packages/website
+      # - run: |
+      #     npm install
+      #     npm run --silent scaffoldly -- dockerfile > Dockerfile
+      #     cat Dockerfile
+      #   working-directory: packages/website
+      # - run: do
 
-      # - uses: scaffoldly/scaffoldly@main
-      #   with:
-      #     aws-role: 'arn:aws:iam::557208059266:role/github'
-      #     working-directory: packages/website
+      - uses: scaffoldly/scaffoldly@main
+        with:
+          aws-role: 'arn:aws:iam::557208059266:role/github'
+          working-directory: packages/website
