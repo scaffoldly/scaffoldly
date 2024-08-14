@@ -526,7 +526,7 @@ export class DockerService {
   };
 
   renderSpec = (mode: Script, spec: DockerFileSpec | undefined, ix: number): string => {
-    const lines = [];
+    const lines = ['# syntax=docker/dockerfile:1.9'];
 
     if (!spec) {
       if (isDebug()) {
