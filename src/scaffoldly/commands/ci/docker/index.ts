@@ -122,7 +122,7 @@ export class DockerService {
   }
 
   private handleDockerEvent(type: 'Pull' | 'Build' | 'Push', event: DockerEvent) {
-    console.log('!!! Docker Event:', event);
+    // console.log('!!! Docker Event:', event);
 
     if ('stream' in event && typeof event.stream === 'string') {
       if (isDebug()) {
