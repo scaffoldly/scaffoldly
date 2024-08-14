@@ -43,7 +43,7 @@ export class BottomBar {
     }
 
     if (text && (isDebug() || !isInteractive())) {
-      console.log(`${SECONDARY_SPACES}${text.trim()}`);
+      this.stream.write(`${SECONDARY_SPACES}${text.trim()}\n`);
       return;
     }
 
@@ -56,7 +56,7 @@ export class BottomBar {
     }
 
     if (text && (isDebug() || !isInteractive())) {
-      console.log(text.trim());
+      this.stream.write(`${text.trim()}\n`);
       return;
     }
 

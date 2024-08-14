@@ -148,6 +148,20 @@ export class DockerService {
     return { imageName: this.imageName, imageTag: this.imageTag, entrypoint: ['.entrypoint'] };
   }
 
+  async generateDockerfile(
+    config: ScaffoldlyConfig,
+    mode: Script,
+    env?: Record<string, string>,
+  ): Promise<string> {
+    const stages = await this.createStages(config, mode, env);
+
+    if (isDebug()) {
+      console.log('Stages:', JSON.stringify(stages));
+    }
+
+    return this.renderStages(stages);
+  }
+
   async build(
     config: ScaffoldlyConfig,
     mode: Script,
@@ -167,7 +181,7 @@ export class DockerService {
 
     // todo add dockerfile to tar instead of writing it to cwd
     // const dockerfile = this.renderSpec(spec);
-    const dockerfile = this.renderStages(stages);
+    const dockerfile = await this.generateDockerfile(config, mode, env);
 
     const dockerfilePath = join(this.cwd, `Dockerfile.${mode}`) as Path;
     writeFileSync(dockerfilePath, Buffer.from(dockerfile, 'utf-8'));
@@ -530,7 +544,7 @@ export class DockerService {
 
     const { copy, workdir, env = {}, run, paths = [], cmd, shell } = spec;
 
-    const from = spec.as ? `${spec.from} as ${spec.as}` : spec.from;
+    const from = spec.as ? `${spec.from} AS ${spec.as}` : spec.from;
 
     lines.push(`FROM ${from}`);
     if (workdir) lines.push(`WORKDIR ${workdir}`);
@@ -622,7 +636,7 @@ export class DockerService {
     }
 
     if (cmd) {
-      lines.push(`CMD ${cmd.toString({})}`);
+      lines.push(`CMD [ "${cmd.toString({})}" ]`);
     }
 
     const dockerfile = lines.join('\n');

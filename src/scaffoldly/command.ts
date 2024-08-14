@@ -1,10 +1,9 @@
 import { hideBin } from 'yargs/helpers';
 import { isAxiosError } from 'axios';
-import { OutputType, ShowCommand, ShowSubcommands } from './commands/show';
+import { ShowCommand, ShowSubcommands } from './commands/show';
 import inquirer, { Answers, QuestionCollection } from 'inquirer';
 import { NoTokenError } from './stores/scms';
 import { GithubHelper } from './helpers/githubHelper';
-import { LoginCommand } from './commands/login';
 import { MessagesHelper } from './helpers/messagesHelper';
 import { version } from '../../package.json';
 import { ApiHelper } from './helpers/apiHelper';
@@ -22,7 +21,7 @@ process.addListener('SIGINT', () => {
   process.exit(0);
 });
 
-export const ui = new BottomBar(outputStream);
+export const ui = new BottomBar(process.stderr);
 
 export const prompt = (
   field: string,
@@ -41,8 +40,6 @@ export class Command {
 
   private messagesHelper: MessagesHelper;
 
-  private login: LoginCommand;
-
   private dev: DevCommand;
 
   private deploy: DeployCommand;
@@ -54,11 +51,10 @@ export class Command {
   constructor(argv: string[]) {
     this.apiHelper = new ApiHelper(argv);
     this.messagesHelper = new MessagesHelper(argv);
-    this.show = new ShowCommand(this.apiHelper, this.messagesHelper);
     this.gitService = new GitService();
-    this.login = new LoginCommand(this.apiHelper, this.messagesHelper, this.gitService);
     this.dev = new DevCommand(this.gitService);
     this.deploy = new DeployCommand(this.gitService);
+    this.show = new ShowCommand(this.apiHelper, this.messagesHelper, this.gitService);
   }
 
   public async run(argv: string[]): Promise<void> {
@@ -68,14 +64,9 @@ export class Command {
       .command({
         command: 'identity',
         describe: `Show the current user identity`,
-        handler: ({ withToken, output }) =>
+        handler: ({ withToken }) =>
           this.loginWrapper(
-            () =>
-              this.show.handle(
-                'identity' as ShowSubcommands,
-                withToken as string | undefined,
-                output as OutputType | undefined,
-              ),
+            () => this.show.handle('identity' as ShowSubcommands, withToken as string | undefined),
             isHeadless(),
             withToken as string | undefined,
           ),
@@ -83,24 +74,16 @@ export class Command {
           withToken: {
             demand: false,
             type: 'string',
-            description: 'Skip authentication and save the provided token to ~/.scaffoldly/',
-          },
-          output: {
-            alias: 'o',
-            demand: false,
-            type: 'string',
-            description: 'Output format',
-            choices: ['table', 'json'],
-            default: 'table',
+            description: 'Use a provided GitHub Token',
           },
         },
       })
       .command({
-        command: 'login',
-        describe: `Login to Scaffoldly`,
+        command: 'dockerfile',
+        describe: `Show the generated dockerfile`,
         handler: ({ withToken }) =>
           this.loginWrapper(
-            () => this.login.handle(withToken as string | undefined),
+            () => this.show.handle('dockerfile' as ShowSubcommands),
             isHeadless(),
             withToken as string | undefined,
           ),
@@ -108,7 +91,7 @@ export class Command {
           withToken: {
             demand: false,
             type: 'string',
-            description: 'Skip authentication and save the provided token to ~/.scaffoldly/',
+            description: 'Use a provided GitHub Token',
           },
         },
       })
@@ -121,7 +104,7 @@ export class Command {
           withToken: {
             demand: false,
             type: 'string',
-            description: 'Skip authentication and save the provided token to ~/.scaffoldly/',
+            description: 'Use a provided GitHub Token',
           },
         },
       })
@@ -138,7 +121,7 @@ export class Command {
           withToken: {
             demand: false,
             type: 'string',
-            description: 'Skip authentication and save the provided token to ~/.scaffoldly/',
+            description: 'Use a provided GitHub token',
           },
         },
       })

@@ -2,11 +2,14 @@ import { event } from '../helpers/events';
 import { ApiHelper } from '../helpers/apiHelper';
 import { Scms } from '../stores/scms';
 import { AwsHelper } from '../helpers/awsHelper';
-import { ui } from '../command';
 import { MessagesHelper } from '../helpers/messagesHelper';
 import { GitService } from './cd/git';
+import { DockerService } from './ci/docker';
+import { Command } from '.';
+import { ui } from '../command';
+import { EnvService } from './cd/env';
 
-export type ShowSubcommands = 'identity';
+export type ShowSubcommands = 'identity' | 'dockerfile';
 
 export type OutputType = 'table' | 'json';
 
@@ -19,28 +22,39 @@ export type IdentityResponse = {
   };
 };
 
-export class ShowCommand {
+export class ShowCommand extends Command {
   gitService: GitService;
 
   scms: Scms;
 
   awsHelper: AwsHelper;
 
-  constructor(private apiHelper: ApiHelper, private messagesHelper: MessagesHelper) {
+  dockerService: DockerService;
+
+  envService: EnvService;
+
+  constructor(
+    private apiHelper: ApiHelper,
+    private messagesHelper: MessagesHelper,
+    gitService: GitService,
+  ) {
+    super(gitService.cwd);
     this.gitService = new GitService(process.cwd());
     this.scms = new Scms(this.apiHelper, this.messagesHelper, this.gitService);
     this.awsHelper = new AwsHelper(this.apiHelper);
+    this.dockerService = new DockerService(this.cwd);
+    this.envService = new EnvService(this.cwd, this.config);
   }
 
-  public async handle(
-    subcommand: ShowSubcommands,
-    withToken?: string,
-    output: 'table' | 'json' = 'table',
-  ): Promise<void> {
+  public async handle(subcommand: ShowSubcommands, withToken?: string): Promise<void> {
     switch (subcommand) {
       case 'identity': {
         event('show', subcommand);
-        return this.showIdentity(withToken, output);
+        return this.showIdentity(withToken);
+      }
+      case 'dockerfile': {
+        event('show', subcommand);
+        return this.showDockerfile();
       }
       default:
         break;
@@ -69,14 +83,21 @@ export class ShowCommand {
     return identityResponse;
   }
 
-  private async showIdentity(withToken?: string, output?: string): Promise<void> {
+  private async showIdentity(withToken?: string): Promise<void> {
     const identity = await this.fetchIdentity(withToken);
 
     ui.updateBottomBar('');
-    if (output === 'json') {
-      console.log(JSON.stringify(identity, null, 2));
-    } else {
-      console.table(identity);
-    }
+    console.table(identity);
+  }
+
+  private async showDockerfile(): Promise<void> {
+    ui.updateBottomBar('Generating Dockerfile...');
+    const dockerfile = await this.dockerService.generateDockerfile(
+      this.config,
+      'build',
+      this.envService.buildEnv,
+    );
+    ui.updateBottomBar('');
+    console.log(dockerfile);
   }
 }
