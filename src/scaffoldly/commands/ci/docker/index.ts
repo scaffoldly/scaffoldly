@@ -122,7 +122,7 @@ export class DockerService {
   }
 
   private handleDockerEvent(type: 'Pull' | 'Build' | 'Push', event: DockerEvent) {
-    process.stderr.write(`!!! Docker Event: ${JSON.stringify(event)}\n`);
+    // process.stderr.write(`!!! Docker Event: ${JSON.stringify(event)}\n`);
 
     if ('stream' in event && typeof event.stream === 'string') {
       if (isDebug()) {
