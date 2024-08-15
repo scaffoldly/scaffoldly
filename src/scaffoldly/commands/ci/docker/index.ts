@@ -13,7 +13,7 @@ import { join, relative, sep } from 'path';
 import { ui } from '../../../command';
 import { isDebug } from '../../../ui';
 import { BufferedWriteStream } from './util';
-import { Architecture } from '../../cd/docker';
+import { Platform } from '../../cd/docker';
 import { PackageService } from './packages';
 import micromatch from 'micromatch';
 
@@ -122,8 +122,6 @@ export class DockerService {
   }
 
   private handleDockerEvent(type: 'Pull' | 'Build' | 'Push', event: DockerEvent) {
-    // process.stderr.write(`!!! Docker Event: ${JSON.stringify(event)}\n`);
-
     if ('stream' in event && typeof event.stream === 'string') {
       if (isDebug()) {
         ui.updateBottomBarSubtext(event.stream);
@@ -167,6 +165,7 @@ export class DockerService {
   async build(
     config: ScaffoldlyConfig,
     mode: Script,
+    platform: Platform,
     repositoryUri?: string,
     env?: Record<string, string>,
   ): Promise<void> {
@@ -229,6 +228,7 @@ export class DockerService {
       dockerfile: dockerfilePath.replace(this.cwd, DEFAULT_SRC_ROOT),
       t: imageName,
       q: true,
+      platform,
       version: '2', // FYI: Not in the type
     } as ImageBuildOptions);
 
@@ -715,7 +715,7 @@ export class DockerService {
     return image;
   }
 
-  public async getArchitecture(runtime: string): Promise<Architecture> {
+  public async getPlatform(runtime: string): Promise<Platform> {
     const image = await this.getImage(runtime);
 
     if (!image) {
@@ -726,8 +726,9 @@ export class DockerService {
 
     switch (architecture) {
       case 'amd64':
+        return 'linux/amd64';
       case 'arm64':
-        return architecture as Architecture;
+        return 'linux/arm64';
       default:
         throw new Error(`Unsupported architecture: ${architecture}`);
     }

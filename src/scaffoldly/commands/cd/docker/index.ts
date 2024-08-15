@@ -4,7 +4,7 @@ import { ScaffoldlyConfig } from '../../../../config';
 import { DeployStatus } from '../aws';
 import { RegistryAuthConsumer } from '../aws/ecr';
 
-export type Architecture = 'arm64' | 'amd64';
+export type Platform = 'linux/amd64' | 'linux/arm64';
 
 export type DockerDeployStatus = {
   imageTag?: string;
@@ -19,8 +19,8 @@ export class DockerService {
     this.config = config;
   }
 
-  get architecture(): Promise<Architecture> {
-    return this.dockerCiService.getArchitecture(this.config.runtime);
+  get platform(): Promise<Platform> {
+    return this.dockerCiService.getPlatform(this.config.runtime);
   }
 
   public async deploy(
@@ -30,6 +30,22 @@ export class DockerService {
   ): Promise<DeployStatus> {
     const dockerStatus: DockerDeployStatus = {};
 
+    let platform: Platform;
+
+    switch (status.functionArchitecture) {
+      // Function architecture is already known, so use it
+      // In case the image was deployed initially with a different architecture
+      // We can use multi platform builds to stay consistent
+      case 'arm64':
+        platform = 'linux/arm64';
+        break;
+      case 'x86_64':
+        platform = 'linux/amd64';
+        break;
+      default:
+        platform = await this.platform;
+    }
+
     const { imageName, imageTag } = await new CloudResource<BuildInfo, BuildInfo>(
       {
         describe: (resource) => {
@@ -37,7 +53,13 @@ export class DockerService {
         },
         read: () => this.dockerCiService.describeBuild(),
         update: () =>
-          this.dockerCiService.build(this.config, 'build', status.repositoryUri, status.buildEnv),
+          this.dockerCiService.build(
+            this.config,
+            'build',
+            platform,
+            status.repositoryUri,
+            status.buildEnv,
+          ),
       },
       (existing) => existing,
     ).manage(options);

@@ -74,17 +74,17 @@ export class LambdaService implements IamConsumer {
   ): Promise<FunctionConfiguration> {
     const { name } = this.config;
 
-    const { architecture } = status;
-    const architectures: Architecture[] = [];
-    switch (architecture) {
-      case 'arm64':
-        architectures.push('arm64');
+    const { platform } = status;
+    let architectures: Architecture[];
+    switch (platform) {
+      case 'linux/arm64':
+        architectures = ['arm64'];
         break;
-      case 'amd64':
-        architectures.push('x86_64');
+      case 'linux/amd64':
+        architectures = ['x86_64'];
         break;
       default:
-        throw new Error(`Unsupported architecture: ${architecture}`);
+        throw new Error(`Unsupported platform: ${platform}`);
     }
 
     const desired: Partial<GetFunctionCommandOutput> = {

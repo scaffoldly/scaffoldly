@@ -14,10 +14,10 @@ import { CloudResource, ResourceOptions } from '..';
 import {} from '@smithy/types';
 import { NotFoundException } from './errors';
 import { DeployStatus } from '.';
-import { Architecture, DockerService } from '../docker';
+import { Platform, DockerService } from '../docker';
 
 export type EcrDeployStatus = {
-  architecture?: Architecture;
+  platform?: Platform;
   repositoryUri?: string;
 };
 
@@ -53,8 +53,8 @@ export class EcrService implements RegistryAuthConsumer {
 
     ecrDeployStatus.repositoryUri = repository.repositoryUri;
 
-    const architecture = await this.dockerService.architecture;
-    ecrDeployStatus.architecture = architecture;
+    const platform = await this.dockerService.platform;
+    ecrDeployStatus.platform = platform;
 
     return { ...status, ...ecrDeployStatus };
   }
