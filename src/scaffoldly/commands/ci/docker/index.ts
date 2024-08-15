@@ -23,6 +23,8 @@ export type PushInfo = { imageName?: string; imageDigest?: string };
 const BASE = 'base';
 type Path = string;
 
+export type Architecture = 'x86_64' | 'arm64';
+
 type Copy = {
   from?: string;
   src: string;
@@ -151,8 +153,6 @@ export class DockerService {
     mode: Script,
     env?: Record<string, string>,
   ): Promise<string> {
-    await this.getImages(config.runtimes);
-
     const stages = await this.createStages(config, mode, env);
 
     if (isDebug()) {
@@ -165,7 +165,7 @@ export class DockerService {
   async build(
     config: ScaffoldlyConfig,
     mode: Script,
-    platform: Platform,
+    architecture?: Architecture,
     repositoryUri?: string,
     env?: Record<string, string>,
   ): Promise<void> {
@@ -222,6 +222,8 @@ export class DockerService {
     if (!runtime) {
       throw new Error('Missing runtime');
     }
+
+    const platform = await this.getPlatform(config.runtimes, architecture);
 
     // TODO: Multi-platform
     const buildStream = await this.docker.buildImage(stream, {
@@ -681,19 +683,40 @@ export class DockerService {
     this.imageDigest = event?.aux?.Digest;
   }
 
-  private async getImages(runtimes: string[]): Promise<Docker.ImageInspectInfo[]> {
-    const images = await Promise.all(runtimes.map((runtime) => this.getImage(runtime)));
+  private async getImages(
+    runtimes: string[],
+    architecture?: Architecture,
+  ): Promise<Docker.ImageInspectInfo[]> {
+    const images = await Promise.all(
+      runtimes.map((runtime) => this.getImage(runtime, architecture)),
+    );
 
     return images.filter((image) => !!image) as Docker.ImageInspectInfo[];
   }
 
-  private async getImage(runtime: string): Promise<Docker.ImageInspectInfo | undefined> {
+  private async getImage(
+    runtime: string,
+    architecture?: Architecture,
+  ): Promise<Docker.ImageInspectInfo | undefined> {
+    ui.updateBottomBarSubtext(`Inspecting image: ${runtime}`);
     let image: Docker.ImageInspectInfo | undefined = undefined;
+
+    let platform: Platform | undefined = undefined;
+    switch (architecture) {
+      case 'x86_64':
+        platform = 'linux/amd64';
+        break;
+      case 'arm64':
+        platform = 'linux/arm64';
+        break;
+      default:
+        break;
+    }
 
     try {
       image = await this.docker.getImage(runtime).inspect();
     } catch (e) {
-      const pullStream = await this.docker.pull(runtime);
+      const pullStream = await this.docker.pull(runtime, { platform });
 
       await new Promise<DockerEvent[]>((resolve, reject) => {
         this.docker.modem.followProgress(
@@ -715,22 +738,30 @@ export class DockerService {
     return image;
   }
 
-  public async getPlatform(runtime: string): Promise<Platform> {
-    const image = await this.getImage(runtime);
+  public async getPlatform(runtimes: string[], architecture?: Architecture): Promise<Platform> {
+    const images = await this.getImages(runtimes, architecture);
 
-    if (!image) {
-      throw new Error(`Failed to get image for ${runtime}`);
+    if (!images || !images.length) {
+      throw new Error(`Failed to get images for ${runtimes}`);
     }
 
-    const architecture = image.Architecture;
+    const primaryArchitecture = images[0].Architecture;
 
-    switch (architecture) {
+    if (images.some((image) => image.Architecture !== primaryArchitecture)) {
+      // TODO: this could theoretically be ok and we could just throw a warning
+      //       but it really depends on what the developer builds in the subservices
+      throw new Error(
+        `All runtimes (${runtimes}) must have the same architecture: ${primaryArchitecture}`,
+      );
+    }
+
+    switch (primaryArchitecture) {
       case 'amd64':
         return 'linux/amd64';
       case 'arm64':
         return 'linux/arm64';
       default:
-        throw new Error(`Unsupported architecture: ${architecture}`);
+        throw new Error(`Unsupported architecture: ${primaryArchitecture}`);
     }
   }
 

@@ -40,8 +40,8 @@ export class AwsService {
   ) {
     this.secretService = new SecretService(this.config);
     this.iamService = new IamService(this.config);
-    this.ecrService = new EcrService(this.config, this.dockerService);
-    this.lambdaService = new LambdaService(this.config, this.envService);
+    this.ecrService = new EcrService(this.config);
+    this.lambdaService = new LambdaService(this.config, this.envService, this.dockerService);
     this.dynamoDbService = new DynamoDbService(this.config);
     this.scheduleService = new ScheduleService(this.config);
   }

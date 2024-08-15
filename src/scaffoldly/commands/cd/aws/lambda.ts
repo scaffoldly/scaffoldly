@@ -11,7 +11,6 @@ import {
   FunctionConfiguration,
   // eslint-disable-next-line import/named
   AddPermissionRequest,
-  Architecture,
   // eslint-disable-next-line import/named
   GetFunctionCommandOutput,
   // eslint-disable-next-line import/named
@@ -26,10 +25,12 @@ import { IamConsumer, PolicyDocument, TrustRelationship } from './iam';
 import { DeployStatus } from '.';
 import { CloudResource, ResourceOptions } from '..';
 import { EnvService } from '../env';
+import { DockerService } from '../docker';
+import { Architecture } from '../../ci/docker';
 
 export type LambdaDeployStatus = {
   functionArn?: string;
-  functionArchitecture?: Architecture;
+  architecture?: Architecture;
   imageUri?: string;
   origin?: string;
 };
@@ -37,7 +38,11 @@ export type LambdaDeployStatus = {
 export class LambdaService implements IamConsumer {
   lambdaClient: LambdaClient;
 
-  constructor(private config: ScaffoldlyConfig, private envService: EnvService) {
+  constructor(
+    private config: ScaffoldlyConfig,
+    private envService: EnvService,
+    private dockerService: DockerService,
+  ) {
     this.lambdaClient = new LambdaClient();
   }
 
@@ -46,7 +51,7 @@ export class LambdaService implements IamConsumer {
 
     const configuration = await this.configureFunction(status, options);
     status.functionArn = configuration.FunctionArn;
-    status.functionArchitecture = configuration.Architectures?.[0];
+    status.architecture = configuration.Architectures?.[0];
 
     const origin = await this.configureOrigin(status, options);
     lambdaDeployStatus.origin = origin;
@@ -73,19 +78,6 @@ export class LambdaService implements IamConsumer {
     options: ResourceOptions,
   ): Promise<FunctionConfiguration> {
     const { name } = this.config;
-
-    const { platform } = status;
-    let architectures: Architecture[];
-    switch (platform) {
-      case 'linux/arm64':
-        architectures = ['arm64'];
-        break;
-      case 'linux/amd64':
-        architectures = ['x86_64'];
-        break;
-      default:
-        throw new Error(`Unsupported platform: ${platform}`);
-    }
 
     const desired: Partial<GetFunctionCommandOutput> = {
       Configuration: {
@@ -116,24 +108,26 @@ export class LambdaService implements IamConsumer {
         },
         read: () => this.lambdaClient.send(new GetFunctionCommand({ FunctionName: name })),
         create: () =>
-          this.lambdaClient.send(
-            new CreateFunctionCommand({
-              Code: {
-                ImageUri: `${repositoryUri}@${imageDigest}`,
-              },
-              FunctionName: name,
-              Publish: false,
-              PackageType: 'Image',
-              Architectures: architectures,
-              ImageConfig: {
-                EntryPoint: ['.entrypoint'],
-                Command: [],
-              },
-              Role: desired.Configuration?.Role,
-              Timeout: desired.Configuration?.Timeout,
-              MemorySize: desired.Configuration?.MemorySize,
-              Environment: desired.Configuration?.Environment,
-            }),
+          this.dockerService.getPlatform().then((platform) =>
+            this.lambdaClient.send(
+              new CreateFunctionCommand({
+                Code: {
+                  ImageUri: `${repositoryUri}@${imageDigest}`,
+                },
+                FunctionName: name,
+                Publish: false,
+                PackageType: 'Image',
+                Architectures: platform === 'linux/arm64' ? ['arm64'] : ['x86_64'],
+                ImageConfig: {
+                  EntryPoint: ['.entrypoint'],
+                  Command: [],
+                },
+                Role: desired.Configuration?.Role,
+                Timeout: desired.Configuration?.Timeout,
+                MemorySize: desired.Configuration?.MemorySize,
+                Environment: desired.Configuration?.Environment,
+              }),
+            ),
           ),
         update: (existing) =>
           this.lambdaClient.send(
@@ -279,9 +273,7 @@ export class LambdaService implements IamConsumer {
           this.lambdaClient.send(
             new UpdateFunctionCodeCommand({
               FunctionName: name,
-              Architectures: status.functionArchitecture
-                ? [status.functionArchitecture]
-                : undefined,
+              Architectures: status.architecture ? [status.architecture] : undefined,
               ImageUri: desired.Code?.ImageUri,
               Publish: true,
             }),
