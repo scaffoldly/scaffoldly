@@ -312,9 +312,6 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
       resourceMessage = resource;
     } else if (resource instanceof Error) {
       resourceMessage = resource.message;
-      if (isDebug()) {
-        resourceMessage = `${resourceMessage}\n\n${resource.stack}\n`;
-      }
     } else if (label) {
       resourceMessage = label;
     }
@@ -345,7 +342,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
     }
 
     if (resource instanceof Error) {
-      throw resource;
+      throw new Error(messageOutput, { cause: resource });
     }
 
     return resource;
