@@ -154,14 +154,16 @@ export class DockerService {
     config: ScaffoldlyConfig,
     mode: Script,
     env?: Record<string, string>,
-  ): Promise<string> {
+  ): Promise<{ dockerfile: string; stages: DockerStages }> {
     const stages = await this.createStages(config, mode, env);
 
     if (isDebug()) {
-      console.log('Stages:', JSON.stringify(stages));
+      ui.updateBottomBarSubtext(`Stages: ${JSON.stringify(stages)}`);
     }
 
-    return this.renderStages(stages);
+    const dockerfile = this.renderStages(stages);
+
+    return { dockerfile, stages };
   }
 
   async build(
@@ -178,15 +180,9 @@ export class DockerService {
     const imageTag = `${config.name}:${tag}`;
     const imageName = repositoryUri ? `${repositoryUri}:${tag}` : imageTag;
 
-    const stages = await this.createStages(config, mode, env);
-
-    if (isDebug()) {
-      console.log('Stages:', JSON.stringify(stages, null, 2));
-    }
-
     // todo add dockerfile to tar instead of writing it to cwd
     // const dockerfile = this.renderSpec(spec);
-    const dockerfile = await this.generateDockerfile(config, mode, env);
+    const { dockerfile, stages } = await this.generateDockerfile(config, mode, env);
 
     const dockerfilePath = join(this.cwd, `Dockerfile.${mode}`) as Path;
     writeFileSync(dockerfilePath, Buffer.from(dockerfile, 'utf-8'));
@@ -687,37 +683,31 @@ export class DockerService {
     this.imageDigest = event?.aux?.Digest;
   }
 
-  private async getImages(
-    runtimes: string[],
-    architecture: Architecture,
-  ): Promise<Docker.ImageInspectInfo[]> {
-    const images = await Promise.all(
-      runtimes.map((runtime) => this.getImage(runtime, architecture)),
-    );
+  private async getImages(runtimes: string[]): Promise<Docker.ImageInspectInfo[]> {
+    const images = await Promise.all(runtimes.map((runtime) => this.getImage(runtime)));
 
     return images.filter((image) => !!image) as Docker.ImageInspectInfo[];
   }
 
-  private async getImage(
-    runtime: string,
-    architecture: Architecture,
-  ): Promise<Docker.ImageInspectInfo | undefined> {
-    ui.updateBottomBarSubtext(`Inspecting image: ${runtime}`);
+  private async getImage(runtime: string): Promise<Docker.ImageInspectInfo | undefined> {
     let image: Docker.ImageInspectInfo | undefined = undefined;
 
-    let platform: Platform | undefined = undefined;
-    switch (architecture) {
+    let platform: Platform | undefined;
+
+    switch (this.architecture) {
       case 'x86_64':
         platform = 'linux/amd64';
         break;
       case 'arm64':
         platform = 'linux/arm64';
         break;
-      default:
+      case 'match-host':
+        platform = undefined;
         break;
     }
 
     try {
+      ui.updateBottomBarSubtext(`Inspecting image: ${runtime}`);
       image = await this.docker.getImage(runtime).inspect();
     } catch (e) {
       const pullStream = await this.docker.pull(runtime, { platform });
@@ -739,11 +729,17 @@ export class DockerService {
       image = await this.docker.getImage(runtime).inspect();
     }
 
+    if (isDebug()) {
+      ui.updateBottomBarSubtext(`Image: ${JSON.stringify(image)}`);
+    }
+
     return image;
   }
 
   public async getPlatform(runtimes: string[], architecture: Architecture): Promise<Platform> {
-    const images = await this.getImages(runtimes, architecture);
+    this.architecture = architecture;
+
+    const images = await this.getImages(runtimes);
 
     if (!images || !images.length) {
       throw new Error(`Failed to get images for ${runtimes}`);
@@ -778,7 +774,7 @@ export class DockerService {
       return undefined;
     }
 
-    const image = await this.getImage(runtime, architecture);
+    const image = await this.getImage(runtime);
     if (!image) {
       throw new Error(`Failed to get image for ${runtime}`);
     }

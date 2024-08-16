@@ -312,10 +312,16 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
       resourceMessage = resource;
     } else if (resource instanceof Error) {
       resourceMessage = resource.message;
-    } else {
-      if (label) {
-        resourceMessage = `: ${label}`;
+      if (isDebug()) {
+        resourceMessage = `${resourceMessage}\n\n${resource.stack}\n`;
       }
+    } else if (label) {
+      resourceMessage = label;
+    }
+
+    let messageOutput = message;
+    if (resourceMessage) {
+      messageOutput = `${messageOutput}: ${resourceMessage}`;
     }
 
     switch (verb) {
@@ -324,7 +330,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
       case 'Failed to Create':
       case 'Failed to Update':
         ui.updateBottomBar('');
-        console.log(`${message}${resourceMessage}`);
+        console.log(messageOutput);
         if (isDebug()) {
           console.log(`   ${JSON.stringify(resource)}`);
         } else {
@@ -334,7 +340,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
       case 'Reading':
       case 'Creating':
       case 'Updating':
-        ui.updateBottomBar(`${message}${resourceMessage}`);
+        ui.updateBottomBar(messageOutput);
         break;
     }
 
