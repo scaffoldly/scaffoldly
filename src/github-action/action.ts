@@ -191,8 +191,23 @@ export class Action {
     if (state.action === 'deploy') {
       notice(`Deploying ${this.stage}...`);
 
-      await deployCommand.handle();
-      // await exec(['./node_modules/.bin/serverless', 'deploy', '--verbose', '--stage', this.stage]);
+      try {
+        await deployCommand.handle();
+      } catch (e) {
+        if (!(e instanceof Error)) {
+          throw e;
+        }
+
+        error(e);
+
+        return {
+          ...state,
+          action: undefined,
+          failed: true,
+          shortMessage: e.message,
+          // TODO: longMessage: gather ui.updateBottomBar() messages
+        };
+      }
     }
 
     return state;
