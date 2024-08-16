@@ -685,14 +685,51 @@ export class DockerService {
   }
 
   private async getImages(runtimes: string[]): Promise<Docker.ImageInspectInfo[]> {
-    const images = await Promise.all(runtimes.map((runtime) => this.getImage(runtime)));
+    const images = await Promise.all(
+      runtimes.map(async (runtime) => {
+        const image = await this.getImage(runtime);
+        return image;
+      }),
+    );
+
+    console.log('!!!! images', JSON.stringify(images));
 
     return images.filter((image) => !!image) as Docker.ImageInspectInfo[];
   }
 
-  private async getImage(runtime: string): Promise<Docker.ImageInspectInfo | undefined> {
-    let image: Docker.ImageInspectInfo | undefined = undefined;
+  private async getImage(
+    runtime: string,
+    retry = true,
+  ): Promise<Docker.ImageInspectInfo | undefined> {
+    ui.updateBottomBarSubtext(`Getting image for ${runtime}`);
+    const image = this.docker.getImage(runtime);
 
+    let inspected: Docker.ImageInspectInfo | undefined = undefined;
+
+    try {
+      inspected = await image.inspect();
+      console.log('!!! inspected', inspected);
+    } catch (e) {
+      if (!(e instanceof Error)) {
+        throw e;
+      }
+      console.error('!!! inspect error', e);
+      if ('statusCode' in e && e.statusCode === 404) {
+        await this.pullImage(runtime);
+      }
+    }
+
+    if (retry) {
+      inspected = await this.getImage(runtime, false);
+    }
+
+    return inspected;
+  }
+
+  private async pullImage(runtime: string): Promise<void> {
+    ui.updateBottomBarSubtext(
+      `Pulling image for ${runtime} with architecture ${this.architecture}`,
+    );
     let platform: Platform | undefined;
 
     switch (this.architecture) {
@@ -707,41 +744,29 @@ export class DockerService {
         break;
     }
 
-    try {
-      ui.updateBottomBarSubtext(`Inspecting image: ${runtime}`);
-      const foo = this.docker.getImage(runtime);
-      console.log('!!! foo', foo);
-      foo.inspect((asdf) => {
-        console.log('!!! asdf', asdf);
-      });
-      image = await this.docker.getImage(runtime).inspect();
-    } catch (e) {
-      console.log('!!! error getting image', e);
-      const pullStream = await this.docker.pull(runtime, { platform });
+    const pullStream = await this.docker.pull(runtime, { platform });
 
-      await new Promise<DockerEvent[]>((resolve, reject) => {
+    try {
+      const events = await new Promise<DockerEvent[]>((resolve, reject) => {
         this.docker.modem.followProgress(
           pullStream,
           (err, res) => (err ? reject(err) : resolve(res)),
           (event) => {
             try {
-              this.handleDockerEvent('Pull', event);
-            } catch (e2) {
-              reject(e2);
+              this.handleDockerEvent('Push', event);
+            } catch (e) {
+              reject(e);
             }
           },
         );
       });
 
-      console.log('!!!! getting image again');
-      image = await this.docker.getImage(runtime).inspect();
+      console.log('!!! pull events', JSON.stringify(events));
+    } catch (e) {
+      console.error('!!! pull error', e);
     }
 
-    if (isDebug()) {
-      ui.updateBottomBarSubtext(`Image: ${JSON.stringify(image)}`);
-    }
-
-    return image;
+    return;
   }
 
   public async getPlatform(runtimes: string[], architecture: Architecture): Promise<Platform> {

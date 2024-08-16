@@ -24,7 +24,7 @@ export class DockerService {
     this.config = config;
   }
 
-  public async getPlatform(architecture: Architecture): Promise<Platform> {
+  public getPlatform(architecture: Architecture): Promise<Platform> {
     return this.dockerCiService.getPlatform(this.config.runtimes, architecture);
   }
 
