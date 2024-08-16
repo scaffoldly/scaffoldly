@@ -196,27 +196,10 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
       return undefined;
     }
 
-    await promiseRetry(
-      async (retry) => {
-        return create()
-          .then((created) => {
-            if (isDebug()) {
-              ui.updateBottomBarSubtext(`Created: ${JSON.stringify(created)}`);
-            }
-            return created;
-          })
-          .catch((e) => {
-            if (isDebug()) {
-              ui.updateBottomBarSubtext(`Create error: ${e.message}`);
-            }
-            return retry(e);
-          });
-      },
-      {
-        retries: options.retries !== Infinity ? options.retries || 0 : 0,
-        forever: options.retries === Infinity,
-      },
-    );
+    await promiseRetry((retry) => create().catch(retry), {
+      retries: options.retries !== Infinity ? options.retries || 0 : 0,
+      forever: options.retries === Infinity,
+    });
 
     return this.read(options, desired)();
   }
@@ -231,27 +214,10 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
       return existing;
     }
 
-    await promiseRetry(
-      async (retry) => {
-        return update(existing)
-          .then((updated) => {
-            if (isDebug()) {
-              ui.updateBottomBarSubtext(`Updated: ${JSON.stringify(updated)}`);
-            }
-            return updated;
-          })
-          .catch((e) => {
-            if (isDebug()) {
-              ui.updateBottomBarSubtext(`Create error: ${e.message}`);
-            }
-            return retry(e);
-          });
-      },
-      {
-        retries: options.retries !== Infinity ? options.retries || 0 : 0,
-        forever: options.retries === Infinity,
-      },
-    );
+    await promiseRetry((retry) => update(existing).catch(retry), {
+      retries: options.retries !== Infinity ? options.retries || 0 : 0,
+      forever: options.retries === Infinity,
+    });
 
     return this.read(options, desired)();
   }

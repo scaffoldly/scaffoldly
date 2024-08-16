@@ -126,6 +126,7 @@ export class DockerService {
   }
 
   private handleDockerEvent(type: 'Pull' | 'Build' | 'Push', event: DockerEvent) {
+    console.log('!!! event', event);
     if ('stream' in event && typeof event.stream === 'string') {
       if (isDebug()) {
         ui.updateBottomBarSubtext(event.stream);
@@ -708,8 +709,14 @@ export class DockerService {
 
     try {
       ui.updateBottomBarSubtext(`Inspecting image: ${runtime}`);
+      const foo = this.docker.getImage(runtime);
+      console.log('!!! foo', foo);
+      foo.inspect((asdf) => {
+        console.log('!!! asdf', asdf);
+      });
       image = await this.docker.getImage(runtime).inspect();
     } catch (e) {
+      console.log('!!! error getting image', e);
       const pullStream = await this.docker.pull(runtime, { platform });
 
       await new Promise<DockerEvent[]>((resolve, reject) => {
@@ -726,6 +733,7 @@ export class DockerService {
         );
       });
 
+      console.log('!!!! getting image again');
       image = await this.docker.getImage(runtime).inspect();
     }
 
