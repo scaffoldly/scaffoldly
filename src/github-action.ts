@@ -22,9 +22,9 @@ export const run = async (stage?: 'pre' | 'main' | 'post'): Promise<void> => {
       default:
         throw new Error(`Invalid stage: ${stage}`);
     }
-    debug('updated state: ' + JSON.stringify(state));
+    debug('Updated state: ' + JSON.stringify(state));
   } catch (e) {
-    debug(`Error: ${e}`);
+    debug(`Uncaught Error: ${e}`);
     state.failed = true;
 
     if (!(e instanceof Error)) {

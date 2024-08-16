@@ -4,7 +4,8 @@
   try {
     await run('post');
   } catch (e) {
-    console.error(e.message || e);
+    console.error(`BAD: Uncaught error in post script!`);
+    console.error(e);
     process.exit(1);
   }
 })();

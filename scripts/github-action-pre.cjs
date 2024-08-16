@@ -4,7 +4,8 @@
   try {
     await run('pre');
   } catch (e) {
-    console.error(e.message || e);
+    console.error(`BAD: Uncaught error in pre script!`);
+    console.error(e);
     process.exit(1);
   }
 })();

@@ -4,7 +4,8 @@
   try {
     await run('main');
   } catch (e) {
-    console.error(e.message || e);
+    console.error(`BAD: Uncaught error in main script!`);
+    console.error(e);
     process.exit(1);
   }
 })();

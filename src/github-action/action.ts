@@ -190,7 +190,7 @@ export class Action {
 
         return {
           ...state,
-          action: undefined,
+          action: 'deploy',
           failed: true,
           shortMessage: e.message,
           longMessage: 'TODO: Implement long message',
