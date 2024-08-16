@@ -36,7 +36,7 @@ export const run = async (stage?: 'pre' | 'main' | 'post'): Promise<void> => {
     }
   } finally {
     if (state.failed) {
-      action.updateDeployment(state, 'failure');
+      state = await action.updateDeployment(state, 'failure');
       state.shortMessage = undefined;
     }
 
@@ -51,12 +51,11 @@ export const run = async (stage?: 'pre' | 'main' | 'post'): Promise<void> => {
     if (stage === 'post' && state.longMessage) {
       summary.addRaw(state.longMessage, true);
       await summary.write({ overwrite: true });
-      state.longMessage = undefined;
     }
 
     saveState('state', JSON.stringify(state));
 
-    if (stage !== 'post' && state.failed) {
+    if (state.failed) {
       process.exit(1);
     }
   }

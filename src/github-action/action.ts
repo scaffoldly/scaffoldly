@@ -1,12 +1,4 @@
-import {
-  debug,
-  getIDToken,
-  exportVariable,
-  notice,
-  error,
-  getInput,
-  setFailed,
-} from '@actions/core';
+import { debug, getIDToken, exportVariable, notice, getInput, setFailed } from '@actions/core';
 import { context, getOctokit } from '@actions/github';
 import { warn } from 'console';
 import {
@@ -129,8 +121,6 @@ export class Action {
         throw e;
       }
 
-      error(e);
-
       const newLongMessage = await roleSetupMoreInfo(this.owner, this.repo, await this.logsUrl);
 
       return {
@@ -198,14 +188,12 @@ export class Action {
           throw e;
         }
 
-        error(e);
-
         return {
           ...state,
           action: undefined,
           failed: true,
           shortMessage: e.message,
-          // TODO: longMessage: gather ui.updateBottomBar() messages
+          longMessage: undefined, // TODO: gather ui.updateBottomBar() output
         };
       }
     }
