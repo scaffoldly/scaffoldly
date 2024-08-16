@@ -193,7 +193,7 @@ export class Action {
           action: undefined,
           failed: true,
           shortMessage: e.message,
-          longMessage: undefined, // TODO: gather ui.updateBottomBar() output
+          longMessage: 'TODO: Implement long message',
         };
       }
     }
