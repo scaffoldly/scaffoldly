@@ -23,7 +23,7 @@ export type PushInfo = { imageName?: string; imageDigest?: string };
 const BASE = 'base';
 type Path = string;
 
-export type Architecture = 'x86_64' | 'arm64';
+export type Architecture = 'x86_64' | 'arm64' | 'match-host';
 
 type Copy = {
   from?: string;
@@ -119,6 +119,8 @@ export class DockerService {
 
   private imageDigest?: string;
 
+  architecture: Architecture = 'match-host';
+
   constructor(private cwd: string) {
     this.docker = new Docker({ version: 'v1.45' });
   }
@@ -165,10 +167,12 @@ export class DockerService {
   async build(
     config: ScaffoldlyConfig,
     mode: Script,
-    architecture?: Architecture,
+    architecture: Architecture,
     repositoryUri?: string,
     env?: Record<string, string>,
   ): Promise<void> {
+    this.architecture = architecture;
+
     const tag = config.id ? `${config.version}-${config.id}` : config.version;
 
     const imageTag = `${config.name}:${tag}`;
@@ -218,12 +222,12 @@ export class DockerService {
         );
       });
 
-    const { runtime } = config;
+    const { runtime, runtimes } = config;
     if (!runtime) {
       throw new Error('Missing runtime');
     }
 
-    const platform = await this.getPlatform(config.runtimes, architecture);
+    const platform = await this.getPlatform(runtimes, architecture);
 
     // TODO: Multi-platform
     const buildStream = await this.docker.buildImage(stream, {
@@ -685,7 +689,7 @@ export class DockerService {
 
   private async getImages(
     runtimes: string[],
-    architecture?: Architecture,
+    architecture: Architecture,
   ): Promise<Docker.ImageInspectInfo[]> {
     const images = await Promise.all(
       runtimes.map((runtime) => this.getImage(runtime, architecture)),
@@ -696,7 +700,7 @@ export class DockerService {
 
   private async getImage(
     runtime: string,
-    architecture?: Architecture,
+    architecture: Architecture,
   ): Promise<Docker.ImageInspectInfo | undefined> {
     ui.updateBottomBarSubtext(`Inspecting image: ${runtime}`);
     let image: Docker.ImageInspectInfo | undefined = undefined;
@@ -738,7 +742,7 @@ export class DockerService {
     return image;
   }
 
-  public async getPlatform(runtimes: string[], architecture?: Architecture): Promise<Platform> {
+  public async getPlatform(runtimes: string[], architecture: Architecture): Promise<Platform> {
     const images = await this.getImages(runtimes, architecture);
 
     if (!images || !images.length) {
@@ -768,12 +772,13 @@ export class DockerService {
   public async checkBin<T extends string[]>(
     runtime: string,
     bins: [...T],
+    architecture: Architecture,
   ): Promise<T[number] | undefined> {
     if (!bins || !bins.length) {
       return undefined;
     }
 
-    const image = await this.getImage(runtime);
+    const image = await this.getImage(runtime, architecture);
     if (!image) {
       throw new Error(`Failed to get image for ${runtime}`);
     }
@@ -801,7 +806,7 @@ export class DockerService {
     }
 
     if ('StatusCode' in output && output.StatusCode !== 0) {
-      return this.checkBin(runtime, bins);
+      return this.checkBin(runtime, bins, architecture);
     }
 
     return bin;

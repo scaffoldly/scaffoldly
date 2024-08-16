@@ -1,9 +1,13 @@
-import { BuildInfo, DockerService as DockerCiService, PushInfo } from '../../ci/docker';
+import {
+  Architecture,
+  BuildInfo,
+  DockerService as DockerCiService,
+  PushInfo,
+} from '../../ci/docker';
 import { CloudResource, ResourceOptions } from '..';
 import { ScaffoldlyConfig } from '../../../../config';
 import { DeployStatus } from '../aws';
 import { RegistryAuthConsumer } from '../aws/ecr';
-import { Architecture } from '@aws-sdk/client-lambda';
 
 export type Platform = 'linux/amd64' | 'linux/arm64';
 
@@ -20,7 +24,7 @@ export class DockerService {
     this.config = config;
   }
 
-  public async getPlatform(architecture?: Architecture): Promise<Platform> {
+  public async getPlatform(architecture: Architecture): Promise<Platform> {
     return this.dockerCiService.getPlatform(this.config.runtimes, architecture);
   }
 
@@ -30,6 +34,11 @@ export class DockerService {
     options: ResourceOptions,
   ): Promise<DeployStatus> {
     const dockerStatus: DockerDeployStatus = {};
+
+    const { architecture } = status;
+    if (!architecture) {
+      throw new Error('Missing architecture');
+    }
 
     const { imageName, imageTag } = await new CloudResource<BuildInfo, BuildInfo>(
       {
@@ -41,7 +50,7 @@ export class DockerService {
           this.dockerCiService.build(
             this.config,
             'build',
-            status.architecture,
+            architecture,
             status.repositoryUri,
             status.buildEnv,
           ),

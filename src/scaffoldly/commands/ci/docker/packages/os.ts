@@ -22,7 +22,11 @@ export class OsPackageService {
     }
 
     return this.dockerService
-      .checkBin(this.config.runtime, ['apk', 'apt', 'dnf', 'yum'])
+      .checkBin(
+        this.config.runtime,
+        ['apk', 'apt', 'dnf', 'yum'],
+        this.dockerService.architecture || 'match-host',
+      )
       .then((bin) => {
         switch (bin) {
           case 'apk':

@@ -108,7 +108,7 @@ export class LambdaService implements IamConsumer {
         },
         read: () => this.lambdaClient.send(new GetFunctionCommand({ FunctionName: name })),
         create: () =>
-          this.dockerService.getPlatform().then((platform) =>
+          this.dockerService.getPlatform('match-host').then((platform) =>
             this.lambdaClient.send(
               new CreateFunctionCommand({
                 Code: {
@@ -273,7 +273,6 @@ export class LambdaService implements IamConsumer {
           this.lambdaClient.send(
             new UpdateFunctionCodeCommand({
               FunctionName: name,
-              Architectures: status.architecture ? [status.architecture] : undefined,
               ImageUri: desired.Code?.ImageUri,
               Publish: true,
             }),
