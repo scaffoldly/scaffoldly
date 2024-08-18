@@ -661,6 +661,8 @@ export class DockerService {
 
     const image = this.docker.getImage(imageName);
 
+    console.log('!!! image', image);
+
     const pushStream = await image.push({ authconfig: authConfig });
 
     const events = await new Promise<DockerEvent[]>((resolve, reject) => {
@@ -697,7 +699,7 @@ export class DockerService {
 
   private async getImage(
     runtime: string,
-    architecture: Architecture = 'match-host',
+    architecture?: Architecture,
     retry = true,
   ): Promise<Docker.ImageInspectInfo | undefined> {
     ui.updateBottomBarSubtext(`Getting image for ${runtime}`);
