@@ -79,6 +79,13 @@ export class GitService {
   }
 
   get branch(): Promise<string | undefined> {
+    if (context.ref) {
+      if (context.ref.startsWith('refs/heads/')) {
+        return Promise.resolve(context.ref.replace('refs/heads/', ''));
+      } else {
+        throw new Error(`Unsupported ref format: ${context.ref}`);
+      }
+    }
     return this.git.branch({}).then((b) => b?.current);
   }
 
@@ -182,7 +189,7 @@ export class GitService {
   get stage(): Promise<string> {
     return this.branch.then((branch) => {
       if (!branch) {
-        throw new Error('Unable to determine branch from GITHUB_REF');
+        throw new Error('Unable to determine branch');
       }
 
       let deploymentStage = branch.replaceAll('/', '-').replaceAll('_', '-');
