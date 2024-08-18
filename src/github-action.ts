@@ -22,7 +22,6 @@ export const run = async (stage?: 'pre' | 'main' | 'post'): Promise<void> => {
         throw new Error(`Invalid stage: ${stage}`);
     }
     debug('Updated state: ' + JSON.stringify(state));
-    process.exit(0);
   } catch (e) {
     debug(`Uncaught Error: ${e}`);
     state.failed = true;
@@ -57,6 +56,8 @@ export const run = async (stage?: 'pre' | 'main' | 'post'): Promise<void> => {
 
     if (state.failed) {
       process.exit(1);
+    } else {
+      process.exit(0);
     }
   }
 };
