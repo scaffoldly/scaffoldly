@@ -119,6 +119,10 @@ export class GitService {
   }
 
   get owner(): Promise<string> {
+    if (process.env.GITHUB_REPOSITORY_OWNER) {
+      return Promise.resolve(process.env.GITHUB_REPOSITORY_OWNER);
+    }
+
     return this.origin.then((origin) => {
       const [owner] = origin?.path.split('/') || [];
       if (!owner) {
@@ -129,6 +133,9 @@ export class GitService {
   }
 
   get repo(): Promise<string> {
+    if (process.env.GITHUB_REPOSITORY) {
+      return Promise.resolve(process.env.GITHUB_REPOSITORY.split('/')[1]);
+    }
     return this.origin.then((origin) => {
       const [, repo] = origin?.path.split('/') || [];
       if (!repo) {
