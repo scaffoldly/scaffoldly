@@ -79,12 +79,7 @@ export class GitService {
   }
 
   get branch(): Promise<string | undefined> {
-    return this.ref.then((ref) => {
-      if (ref) {
-        return ref;
-      }
-      return this.git.branch({}).then((b) => b?.current);
-    });
+    return this.git.branch({}).then((b) => b?.current);
   }
 
   get origin(): Promise<Origin | undefined> {

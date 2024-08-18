@@ -83,24 +83,24 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
       throw new Error('Not implemented');
     }
 
-    this.handleResource('Reading', {});
+    this.logResource('Reading', {});
     let existing = await this.read(options);
 
     if (existing) {
       try {
-        this.handleResource('Updating', existing);
+        this.logResource('Updating', existing);
         existing = await this.update(options, existing, desired);
-        this.handleResource('Updated', existing);
+        this.logResource('Updated', existing);
       } catch (e) {
-        this.handleResource('Updated', e);
+        this.logResource('Updated', e);
       }
     } else {
       try {
-        this.handleResource('Creating', existing);
+        this.logResource('Creating', existing);
         existing = await this.create(options, desired);
-        this.handleResource('Created', existing);
+        this.logResource('Created', existing);
       } catch (e) {
-        this.handleResource('Created', e);
+        this.logResource('Created', e);
       }
     }
 
@@ -230,10 +230,10 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
     return resource;
   }
 
-  private async handleResource(
+  logResource(
     action: 'Reading' | 'Creating' | 'Created' | 'Updating' | 'Updated',
     resource: Partial<Resource | undefined> | Error,
-  ): Promise<Partial<Resource | undefined>> {
+  ): void {
     let verb:
       | 'Reading'
       | 'Creating'
@@ -315,11 +315,11 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
         break;
     }
 
-    if (resource instanceof Error) {
-      throw new Error(messageOutput, { cause: resource });
-    }
+    // if (resource instanceof Error) {
+    //   throw new Error(messageOutput, { cause: resource });
+    // }
 
-    return resource;
+    // return resource;
   }
 }
 
