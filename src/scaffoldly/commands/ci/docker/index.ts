@@ -119,8 +119,6 @@ export class DockerService {
 
   private imageDigest?: string;
 
-  architecture: Architecture = 'match-host';
-
   constructor(private cwd: string) {
     this.docker = new Docker({ version: 'v1.45' });
   }
@@ -174,8 +172,6 @@ export class DockerService {
     repositoryUri?: string,
     env?: Record<string, string>,
   ): Promise<void> {
-    this.architecture = architecture;
-
     const tag = config.id ? `${config.version}-${config.id}` : config.version;
 
     const imageTag = `${config.name}:${tag}`;
@@ -686,10 +682,13 @@ export class DockerService {
     this.imageDigest = event?.aux?.Digest;
   }
 
-  private async getImages(runtimes: string[]): Promise<Docker.ImageInspectInfo[]> {
+  private async getImages(
+    runtimes: string[],
+    architecture: Architecture,
+  ): Promise<Docker.ImageInspectInfo[]> {
     const images = await Promise.all(
       runtimes.map(async (runtime) => {
-        const image = await this.getImage(runtime);
+        const image = await this.getImage(runtime, architecture);
         return image;
       }),
     );
@@ -699,7 +698,7 @@ export class DockerService {
 
   private async getImage(
     runtime: string,
-    architecture?: Architecture,
+    architecture: Architecture,
     retry = true,
   ): Promise<Docker.ImageInspectInfo | undefined> {
     ui.updateBottomBarSubtext(`Getting image for ${runtime}`);
@@ -725,8 +724,7 @@ export class DockerService {
     return inspected;
   }
 
-  private async pullImage(runtime: string, architecture?: Architecture): Promise<void> {
-    architecture = architecture || this.architecture;
+  private async pullImage(runtime: string, architecture: Architecture): Promise<void> {
     let platform: Platform | undefined = undefined;
 
     switch (architecture) {
@@ -767,9 +765,7 @@ export class DockerService {
   }
 
   public async getPlatform(runtimes: string[], architecture: Architecture): Promise<Platform> {
-    this.architecture = architecture;
-
-    const images = await this.getImages(runtimes);
+    const images = await this.getImages(runtimes, architecture);
 
     if (!images || !images.length) {
       throw new Error(`Failed to get images for ${runtimes}`);

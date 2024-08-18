@@ -270,12 +270,15 @@ export class LambdaService implements IamConsumer {
         },
         read: () => this.lambdaClient.send(new GetFunctionCommand({ FunctionName: name })),
         update: () =>
-          this.lambdaClient.send(
-            new UpdateFunctionCodeCommand({
-              FunctionName: name,
-              ImageUri: desired.Code?.ImageUri,
-              Publish: true,
-            }),
+          this.dockerService.getPlatform('match-host').then((platform) =>
+            this.lambdaClient.send(
+              new UpdateFunctionCodeCommand({
+                FunctionName: name,
+                ImageUri: desired.Code?.ImageUri,
+                Architectures: platform === 'linux/arm64' ? ['arm64'] : ['x86_64'],
+                Publish: true,
+              }),
+            ),
           ),
       },
       (output) => {

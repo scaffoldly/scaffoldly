@@ -22,7 +22,7 @@ export class OsPackageService {
     }
 
     return this.dockerService
-      .getPlatform(this.config.runtimes, this.dockerService.architecture)
+      .getPlatform(this.config.runtimes, 'match-host')
       .then((platform) =>
         this.dockerService
           .checkBin(this.config.runtime, ['yum', 'dnf', 'apk', 'apt'], platform)
