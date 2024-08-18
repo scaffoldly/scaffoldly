@@ -20,8 +20,18 @@ export type Origin = {
 export class GitService {
   git: SimpleGit;
 
-  constructor(public readonly cwd: string = process.cwd()) {
+  _cwd?: string;
+
+  constructor(cwd?: string) {
+    this._cwd = cwd;
     this.git = simpleGit({ baseDir: cwd });
+  }
+
+  get cwd(): string {
+    if (!this._cwd) {
+      throw new Error('Unable to determine current working directory');
+    }
+    return this._cwd;
   }
 
   public async predeploy(

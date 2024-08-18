@@ -51,7 +51,7 @@ export class Command {
   constructor(argv: string[]) {
     this.apiHelper = new ApiHelper(argv);
     this.messagesHelper = new MessagesHelper(argv);
-    this.gitService = new GitService();
+    this.gitService = new GitService(process.cwd());
     this.dev = new DevCommand(this.gitService);
     this.deploy = new DeployCommand(this.gitService);
     this.show = new ShowCommand(this.apiHelper, this.messagesHelper, this.gitService);
@@ -113,7 +113,7 @@ export class Command {
         describe: `Deploy the environment`,
         handler: ({ withToken }) =>
           this.loginWrapper(
-            () => this.deploy.handle(),
+            () => this.deploy.handle().then(() => {}),
             isHeadless(),
             withToken as string | undefined,
           ),

@@ -23,8 +23,6 @@ export type IdentityResponse = {
 };
 
 export class ShowCommand extends Command {
-  gitService: GitService;
-
   scms: Scms;
 
   awsHelper: AwsHelper;
@@ -36,14 +34,13 @@ export class ShowCommand extends Command {
   constructor(
     private apiHelper: ApiHelper,
     private messagesHelper: MessagesHelper,
-    gitService: GitService,
+    private gitService: GitService,
   ) {
-    super(gitService.cwd);
-    this.gitService = new GitService(process.cwd());
+    super(process.cwd());
     this.scms = new Scms(this.apiHelper, this.messagesHelper, this.gitService);
     this.awsHelper = new AwsHelper(this.apiHelper);
-    this.dockerService = new DockerService(this.cwd);
-    this.envService = new EnvService(this.cwd, this.config);
+    this.dockerService = new DockerService(this.gitService.cwd);
+    this.envService = new EnvService(this.gitService.cwd, this.config);
   }
 
   public async handle(subcommand: ShowSubcommands, withToken?: string): Promise<void> {

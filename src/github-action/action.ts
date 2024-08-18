@@ -316,7 +316,7 @@ export class Action {
     });
   }
 
-  get cwd(): string {
+  get cwd(): string | undefined {
     const workingDirectory = getInput('working-directory') || undefined;
     let cwd = process.cwd();
 
@@ -326,7 +326,7 @@ export class Action {
         process.chdir(cwd);
       } catch (e) {
         if (this.mode === 'pre') {
-          return cwd;
+          return undefined;
         }
         throw new Error(`Unable to change working directory to ${cwd}: ${e.message}`);
       }
