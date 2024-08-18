@@ -833,6 +833,8 @@ export class DockerService {
       },
     );
 
+    const inspection = await this.docker.getContainer(container.id).inspect();
+    console.log('!!! inspection', inspection);
     console.log('!!! output', output);
     console.log('!!! container', container);
     console.log('!!! writeStream', writeStream.getString());
