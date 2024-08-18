@@ -20,17 +20,54 @@ import { State } from './state';
 import { GitService } from '../scaffoldly/commands/cd/git';
 import { DeployCommand } from '../scaffoldly/commands/cd/deploy';
 import path from 'path';
+import { ApiHelper } from '../scaffoldly/helpers/apiHelper';
+import { MessagesHelper } from '../scaffoldly/helpers/messagesHelper';
+import { Scms } from '../scaffoldly/stores/scms';
 
-const {
-  GITHUB_REPOSITORY,
-  GITHUB_REF,
-  GITHUB_BASE_REF,
-  GITHUB_HEAD_REF,
-  GITHUB_RUN_ATTEMPT,
-  GITHUB_EVENT_NAME,
-} = process.env;
+const { GITHUB_RUN_ATTEMPT } = process.env;
 
 export class Action {
+  gitService: GitService;
+
+  apiHelper: ApiHelper;
+
+  messagesHelper: MessagesHelper;
+
+  scms: Scms;
+
+  _owner?: string;
+
+  _repo?: string;
+
+  _token?: string;
+
+  _sha?: string;
+
+  _ref?: string;
+
+  _branch?: string;
+
+  _stage?: string;
+
+  constructor() {
+    this.gitService = new GitService(this.cwd);
+    this.apiHelper = new ApiHelper(process.argv);
+    this.messagesHelper = new MessagesHelper(process.argv);
+    this.scms = new Scms(this.apiHelper, this.messagesHelper, this.gitService);
+  }
+
+  async init(): Promise<Action> {
+    debug('Initializing action...');
+    this._owner = await this.gitService.owner;
+    this._repo = await this.gitService.repo;
+    this._branch = await this.gitService.branch;
+    this._token = await this.scms.getGithubToken(getInput('github-token'));
+    this._sha = await this.gitService.sha;
+    this._ref = await this.gitService.ref;
+    this._stage = await this.gitService.stage;
+    return this;
+  }
+
   async pre(state: State): Promise<State> {
     state.stage = this.stage;
 
@@ -39,11 +76,11 @@ export class Action {
     if (boolean(getInput('destroy') || 'false') === true) {
       notice(`Destruction enabled. Destroying ${this.stage}...`);
       state.action = 'destroy';
-    } else if (GITHUB_EVENT_NAME === 'pull_request' && context.payload.action === 'closed') {
+    } else if (context.eventName === 'pull_request' && context.payload.action === 'closed') {
       notice(`Pull request has been closed. Destroying ${this.stage}...`);
       state.action = 'destroy';
     } else if (
-      GITHUB_EVENT_NAME === 'workflow_dispatch' &&
+      context.eventName === 'workflow_dispatch' &&
       boolean(this.workflowInputs.destroy) === true
     ) {
       notice(`Workflow dispatch triggered with destruction enabled. Destroying ${this.stage}...`);
@@ -168,8 +205,7 @@ export class Action {
 
     await this.updateDeployment(state, 'in_progress');
 
-    const gitService = new GitService(this.cwd);
-    const deployCommand = new DeployCommand(gitService);
+    const deployCommand = new DeployCommand(this.gitService);
 
     if (state.action === 'destroy') {
       // TODO: Ensure not a protected branch
@@ -249,7 +285,7 @@ export class Action {
       const { runId, job: jobName } = context;
       const logsUrl = `https://github.com/${this.owner}/${this.repo}/actions/runs/${runId}`;
 
-      const octokit = getOctokit(this.githubToken);
+      const octokit = getOctokit(this.token);
 
       octokit.rest.actions
         .listJobsForWorkflowRun({
@@ -295,49 +331,31 @@ export class Action {
   }
 
   get stage(): string {
-    const branchName = GITHUB_REF?.split('/').slice(2).join('/') || '';
-    debug(`Branch Name: ${branchName}`);
-
-    if (!branchName) {
-      throw new Error('Unable to determine branch from GITHUB_REF');
+    if (!this._stage) {
+      throw new Error('Unable to determine stage. Was init() called?');
     }
-
-    let deploymentStage = branchName.replaceAll('/', '-').replaceAll('_', '-');
-
-    if (this.prNumber) {
-      if (!GITHUB_BASE_REF) {
-        throw new Error('Unable to determine base ref from GITHUB_BASE_REF');
-      }
-
-      const normalizedBaseRef = GITHUB_BASE_REF.replaceAll('/', '-').replaceAll('_', '-');
-      deploymentStage = `${normalizedBaseRef}-pr-${this.prNumber}`;
-    }
-
-    return deploymentStage;
+    return this._stage;
   }
 
   get owner(): string {
-    const [owner] = GITHUB_REPOSITORY?.split('/') || [];
-    if (!owner) {
-      throw new Error('Unable to determine owner from GITHUB_REPOSITORY');
+    if (!this._owner) {
+      throw new Error('Unable to determine owner. Was init() called?');
     }
-    return owner;
+    return this._owner;
   }
 
   get repo(): string {
-    const [, repo] = GITHUB_REPOSITORY?.split('/') || [];
-    if (!repo) {
-      throw new Error('Unable to determine repo from GITHUB_REPOSITORY');
+    if (!this._repo) {
+      throw new Error('Unable to determine repo. Was init() called?');
     }
-    return repo;
+    return this._repo;
   }
 
-  get githubToken(): string {
-    const token = getInput('github-token');
-    if (!token) {
-      throw new Error('Missing GITHUB_TOKEN');
+  get token(): string {
+    if (!this._token) {
+      throw new Error('Unable to determine github token. Was init() called?');
     }
-    return token;
+    return this._token;
   }
 
   get idToken(): Promise<string> {
@@ -352,61 +370,35 @@ export class Action {
   }
 
   get commitSha(): string {
-    if (context.eventName === 'pull_request') {
-      const pullRequest = context.payload.pull_request;
-      if (!pullRequest || !pullRequest.head || !pullRequest.head.sha) {
-        throw new Error('Unable to determine PR commit SHA');
-      }
-      return pullRequest.head.sha.substring(0, 7);
+    if (!this._sha) {
+      throw new Error('Unable to determine commit SHA. Was init() called?');
     }
-    return context.sha.substring(0, 7);
+    return this._sha.substring(0, 7);
   }
 
   get prNumber(): number | undefined {
-    if (context.eventName === 'pull_request') {
-      if (!context.payload.pull_request || !context.payload.pull_request.number) {
-        throw new Error('Unable to determine PR number');
-      }
-      return context.payload.pull_request?.number;
-    }
-    return undefined;
+    return this.gitService.prNumber;
   }
 
   get workflowInputs(): { [key: string]: string } {
     return context.payload.inputs || {};
   }
 
-  get deploymentRef(): string {
-    if (!GITHUB_REF) {
-      throw new Error('Unable to determine branch from GITHUB_REF');
+  get ref(): string {
+    if (!this._ref) {
+      throw new Error('Unable to determine ref. Was init() called?');
     }
-
-    if (GITHUB_REF.endsWith('/merge')) {
-      if (!GITHUB_HEAD_REF) {
-        throw new Error('Unable to determine branch from GITHUB_HEAD_REF');
-      }
-      return GITHUB_HEAD_REF.replace('refs/heads/', '');
-    }
-
-    if (GITHUB_REF.startsWith('refs/tags/')) {
-      return GITHUB_REF.replace('refs/tags/', '');
-    }
-
-    if (GITHUB_REF.startsWith('refs/heads/')) {
-      return GITHUB_REF.replace('refs/heads/', '');
-    }
-
-    throw new Error('Unable to determine branch from GITHUB_REF');
+    return this._ref;
   }
 
   async createDeployment(state: State): Promise<State> {
-    const octokit = getOctokit(this.githubToken);
+    const octokit = getOctokit(this.token);
 
-    const { prNumber } = this;
+    const { prNumber, ref } = this;
 
     try {
       const response = await octokit.rest.repos.createDeployment({
-        ref: this.deploymentRef,
+        ref,
         required_contexts: [],
         environment: this.stage,
         transient_environment: !!this.prNumber,
@@ -451,7 +443,7 @@ export class Action {
     state: State,
     status: 'success' | 'failure' | 'in_progress' | 'inactive',
   ): Promise<State> {
-    const octokit = getOctokit(this.githubToken);
+    const octokit = getOctokit(this.token);
     const { deploymentId, commentId } = state;
 
     if (status === 'failure' && state.shortMessage) {

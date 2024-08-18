@@ -2,10 +2,16 @@ import { Action } from './github-action/action';
 import { State } from './github-action/state';
 import { saveState, getState, debug, setOutput, summary, error } from '@actions/core';
 
-export const run = async (stage?: 'pre' | 'main' | 'post'): Promise<void> => {
-  const action = new Action();
+process.on('unhandledRejection', (reason, promise) => {
+  console.log('Unhandled Rejection at:', promise, 'reason:', reason);
+});
 
-  let state: State = {};
+export const run = async (stage?: 'pre' | 'main' | 'post'): Promise<void> => {
+  const action = await new Action().init();
+
+  let state: State = {
+    action: 'deploy',
+  };
 
   try {
     switch (stage) {
@@ -13,10 +19,10 @@ export const run = async (stage?: 'pre' | 'main' | 'post'): Promise<void> => {
         state = await action.pre(state);
         break;
       case 'main':
-        state = await action.main(JSON.parse(getState('state')) as State);
+        state = await action.main(JSON.parse(getState('state') || JSON.stringify(state)) as State);
         break;
       case 'post':
-        state = await action.post(JSON.parse(getState('state')) as State);
+        state = await action.post(JSON.parse(getState('state') || JSON.stringify(state)) as State);
         break;
       default:
         throw new Error(`Invalid stage: ${stage}`);
@@ -50,7 +56,8 @@ export const run = async (stage?: 'pre' | 'main' | 'post'): Promise<void> => {
 
     process.exit(0);
   } catch (e) {
-    error(`Uncaught Error: ${e}`);
+    error(e);
+    debug(e.stack);
     process.exit(1);
   }
 };
