@@ -24,7 +24,7 @@ export class DockerService {
     this.config = config;
   }
 
-  public getPlatform(architecture: Architecture): Promise<Platform> {
+  public async getPlatform(architecture: Architecture): Promise<Platform> {
     return this.dockerCiService.getPlatform(this.config.runtimes, architecture);
   }
 
@@ -45,15 +45,18 @@ export class DockerService {
         describe: (resource) => {
           return { type: 'Image', label: resource.imageName };
         },
-        read: () => this.dockerCiService.describeBuild(),
-        update: () =>
-          this.dockerCiService.build(
+        read: () => {
+          return this.dockerCiService.describeBuild();
+        },
+        update: () => {
+          return this.dockerCiService.build(
             this.config,
             'build',
             architecture,
             status.repositoryUri,
             status.buildEnv,
-          ),
+          );
+        },
       },
       (existing) => existing,
     ).manage(options);
@@ -72,8 +75,12 @@ export class DockerService {
         describe: (resource) => {
           return { type: 'Image Digest', label: resource.imageDigest };
         },
-        read: () => this.dockerCiService.describePush(),
-        update: (resource) => this.dockerCiService.push(resource.imageName, authConfig),
+        read: () => {
+          return this.dockerCiService.describePush();
+        },
+        update: (resource) => {
+          return this.dockerCiService.push(resource.imageName, authConfig);
+        },
       },
       (existing) => existing,
     ).manage(options);

@@ -84,7 +84,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
     }
 
     this.handleResource('Reading', {});
-    let existing = await this.read(options)();
+    let existing = await this.read(options);
 
     if (existing) {
       try {
@@ -124,7 +124,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
     }
 
     await dispose(existing).catch(() => {});
-    const current = await this.read(this.options)().catch(() => ({} as Partial<Resource>));
+    const current = await this.read(this.options).catch(() => ({} as Partial<Resource>));
 
     if (!current) {
       return {} as Partial<Resource>;
@@ -133,57 +133,61 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
     return current;
   }
 
-  private read(
+  private async read(
     options: ResourceOptions,
     desired?: Partial<unknown>,
-  ): () => Promise<Partial<Resource> | undefined> {
-    return async () => {
-      try {
-        const { read } = this.requests;
-        const response = await promiseRetry(
-          (retry) =>
-            read().then((readResponse) => {
-              const difference = getDifferences(desired || {}, readResponse as Partial<unknown>);
+  ): Promise<Partial<Resource> | undefined> {
+    const { read } = this.requests;
+    if (!read) {
+      return undefined;
+    }
 
-              if (Object.keys(difference).length) {
-                if (isDebug()) {
-                  ui.updateBottomBarSubtext(
-                    `Waiting for resource to be ready: ${JSON.stringify(difference)}`,
-                  );
-                }
+    const response = await promiseRetry(
+      async (retry) => {
+        try {
+          const readResponse = await read();
+          const difference = getDifferences(desired || {}, readResponse);
 
-                return retry(new Error('Resource is not ready'));
-              }
+          if (Object.keys(difference).length) {
+            if (isDebug()) {
+              ui.updateBottomBarSubtext(
+                `Waiting for resource to be ready: ${JSON.stringify(difference)}`,
+              );
+            }
 
-              return readResponse as Partial<unknown>;
-            }),
-          {
-            retries: options.retries !== Infinity ? options.retries || 0 : 0,
-            forever: options.retries === Infinity,
-          },
-        );
-        return this.resourceExtractor(response);
-      } catch (e) {
-        if (e instanceof NotFoundException) {
-          return undefined;
+            return retry(new Error('Resource is not ready'));
+          }
+
+          return this.resourceExtractor(readResponse);
+        } catch (e) {
+          if (e instanceof NotFoundException) {
+            return undefined;
+          }
+          if (
+            '$metadata' in e &&
+            'httpStatusCode' in e.$metadata &&
+            e.$metadata.httpStatusCode === 404
+          ) {
+            return undefined;
+          }
+          if (
+            '__type' in e &&
+            typeof e.__type === 'string' &&
+            e.__type.endsWith('NotFoundException')
+          ) {
+            return undefined;
+          }
+
+          return retry(e);
         }
-        if (
-          '$metadata' in e &&
-          'httpStatusCode' in e.$metadata &&
-          e.$metadata.httpStatusCode === 404
-        ) {
-          return undefined;
-        }
-        if (
-          '__type' in e &&
-          typeof e.__type === 'string' &&
-          e.__type.endsWith('NotFoundException')
-        ) {
-          return undefined;
-        }
-        throw e;
-      }
-    };
+      },
+      {
+        retries: options.retries !== Infinity ? options.retries || 0 : 0,
+        forever: options.retries === Infinity,
+      },
+    );
+
+    return response;
   }
 
   private async create(
@@ -201,7 +205,9 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
       forever: options.retries === Infinity,
     });
 
-    return this.read(options, desired)();
+    const resource = await this.read(options, desired);
+
+    return resource;
   }
 
   private async update(
@@ -219,7 +225,9 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
       forever: options.retries === Infinity,
     });
 
-    return this.read(options, desired)();
+    const resource = await this.read(options, desired);
+
+    return resource;
   }
 
   private async handleResource(

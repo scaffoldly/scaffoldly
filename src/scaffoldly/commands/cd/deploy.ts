@@ -2,7 +2,7 @@ import { CdCommand, ResourceOptions } from '.';
 import { event } from '../../helpers/events';
 import { DockerService as DockerCiService } from '../ci/docker';
 import { GitService } from './git';
-import { AwsService } from './aws';
+import { AwsService, DeployStatus } from './aws';
 import { ui } from '../../command';
 import { isDebug } from '../../ui';
 import { EnvService } from './env';
@@ -27,26 +27,29 @@ export class DeployCommand extends CdCommand {
     );
   }
 
-  async handle(): Promise<void> {
+  async handle(): Promise<DeployStatus> {
     event('deploy');
 
     const options: ResourceOptions = {}; // TODO: Add options
+    let status: DeployStatus = {};
 
-    const status = await this.gitService
-      .predeploy({}, options)
-      .then((s) =>
-        this.awsService.predeploy(s, options).catch((e) => {
-          throw new Error(`AWS Predeployment Failed: ${e.message}`, { cause: e });
-        }),
-      )
-      .then((s) =>
-        this.awsService.deploy(s, options).catch((e) => {
-          throw new Error(`AWS Deployment Failed: ${e.message}`, { cause: e });
-        }),
-      )
-      .catch((e) => {
-        throw new Error(`Deployment Failed: ${e.message}`, { cause: e });
-      });
+    try {
+      status = await this.gitService.predeploy(status, options);
+    } catch (e) {
+      throw new Error(`Error predeploying git: ${e.message}`, { cause: e });
+    }
+
+    try {
+      status = await this.awsService.predeploy(status, options);
+    } catch (e) {
+      throw new Error(`Error predeploying AWS: ${e.message}`, { cause: e });
+    }
+
+    try {
+      status = await this.awsService.deploy(status, options);
+    } catch (e) {
+      throw new Error(`Error deploying AWS: ${e.message}`, { cause: e });
+    }
 
     ui.updateBottomBar('');
     if (isDebug()) {
@@ -56,6 +59,6 @@ export class DeployCommand extends CdCommand {
     console.log('🚀 Deployment Complete!');
     console.log(`   🌎 Origin: ${status.origin}`);
 
-    return;
+    return status;
   }
 }

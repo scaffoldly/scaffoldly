@@ -182,7 +182,8 @@ export class Action {
       notice(`Deploying ${this.stage}...`);
 
       try {
-        await deployCommand.handle();
+        const status = await deployCommand.handle();
+        console.log('!!! deploy status', status);
       } catch (e) {
         if (!(e instanceof Error)) {
           throw e;

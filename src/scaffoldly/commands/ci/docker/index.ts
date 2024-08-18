@@ -170,7 +170,7 @@ export class DockerService {
     architecture: Architecture,
     repositoryUri?: string,
     env?: Record<string, string>,
-  ): Promise<void> {
+  ): Promise<{ imageName: string; imageTag: string }> {
     const tag = config.id ? `${config.version}-${config.id}` : config.version;
 
     const imageTag = `${config.name}:${tag}`;
@@ -246,6 +246,8 @@ export class DockerService {
 
     this.imageName = imageName;
     this.imageTag = imageTag;
+
+    return { imageName, imageTag };
 
     // TODO: Return SHA
   }
@@ -649,7 +651,7 @@ export class DockerService {
     return { imageName: this.imageName, imageDigest: this.imageDigest };
   }
 
-  public async push(imageName?: string, authConfig?: AuthConfig): Promise<void> {
+  public async push(imageName?: string, authConfig?: AuthConfig): Promise<{ imageDigest: string }> {
     if (!imageName) {
       throw new Error('Missing image name');
     }
@@ -676,7 +678,14 @@ export class DockerService {
       (evt) => 'aux' in evt && !!evt.aux && typeof evt.aux !== 'string' && 'Digest' in evt.aux,
     ) as AuxEvent<AuxDigestEvent>;
 
+    const imageDigest = event?.aux?.Digest;
     this.imageDigest = event?.aux?.Digest;
+
+    if (!imageDigest) {
+      throw new Error('Failed to get image digest');
+    }
+
+    return { imageDigest };
   }
 
   private async getImages(
