@@ -697,6 +697,7 @@ export class DockerService {
 
   private async getImage(
     runtime: string,
+    architecture: Architecture = 'match-host',
     retry = true,
   ): Promise<Docker.ImageInspectInfo | undefined> {
     ui.updateBottomBarSubtext(`Getting image for ${runtime}`);
@@ -711,24 +712,22 @@ export class DockerService {
         throw e;
       }
       if ('statusCode' in e && e.statusCode === 404) {
-        await this.pullImage(runtime);
+        await this.pullImage(runtime, architecture);
       }
     }
 
     if (retry) {
-      inspected = await this.getImage(runtime, false);
+      inspected = await this.getImage(runtime, architecture, false);
     }
 
     return inspected;
   }
 
-  private async pullImage(runtime: string): Promise<void> {
-    ui.updateBottomBarSubtext(
-      `Pulling image for ${runtime} with architecture ${this.architecture}`,
-    );
-    let platform: Platform | undefined;
+  private async pullImage(runtime: string, architecture?: Architecture): Promise<void> {
+    architecture = architecture || this.architecture;
+    let platform: Platform | undefined = undefined;
 
-    switch (this.architecture) {
+    switch (architecture) {
       case 'x86_64':
         platform = 'linux/amd64';
         break;
@@ -739,6 +738,8 @@ export class DockerService {
         platform = undefined;
         break;
     }
+
+    ui.updateBottomBarSubtext(`Pulling image for ${runtime} with architecture ${architecture}`);
 
     const pullStream = await this.docker.pull(runtime, { platform });
 
@@ -803,7 +804,8 @@ export class DockerService {
 
     console.log('!!! checking bins', bins);
 
-    const image = await this.getImage(runtime);
+    // DEVNOTE: Using "match-host" here b/c for some reason createContainer isn't respecting the platform arg
+    const image = await this.getImage(runtime, 'match-host');
 
     console.log('!!! image', image);
 
@@ -823,7 +825,6 @@ export class DockerService {
     console.log('!!! platform', platform);
 
     const container = await this.docker.createContainer({
-      platform,
       Image: image.RepoDigests[0],
       Cmd: [`command -v ${bin}`],
       Tty: false,
