@@ -23,8 +23,13 @@ export class PackageService {
   }
 
   get commands(): Promise<RunCommand[]> {
-    return Promise.all([this.osPackages.commands, this.npmPackages.commands]).then((cmds) =>
-      cmds.flat(),
-    );
+    return Promise.all([this.osPackages.commands, this.npmPackages.commands])
+      .then((cmds) => cmds.flat())
+      .catch((e) => {
+        if (!(e instanceof Error)) {
+          throw e;
+        }
+        throw new Error(`Error generating install commands for packages: ${e.message}`);
+      });
   }
 }
