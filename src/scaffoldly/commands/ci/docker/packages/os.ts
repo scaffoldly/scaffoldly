@@ -27,9 +27,11 @@ export class OsPackageService {
         this.dockerService
           .checkBin(this.config.runtime, ['yum', 'dnf', 'apk', 'apt'], platform)
           .catch((e) => {
+            if (!(e instanceof Error)) {
+              throw e;
+            }
             throw new Error(
-              `Unable to determine package manager for ${this.config.runtime} on platform ${platform}`,
-              { cause: e },
+              `Unable to determine package manager for ${this.config.runtime} on platform ${platform}: ${e.message}`,
             );
           }),
       )
@@ -48,9 +50,12 @@ export class OsPackageService {
         }
       })
       .catch((e) => {
-        throw new Error(`Error generating install commands for OS packages: ${this.packages}`, {
-          cause: e,
-        });
+        if (!(e instanceof Error)) {
+          throw e;
+        }
+        throw new Error(
+          `Error generating install commands for OS packages: ${this.packages}: ${e.message}`,
+        );
       });
   }
 

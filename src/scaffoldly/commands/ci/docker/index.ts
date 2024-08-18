@@ -823,11 +823,11 @@ export class DockerService {
     console.log('!!! platform', platform);
 
     const container = await this.docker.createContainer({
+      platform,
       Image: image.RepoDigests[0],
       Cmd: [`command -v ${bin}`],
       Tty: false,
       Entrypoint: ['/bin/sh', '-c'], // TODO: check OS to determine shell
-      platform,
     });
 
     console.log('!!! container', container);
@@ -837,6 +837,12 @@ export class DockerService {
 
     const wait = await container.wait();
     console.log('!!! wait', wait);
+
+    const inspection = await this.docker.getContainer(container.id).inspect();
+    console.log('!!! inspection', inspection);
+
+    const remove = await container.remove();
+    console.log('!!! remove', remove);
 
     // const [output, container] = await this.docker.run(
     //   image.RepoDigests[0],
@@ -849,8 +855,6 @@ export class DockerService {
     //   },
     // );
 
-    const inspection = await this.docker.getContainer(container.id).inspect();
-    console.log('!!! inspection', inspection);
     console.log('!!! writeStream', writeStream.getString());
 
     if ('StatusCode' in wait && wait.StatusCode !== 0) {
