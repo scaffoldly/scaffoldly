@@ -819,10 +819,13 @@ export class DockerService {
 
     console.log('!!! bin', bin);
 
+    const writeStream = new BufferedWriteStream();
+    console.log('!!! platform', platform);
+
     const [output, container] = await this.docker.run(
       image.RepoDigests[0],
       [`command -v ${bin}`],
-      new BufferedWriteStream(),
+      writeStream,
       {
         Tty: false,
         Entrypoint: ['/bin/sh', '-c'], // TODO: check OS to determine shell
@@ -832,10 +835,12 @@ export class DockerService {
 
     console.log('!!! output', output);
     console.log('!!! container', container);
+    console.log('!!! writeStream', writeStream.getString());
 
     try {
       await container.remove();
     } catch (e) {
+      console.log('!!! error removing container', e);
       // ignore, TODO: log error
     }
 
