@@ -34,8 +34,19 @@ export class DeployCommand extends CdCommand {
 
     const status = await this.gitService
       .predeploy({}, options)
-      .then((s) => this.awsService.predeploy(s, options))
-      .then((s) => this.awsService.deploy(s, options));
+      .then((s) =>
+        this.awsService.predeploy(s, options).catch((e) => {
+          throw new Error(`AWS Predeployment Failed: ${e.message}`, { cause: e });
+        }),
+      )
+      .then((s) =>
+        this.awsService.deploy(s, options).catch((e) => {
+          throw new Error(`AWS Deployment Failed: ${e.message}`, { cause: e });
+        }),
+      )
+      .catch((e) => {
+        throw new Error(`Deployment Failed: ${e.message}`, { cause: e });
+      });
 
     ui.updateBottomBar('');
     if (isDebug()) {
