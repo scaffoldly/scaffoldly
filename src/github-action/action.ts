@@ -60,13 +60,24 @@ export class Action {
 
   async init(): Promise<Action> {
     debug('Initializing action...');
-    this._owner = await this.gitService.owner;
-    this._repo = await this.gitService.repo;
-    this._branch = await this.gitService.branch;
     this._token = await this.scms.getGithubToken(getInput('github-token'));
-    this._sha = await this.gitService.sha;
-    this._ref = await this.gitService.ref;
     this._stage = await this.gitService.stage;
+
+    try {
+      this._owner = await this.gitService.owner;
+      this._repo = await this.gitService.repo;
+      this._branch = await this.gitService.branch;
+      this._sha = await this.gitService.sha;
+      this._ref = await this.gitService.ref;
+    } catch (e) {
+      if (!(e instanceof Error)) {
+        throw e;
+      }
+      if (this.mode !== 'pre') {
+        throw new Error(`Unable to determine owner, repo, branch, sha, or ref: ${e.message}`);
+      }
+    }
+
     return this;
   }
 
