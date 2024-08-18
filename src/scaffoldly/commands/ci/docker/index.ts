@@ -811,6 +811,7 @@ export class DockerService {
     let bin = bins.pop();
 
     const container = await this.docker.createContainer({
+      name: 'make-an-error',
       Image: image.RepoDigests[0],
       Cmd: [`command -v ${bin}`],
       Tty: false,
