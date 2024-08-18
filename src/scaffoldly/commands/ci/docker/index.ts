@@ -795,7 +795,7 @@ export class DockerService {
   public async checkBin<T extends string[]>(
     runtime: string,
     bins: [...T],
-    architecture: Architecture,
+    platform: Platform,
   ): Promise<T[number] | undefined> {
     if (!bins || !bins.length) {
       return undefined;
@@ -815,7 +815,7 @@ export class DockerService {
       throw new Error(`Failed to get image digest for ${runtime}`);
     }
 
-    const bin = bins.pop();
+    let bin = bins.pop();
 
     console.log('!!! bin', bin);
 
@@ -826,6 +826,7 @@ export class DockerService {
       {
         Tty: false,
         Entrypoint: ['/bin/sh', '-c'], // TODO: check OS to determine shell
+        platform,
       },
     );
 
@@ -840,7 +841,7 @@ export class DockerService {
 
     if ('StatusCode' in output && output.StatusCode !== 0) {
       console.log('!!! checking next bin');
-      return this.checkBin(runtime, bins, architecture);
+      bin = await this.checkBin(runtime, bins, platform);
     }
 
     return bin;
