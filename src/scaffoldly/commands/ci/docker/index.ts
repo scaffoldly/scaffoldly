@@ -822,31 +822,38 @@ export class DockerService {
     const writeStream = new BufferedWriteStream();
     console.log('!!! platform', platform);
 
-    const [output, container] = await this.docker.run(
-      image.RepoDigests[0],
-      [`command -v ${bin}`],
-      writeStream,
-      {
-        Tty: false,
-        Entrypoint: ['/bin/sh', '-c'], // TODO: check OS to determine shell
-        platform,
-      },
-    );
+    const container = await this.docker.createContainer({
+      Image: image.RepoDigests[0],
+      Cmd: [`command -v ${bin}`],
+      Tty: false,
+      Entrypoint: ['/bin/sh', '-c'], // TODO: check OS to determine shell
+      platform,
+    });
+
+    console.log('!!! container', container);
+
+    const start = await container.start();
+    console.log('!!! start', start);
+
+    const wait = await container.wait();
+    console.log('!!! wait', wait);
+
+    // const [output, container] = await this.docker.run(
+    //   image.RepoDigests[0],
+    //   [`command -v ${bin}`],
+    //   writeStream,
+    //   {
+    //     Tty: false,
+    //     Entrypoint: ['/bin/sh', '-c'], // TODO: check OS to determine shell
+    //     platform,
+    //   },
+    // );
 
     const inspection = await this.docker.getContainer(container.id).inspect();
     console.log('!!! inspection', inspection);
-    console.log('!!! output', output);
-    console.log('!!! container', container);
     console.log('!!! writeStream', writeStream.getString());
 
-    try {
-      await container.remove();
-    } catch (e) {
-      console.log('!!! error removing container', e);
-      // ignore, TODO: log error
-    }
-
-    if ('StatusCode' in output && output.StatusCode !== 0) {
+    if ('StatusCode' in wait && wait.StatusCode !== 0) {
       console.log('!!! checking next bin');
       bin = await this.checkBin(runtime, bins, platform);
     }
