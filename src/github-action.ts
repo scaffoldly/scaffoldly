@@ -1,6 +1,6 @@
 import { Action } from './github-action/action';
 import { State } from './github-action/state';
-import { saveState, getState, debug, setOutput, summary } from '@actions/core';
+import { saveState, getState, debug, setOutput, summary, error } from '@actions/core';
 
 export const run = async (stage?: 'pre' | 'main' | 'post'): Promise<void> => {
   const action = new Action();
@@ -21,23 +21,8 @@ export const run = async (stage?: 'pre' | 'main' | 'post'): Promise<void> => {
       default:
         throw new Error(`Invalid stage: ${stage}`);
     }
-    debug('Updated state: ' + JSON.stringify(state));
-  } catch (e) {
-    debug(`Uncaught Error: ${e}`);
-    state.failed = true;
 
-    if (!(e instanceof Error)) {
-      throw e;
-    }
-
-    if (!state.shortMessage && e.message) {
-      state.shortMessage = e.message;
-    }
-  } finally {
-    if (state.failed) {
-      state = await action.updateDeployment(state, 'failure');
-      state.shortMessage = undefined;
-    }
+    debug('New state: ' + JSON.stringify(state));
 
     setOutput('stage', state.stage);
     setOutput('deployed', state.action === 'deploy');
@@ -45,6 +30,11 @@ export const run = async (stage?: 'pre' | 'main' | 'post'): Promise<void> => {
 
     if (state.httpApiUrl) {
       setOutput('httpApiUrl', state.httpApiUrl);
+    }
+
+    if (state.failed) {
+      state = await action.updateDeployment(state, 'failure');
+      state.shortMessage = undefined;
     }
 
     if (stage === 'post' && state.longMessage) {
@@ -56,8 +46,11 @@ export const run = async (stage?: 'pre' | 'main' | 'post'): Promise<void> => {
 
     if (state.failed) {
       process.exit(1);
-    } else {
-      process.exit(0);
     }
+
+    process.exit(0);
+  } catch (e) {
+    error(`Uncaught Error: ${e}`);
+    process.exit(1);
   }
 };
