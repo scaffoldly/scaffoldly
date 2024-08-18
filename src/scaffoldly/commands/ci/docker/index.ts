@@ -820,7 +820,7 @@ export class DockerService {
 
     await container.start();
     const wait = await container.wait();
-    await container.remove();
+    // await container.remove();
 
     if ('StatusCode' in wait && wait.StatusCode !== 0) {
       bin = await this.checkBin(runtime, bins, platform);
