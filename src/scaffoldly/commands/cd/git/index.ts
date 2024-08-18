@@ -18,13 +18,22 @@ export type Origin = {
 };
 
 export class GitService {
-  git: SimpleGit;
+  _git?: SimpleGit;
 
   _cwd?: string;
 
   constructor(cwd?: string) {
     this._cwd = cwd;
-    this.git = simpleGit({ baseDir: cwd });
+    if (cwd) {
+      this._git = simpleGit({ baseDir: cwd });
+    }
+  }
+
+  get git(): SimpleGit {
+    if (!this._git) {
+      throw new Error('Unable to determine git instance. Was the current working directory set?');
+    }
+    return this._git;
   }
 
   get cwd(): string {
