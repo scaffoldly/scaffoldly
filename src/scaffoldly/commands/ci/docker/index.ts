@@ -692,8 +692,6 @@ export class DockerService {
       }),
     );
 
-    console.log('!!!! images', JSON.stringify(images));
-
     return images.filter((image) => !!image) as Docker.ImageInspectInfo[];
   }
 
@@ -708,12 +706,10 @@ export class DockerService {
 
     try {
       inspected = await image.inspect();
-      console.log('!!! inspected', inspected);
     } catch (e) {
       if (!(e instanceof Error)) {
         throw e;
       }
-      console.error('!!! inspect error', e);
       if ('statusCode' in e && e.statusCode === 404) {
         await this.pullImage(runtime);
       }
@@ -747,23 +743,21 @@ export class DockerService {
     const pullStream = await this.docker.pull(runtime, { platform });
 
     try {
-      const events = await new Promise<DockerEvent[]>((resolve, reject) => {
+      await new Promise<DockerEvent[]>((resolve, reject) => {
         this.docker.modem.followProgress(
           pullStream,
           (err, res) => (err ? reject(err) : resolve(res)),
           (event) => {
             try {
-              this.handleDockerEvent('Push', event);
+              this.handleDockerEvent('Pull', event);
             } catch (e) {
               reject(e);
             }
           },
         );
       });
-
-      console.log('!!! pull events', JSON.stringify(events));
     } catch (e) {
-      console.error('!!! pull error', e);
+      throw new Error(`Unable to pull image for ${runtime}`, { cause: e });
     }
 
     return;
@@ -807,7 +801,12 @@ export class DockerService {
       return undefined;
     }
 
+    console.log('!!! checking bins', bins);
+
     const image = await this.getImage(runtime);
+
+    console.log('!!! image', image);
+
     if (!image) {
       throw new Error(`Failed to get image for ${runtime}`);
     }
@@ -817,6 +816,8 @@ export class DockerService {
     }
 
     const bin = bins.pop();
+
+    console.log('!!! bin', bin);
 
     const [output, container] = await this.docker.run(
       image.RepoDigests[0],
@@ -828,6 +829,9 @@ export class DockerService {
       },
     );
 
+    console.log('!!! output', output);
+    console.log('!!! container', container);
+
     try {
       await container.remove();
     } catch (e) {
@@ -835,6 +839,7 @@ export class DockerService {
     }
 
     if ('StatusCode' in output && output.StatusCode !== 0) {
+      console.log('!!! checking next bin');
       return this.checkBin(runtime, bins, architecture);
     }
 
