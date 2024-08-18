@@ -64,8 +64,10 @@ export class LambdaService implements IamConsumer {
   public async deploy(status: DeployStatus, options: ResourceOptions): Promise<DeployStatus> {
     const lambdaDeployStatus: LambdaDeployStatus = {};
 
-    const imageUri = await this.publishCode(status, options);
+    const { imageUri, architecture } = await this.publishCode(status, options);
     lambdaDeployStatus.imageUri = imageUri;
+    // TODO: Warn if architecture changes
+    lambdaDeployStatus.architecture = architecture;
 
     // const origin = await this.configureOrigin(status, options);
     // lambdaDeployStatus.origin = origin;
@@ -250,7 +252,7 @@ export class LambdaService implements IamConsumer {
   private async publishCode(
     status: DeployStatus,
     options: ResourceOptions,
-  ): Promise<string | undefined> {
+  ): Promise<{ imageUri?: string; architecture?: Architecture }> {
     const { name } = this.config;
 
     const desired: Partial<GetFunctionCommandOutput> = {
@@ -263,7 +265,10 @@ export class LambdaService implements IamConsumer {
       },
     };
 
-    const { imageUri } = await new CloudResource<{ imageUri: string }, GetFunctionCommandOutput>(
+    const { imageUri, architecture } = await new CloudResource<
+      { imageUri: string; architecture: Architecture },
+      GetFunctionCommandOutput
+    >(
       {
         describe: (resource) => {
           return { type: 'Function Code', label: resource.imageUri?.split('/').pop() };
@@ -282,11 +287,14 @@ export class LambdaService implements IamConsumer {
           ),
       },
       (output) => {
-        return { imageUri: output.Code?.ImageUri };
+        return {
+          imageUri: output.Code?.ImageUri,
+          architecture: output.Configuration?.Architectures?.[0],
+        };
       },
     ).manage({ ...options, retries: Infinity }, desired);
 
-    return imageUri;
+    return { imageUri, architecture };
   }
 
   get trustRelationship(): TrustRelationship {

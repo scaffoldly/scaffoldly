@@ -5,7 +5,7 @@ export class DevCommand extends CiCommand {
   async handle(): Promise<void> {
     event('dev');
 
-    await this.dockerService.build(this.config, 'develop');
+    await this.dockerService.build(this.config, 'develop', 'match-host');
 
     return;
   }

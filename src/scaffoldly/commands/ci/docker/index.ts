@@ -12,7 +12,6 @@ import {
 import { join, relative, sep } from 'path';
 import { ui } from '../../../command';
 import { isDebug } from '../../../ui';
-import { BufferedWriteStream } from './util';
 import { Platform } from '../../cd/docker';
 import { PackageService } from './packages';
 import micromatch from 'micromatch';
@@ -124,7 +123,7 @@ export class DockerService {
   }
 
   private handleDockerEvent(type: 'Pull' | 'Build' | 'Push', event: DockerEvent) {
-    console.log('!!! event', event);
+    // console.log('!!! event', event);
     if ('stream' in event && typeof event.stream === 'string') {
       if (isDebug()) {
         ui.updateBottomBarSubtext(event.stream);
@@ -657,8 +656,6 @@ export class DockerService {
 
     const image = this.docker.getImage(imageName);
 
-    console.log('!!! image', image);
-
     const pushStream = await image.push({ authconfig: authConfig });
 
     const events = await new Promise<DockerEvent[]>((resolve, reject) => {
@@ -800,12 +797,8 @@ export class DockerService {
       return undefined;
     }
 
-    console.log('!!! checking bins', bins);
-
     // DEVNOTE: Using "match-host" here b/c for some reason createContainer isn't respecting the platform arg
     const image = await this.getImage(runtime, 'match-host');
-
-    console.log('!!! image', image);
 
     if (!image) {
       throw new Error(`Failed to get image for ${runtime}`);
@@ -817,11 +810,6 @@ export class DockerService {
 
     let bin = bins.pop();
 
-    console.log('!!! bin', bin);
-
-    const writeStream = new BufferedWriteStream();
-    console.log('!!! platform', platform);
-
     const container = await this.docker.createContainer({
       Image: image.RepoDigests[0],
       Cmd: [`command -v ${bin}`],
@@ -829,35 +817,11 @@ export class DockerService {
       Entrypoint: ['/bin/sh', '-c'], // TODO: check OS to determine shell
     });
 
-    console.log('!!! container', container);
-
-    const start = await container.start();
-    console.log('!!! start', start);
-
+    await container.start();
     const wait = await container.wait();
-    console.log('!!! wait', wait);
-
-    const inspection = await this.docker.getContainer(container.id).inspect();
-    console.log('!!! inspection', inspection);
-
-    const remove = await container.remove();
-    console.log('!!! remove', remove);
-
-    // const [output, container] = await this.docker.run(
-    //   image.RepoDigests[0],
-    //   [`command -v ${bin}`],
-    //   writeStream,
-    //   {
-    //     Tty: false,
-    //     Entrypoint: ['/bin/sh', '-c'], // TODO: check OS to determine shell
-    //     platform,
-    //   },
-    // );
-
-    console.log('!!! writeStream', writeStream.getString());
+    await container.remove();
 
     if ('StatusCode' in wait && wait.StatusCode !== 0) {
-      console.log('!!! checking next bin');
       bin = await this.checkBin(runtime, bins, platform);
     }
 
