@@ -45,7 +45,7 @@ export class Action {
 
   _sha?: string;
 
-  _ref?: string;
+  // _ref?: string;
 
   _branch?: string;
 
@@ -66,7 +66,7 @@ export class Action {
     this._repo = await this.gitService.repo;
     this._branch = await this.gitService.branch;
     this._sha = await this.gitService.sha;
-    this._ref = await this.gitService.ref;
+    // this._ref = await this.gitService.ref;
 
     return this;
   }
@@ -390,21 +390,25 @@ export class Action {
     return context.payload.inputs || {};
   }
 
-  get ref(): string {
-    if (!this._ref) {
-      throw new Error('Unable to determine ref. Was init() called?');
-    }
-    return this._ref;
-  }
+  // get ref(): string {
+  //   if (!this._ref) {
+  //     throw new Error('Unable to determine ref. Was init() called?');
+  //   }
+  //   return this._ref;
+  // }
 
   async createDeployment(state: State): Promise<State> {
     const octokit = getOctokit(this.token);
 
-    const { prNumber, ref } = this;
+    const { prNumber } = this;
+    const { GITHUB_REF } = process.env;
+    if (!GITHUB_REF) {
+      throw new Error('GITHUB_REF is not defined');
+    }
 
     try {
       const response = await octokit.rest.repos.createDeployment({
-        ref,
+        ref: GITHUB_REF, // TODO: figure this out
         required_contexts: [],
         environment: this.stage,
         transient_environment: !!this.prNumber,

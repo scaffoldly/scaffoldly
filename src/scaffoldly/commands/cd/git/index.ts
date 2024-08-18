@@ -154,30 +154,30 @@ export class GitService {
     return this.git.revparse(['HEAD']);
   }
 
-  get ref(): Promise<string | undefined> {
-    if (!process.env.GITHUB_REF) {
-      return this.branch;
-    }
+  // get ref(): Promise<string | undefined> {
+  //   if (!process.env.GITHUB_REF) {
+  //     return this.branch;
+  //   }
 
-    const { GITHUB_REF, GITHUB_HEAD_REF } = process.env;
+  //   const { GITHUB_REF, GITHUB_HEAD_REF } = process.env;
 
-    if (GITHUB_REF.endsWith('/merge')) {
-      if (!GITHUB_HEAD_REF) {
-        throw new Error('Unable to determine branch from GITHUB_HEAD_REF');
-      }
-      return Promise.resolve(GITHUB_HEAD_REF.replace('refs/heads/', ''));
-    }
+  //   if (GITHUB_REF.endsWith('/merge')) {
+  //     if (!GITHUB_HEAD_REF) {
+  //       throw new Error('Unable to determine branch from GITHUB_HEAD_REF');
+  //     }
+  //     return Promise.resolve(GITHUB_HEAD_REF.replace('refs/heads/', ''));
+  //   }
 
-    if (GITHUB_REF.startsWith('refs/tags/')) {
-      throw new Error('Not Implemented: tags');
-    }
+  //   if (GITHUB_REF.startsWith('refs/tags/')) {
+  //     throw new Error('Not Implemented: tags');
+  //   }
 
-    if (GITHUB_REF.startsWith('refs/heads/')) {
-      return Promise.resolve(GITHUB_REF.replace('refs/heads/', ''));
-    }
+  //   if (GITHUB_REF.startsWith('refs/heads/')) {
+  //     return Promise.resolve(GITHUB_REF.replace('refs/heads/', ''));
+  //   }
 
-    throw new Error('Unable to determine branch from GITHUB_REF');
-  }
+  //   throw new Error('Unable to determine branch from GITHUB_REF');
+  // }
 
   get stage(): Promise<string> {
     return this.branch.then((branch) => {
