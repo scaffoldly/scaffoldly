@@ -1,4 +1,4 @@
-import { Action } from './github-action/action';
+import { Action, Mode } from './github-action/action';
 import { State } from './github-action/state';
 import { saveState, getState, debug, setOutput, summary, error } from '@actions/core';
 
@@ -6,15 +6,15 @@ process.on('unhandledRejection', (reason, promise) => {
   console.log('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
-export const run = async (stage?: 'pre' | 'main' | 'post'): Promise<void> => {
-  const action = await new Action().init();
+export const run = async (mode: Mode): Promise<void> => {
+  const action = await new Action(mode).init();
 
   let state: State = {
     action: 'deploy',
   };
 
   try {
-    switch (stage) {
+    switch (mode) {
       case 'pre':
         state = await action.pre(state);
         break;
@@ -25,7 +25,7 @@ export const run = async (stage?: 'pre' | 'main' | 'post'): Promise<void> => {
         state = await action.post(JSON.parse(getState('state') || JSON.stringify(state)) as State);
         break;
       default:
-        throw new Error(`Invalid stage: ${stage}`);
+        throw new Error(`Invalid run: ${run}`);
     }
 
     debug('New state: ' + JSON.stringify(state));
@@ -43,7 +43,7 @@ export const run = async (stage?: 'pre' | 'main' | 'post'): Promise<void> => {
       state.shortMessage = undefined;
     }
 
-    if (stage === 'post' && state.longMessage) {
+    if (mode === 'post' && state.longMessage) {
       summary.addRaw(state.longMessage, true);
       await summary.write({ overwrite: true });
     }

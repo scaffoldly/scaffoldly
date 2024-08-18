@@ -26,6 +26,8 @@ import { Scms } from '../scaffoldly/stores/scms';
 
 const { GITHUB_RUN_ATTEMPT } = process.env;
 
+export type Mode = 'pre' | 'main' | 'post';
+
 export class Action {
   gitService: GitService;
 
@@ -49,7 +51,7 @@ export class Action {
 
   _stage?: string;
 
-  constructor() {
+  constructor(private mode: Mode) {
     this.gitService = new GitService(this.cwd);
     this.apiHelper = new ApiHelper(process.argv);
     this.messagesHelper = new MessagesHelper(process.argv);
@@ -323,6 +325,9 @@ export class Action {
       try {
         process.chdir(cwd);
       } catch (e) {
+        if (this.mode === 'pre') {
+          return cwd;
+        }
         throw new Error(`Unable to change working directory to ${cwd}: ${e.message}`);
       }
     }
