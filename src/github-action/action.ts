@@ -54,9 +54,11 @@ export class Action {
   }
 
   async pre(state: State): Promise<State> {
-    state.deployStatus = {};
+    state.status = {};
     state.deployLogsUrl = await this.logsUrl;
     state.commitSha = this.commitSha;
+    state.owner = this.owner;
+    state.repo = this.repo;
 
     const region =
       getInput('aws-region') ||
@@ -116,7 +118,7 @@ export class Action {
         throw e;
       }
 
-      const newLongMessage = await roleSetupMoreInfo(this.owner, this.repo, state);
+      const newLongMessage = await roleSetupMoreInfo(state);
 
       state.failed = true;
       state.shortMessage = e.message;
@@ -138,7 +140,7 @@ export class Action {
     const deployCommand = new DeployCommand(this.gitService);
 
     try {
-      await deployCommand.handle(state.deployStatus, {
+      await deployCommand.handle(state.status, {
         notify: (message, level) => {
           if (level === 'error') {
             error(message);

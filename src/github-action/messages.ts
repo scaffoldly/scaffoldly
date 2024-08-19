@@ -11,22 +11,18 @@ export type Message = {
   shortMessage: string;
 };
 
-export const roleSetupMoreInfo = async (
-  owner: string,
-  repo: string,
-  state: State,
-): Promise<string> => {
-  return ejs.render(roleSetupMd, { owner, repo, state }, ejsOptions);
+export const roleSetupMoreInfo = async (state: State): Promise<string> => {
+  return ejs.render(roleSetupMd, { state }, ejsOptions);
 };
 
 export const deployedMarkdown = async (state: State): Promise<Message> => {
   const long = await ejs.render(deployedCommentMd, { state }, ejsOptions);
-  const short = `Successfully deployed branch ${state.deployStatus?.branch}`;
+  const short = `Successfully deployed branch ${state.status?.branch}`;
   return { longMessage: long, shortMessage: short };
 };
 
 export const failedMarkdown = async (state: State, moreInfo?: string): Promise<Message> => {
   const long = await ejs.render(failedCommentMd, { state, moreInfo }, ejsOptions);
-  const short = state.shortMessage || `Failed to deploy branch ${state.deployStatus?.branch}`;
+  const short = state.shortMessage || `Failed to deploy branch ${state.status?.branch}`;
   return { longMessage: long, shortMessage: short };
 };

@@ -6,5 +6,7 @@ export type State = {
   deployLogsUrl?: string;
   shortMessage?: string;
   longMessage?: string;
-  deployStatus: DeployStatus;
+  owner?: string;
+  repo?: string;
+  status: DeployStatus;
 };
