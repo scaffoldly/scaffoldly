@@ -66,4 +66,4 @@ Please follow these instructions to ensure the application can deploy to AWS:
 
    Be sure to replace `YOUR_ACCOUNT_ID` with your AWS Account ID and `YOUR_ROLE_NAME` with the AWS IAM Role Name.
 
-5. Re-run [this action]({%= state.logsUrl %}). Enable debug logging if you need more detail.
+5. Re-run [this action]({%= state.deployLogsUrl %}). Enable debug logging if you need more detail.
