@@ -12,6 +12,7 @@ import {
   GetRolePolicyCommandOutput,
 } from '@aws-sdk/client-iam';
 import { CloudResource, ResourceOptions } from '..';
+import { SecretDeployStatus } from './secret';
 
 export type IamDeployStatus = {
   roleArn?: string;
@@ -71,11 +72,14 @@ export class IamService {
   }
 
   public async predeploy(
-    status: IamDeployStatus,
+    status: IamDeployStatus & SecretDeployStatus,
     consumers: IamConsumer[],
     options: ResourceOptions,
   ): Promise<void> {
     const { name } = this.config;
+    const { uniqueId } = status;
+
+    const roleName = `${name}-${uniqueId}`;
 
     const trustRelationship = mergeTrustRelationships(
       consumers.map((consumer) => consumer.trustRelationship),
@@ -89,11 +93,11 @@ export class IamService {
         describe: (resource) => {
           return { type: 'IAM Role', label: resource.roleName };
         },
-        read: () => this.iamClient.send(new GetRoleCommand({ RoleName: name })),
+        read: () => this.iamClient.send(new GetRoleCommand({ RoleName: roleName })),
         create: () =>
           this.iamClient.send(
             new CreateRoleCommand({
-              RoleName: name,
+              RoleName: roleName,
               AssumeRolePolicyDocument: JSON.stringify(trustRelationship),
             }),
           ),
@@ -125,11 +129,11 @@ export class IamService {
           return { type: 'IAM Role Policy', label: resource.policyName };
         },
         read: () =>
-          this.iamClient.send(new GetRolePolicyCommand({ RoleName: name, PolicyName: name })),
+          this.iamClient.send(new GetRolePolicyCommand({ RoleName: roleName, PolicyName: name })),
         create: () =>
           this.iamClient.send(
             new PutRolePolicyCommand({
-              RoleName: name,
+              RoleName: roleName,
               PolicyName: name,
               PolicyDocument: JSON.stringify(policyDocument),
             }),
@@ -137,7 +141,7 @@ export class IamService {
         update: () =>
           this.iamClient.send(
             new PutRolePolicyCommand({
-              RoleName: name,
+              RoleName: roleName,
               PolicyName: name,
               PolicyDocument: JSON.stringify(policyDocument),
             }),

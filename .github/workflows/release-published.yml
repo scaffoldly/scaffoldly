@@ -27,7 +27,27 @@ jobs:
           action: postrelease
           version-file: package.json
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+          major-tag: true
       - if: ${{ matrix.node == '18' }}
         run: yarn publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  deploy-website:
+    runs-on: ubuntu-latest
+    needs: publish
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: packages/website/package-lock.json
+
+      # TODO Remove install and pull entrypoint from another container
+      - run: npm install
+        working-directory: packages/website
+      - uses: scaffoldly/scaffoldly@v1
+        with:
+          aws-role: 'arn:aws:iam::557208059266:role/github'
+          working-directory: packages/website

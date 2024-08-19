@@ -5,18 +5,23 @@ import { config as dotenv } from 'dotenv';
 import { expand as dotenvExpand } from 'dotenv-expand';
 import { join } from 'path';
 import { isDebug } from '../../../ui';
+import { GitService } from '../git';
 
 export type EnvDeployStatus = {
   envFiles?: string[];
   buildEnv?: Record<string, string>;
 };
 
-const normalizeBranch = (branch: string | undefined) => branch?.replace('/', '-');
+const normalizeBranch = (branch: string) => branch.replaceAll('/', '-').replaceAll('_', '-');
 
 export class EnvService {
   private lastStatus?: DeployStatus;
 
-  constructor(private cwd: string, private config: ScaffoldlyConfig) {}
+  constructor(
+    private cwd: string,
+    private config: ScaffoldlyConfig,
+    private gitService: GitService,
+  ) {}
 
   public async predeploy(status: DeployStatus): Promise<void> {
     this.lastStatus = status;
@@ -42,15 +47,20 @@ export class EnvService {
   private get baseEnv(): Record<string, string> {
     // This is separate b/c we don't want these in the generated Dockerfiles
     return {
-      SLY_ROUTES: JSON.stringify(this.config.routes), // TODO encode
-      SLY_SERVE: this.config.serveCommands.encode(),
-      SLY_SECRET: this.lastStatus?.secretName || '',
-      SLY_ORIGIN: this.lastStatus?.origin || '',
+      URL: this.lastStatus?.url || '',
     };
   }
 
   get buildEnv(): Record<string, string> {
-    const processEnv = Object.entries(process.env).reduce(
+    const processEnv = this.baseEnv;
+
+    dotenv({
+      path: this.envFiles.map((f) => join(this.cwd, f)),
+      debug: isDebug(),
+      processEnv,
+    });
+
+    const combinedEnv = Object.entries(process.env).reduce(
       (acc, [k, v]) => {
         if (!v) return acc;
         acc[k] = v;
@@ -61,15 +71,9 @@ export class EnvService {
       this.baseEnv,
     );
 
-    const { parsed = {} } = dotenv({
-      path: this.envFiles.map((f) => join(this.cwd, f)),
-      debug: isDebug(),
-      processEnv: { ...processEnv }, // Don't mutuate processEnv
-    });
-
     const { parsed: expanded = {} } = dotenvExpand({
-      parsed: parsed,
-      processEnv: { ...processEnv }, // Don't mutuate processEnv
+      parsed: processEnv,
+      processEnv: combinedEnv, // Don't mutuate processEnv
     });
 
     return expanded;
@@ -77,6 +81,9 @@ export class EnvService {
 
   get runtimeEnv(): Record<string, string> {
     return {
+      SLY_ROUTES: JSON.stringify(this.config.routes), // TODO encode
+      SLY_SERVE: this.config.serveCommands.encode(),
+      SLY_SECRET: this.lastStatus?.secretName || '',
       ...this.baseEnv,
       ...this.buildEnv,
     };
@@ -85,10 +92,23 @@ export class EnvService {
   get envFiles(): string[] {
     const base = '.env';
 
-    const files = [
-      normalizeBranch(this.lastStatus?.branch),
-      normalizeBranch(this.lastStatus?.defaultBranch),
-    ].filter((f) => !!f) as string[];
+    const files: string[] = [];
+
+    const { branch, defaultBranch } = this.lastStatus || {};
+
+    const { tag } = this.gitService;
+
+    if (tag) {
+      files.push(tag);
+    }
+
+    if (branch) {
+      files.push(normalizeBranch(branch));
+    }
+
+    if (defaultBranch) {
+      files.push(normalizeBranch(defaultBranch));
+    }
 
     const envFiles = new Set(files.map((f) => `${base}.${f}`));
 

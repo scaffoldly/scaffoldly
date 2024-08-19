@@ -11,6 +11,7 @@ import { CloudResource, ResourceOptions } from '..';
 import { NotFoundException } from './errors';
 import { createHash } from 'crypto';
 import { IamConsumer, PolicyDocument } from './iam';
+import { GitDeployStatus } from '../git';
 
 export type SecretName = string;
 export type SecretVersion = string;
@@ -31,24 +32,28 @@ export class SecretService implements IamConsumer {
   }
 
   public async predeploy(
-    status: SecretDeployStatus,
+    status: SecretDeployStatus & GitDeployStatus,
     consumer: SecretConsumer,
     options: ResourceOptions,
   ): Promise<void> {
     const { name } = this.config;
+    const { branch } = status;
 
-    const { secretId, secretName, uniqueId } = await new CloudResource<
-      { secretId: string; secretName: string; uniqueId: string },
+    const secretName = `${name}@${branch}`;
+
+    const { secretId, uniqueId } = await new CloudResource<
+      { secretId: string; uniqueId: string },
       DescribeSecretCommandOutput
     >(
       {
         describe: (resource) => {
-          return { type: 'Secret', label: resource.secretName };
+          return { type: 'Secret', label: resource.secretId };
         },
-        read: () => this.secretsManagerClient.send(new DescribeSecretCommand({ SecretId: name })),
+        read: () =>
+          this.secretsManagerClient.send(new DescribeSecretCommand({ SecretId: secretName })),
         create: () =>
           this.secretsManagerClient.send(
-            new CreateSecretCommand({ Name: name, SecretBinary: consumer.secretValue }),
+            new CreateSecretCommand({ Name: secretName, SecretBinary: consumer.secretValue }),
           ),
         update: (existing) =>
           this.secretsManagerClient.send(
@@ -65,7 +70,6 @@ export class SecretService implements IamConsumer {
         }
         return {
           secretId: output.ARN,
-          secretName: output.Name,
           uniqueId: createHash('sha256').update(arn).digest('hex').substring(0, 8),
         };
       },

@@ -17,14 +17,9 @@ export class DeployCommand extends CdCommand {
 
   constructor(private gitService: GitService) {
     super(gitService.cwd);
-    this.envService = new EnvService(this.cwd, this.config);
+    this.envService = new EnvService(this.cwd, this.config, this.gitService);
     this.dockerService = new DockerService(this.config, new DockerCiService(this.cwd));
-    this.awsService = new AwsService(
-      this.config,
-      this.gitService,
-      this.envService,
-      this.dockerService,
-    );
+    this.awsService = new AwsService(this.config, this.envService, this.dockerService);
   }
 
   async handle(status: DeployStatus, options?: ResourceOptions): Promise<void> {
@@ -42,6 +37,6 @@ export class DeployCommand extends CdCommand {
     }
     console.log('');
     console.log('🚀 Deployment Complete!');
-    console.log(`   🌎 Origin: ${status.origin}`);
+    console.log(`   🌎 URL: ${status.url}`);
   }
 }

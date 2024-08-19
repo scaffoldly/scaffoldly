@@ -77,6 +77,8 @@ export class GitService {
     if (context.ref) {
       if (context.ref.startsWith('refs/heads/')) {
         return Promise.resolve(context.ref.replace('refs/heads/', ''));
+      } else if (context.ref.startsWith('refs/tags/')) {
+        return Promise.resolve('tagged');
       } else {
         throw new Error(`Unsupported ref format: ${context.ref}`);
       }
@@ -129,59 +131,9 @@ export class GitService {
     return this.git.revparse(['HEAD']);
   }
 
-  // get ref(): Promise<string | undefined> {
-  //   if (!process.env.GITHUB_REF) {
-  //     return this.branch;
-  //   }
-
-  //   const { GITHUB_REF, GITHUB_HEAD_REF } = process.env;
-
-  //   if (GITHUB_REF.endsWith('/merge')) {
-  //     if (!GITHUB_HEAD_REF) {
-  //       throw new Error('Unable to determine branch from GITHUB_HEAD_REF');
-  //     }
-  //     return Promise.resolve(GITHUB_HEAD_REF.replace('refs/heads/', ''));
-  //   }
-
-  //   if (GITHUB_REF.startsWith('refs/tags/')) {
-  //     throw new Error('Not Implemented: tags');
-  //   }
-
-  //   if (GITHUB_REF.startsWith('refs/heads/')) {
-  //     return Promise.resolve(GITHUB_REF.replace('refs/heads/', ''));
-  //   }
-
-  //   throw new Error('Unable to determine branch from GITHUB_REF');
-  // }
-
-  get stage(): Promise<string> {
-    return this.branch.then((branch) => {
-      if (!branch) {
-        throw new Error('Unable to determine branch');
-      }
-
-      let deploymentStage = branch.replaceAll('/', '-').replaceAll('_', '-');
-
-      if (this.prNumber) {
-        const { GITHUB_BASE_REF } = process.env;
-        if (!GITHUB_BASE_REF) {
-          throw new Error('Unable to determine base ref from GITHUB_BASE_REF');
-        }
-
-        const normalizedBaseRef = GITHUB_BASE_REF.replaceAll('/', '-').replaceAll('_', '-');
-        deploymentStage = `${normalizedBaseRef}-pr-${this.prNumber}`;
-      }
-
-      return deploymentStage;
-    });
-  }
-
-  get prNumber(): number | undefined {
-    if (context.eventName === 'pull_request') {
-      if (!context.payload.pull_request || !context.payload.pull_request.number) {
-        throw new Error('Unable to determine PR number');
-      }
-      return context.payload.pull_request?.number;
+  get tag(): string | undefined {
+    if (context.ref && context.ref.startsWith('refs/tags/')) {
+      return context.ref.replace('refs/tags/', '');
     }
     return undefined;
   }

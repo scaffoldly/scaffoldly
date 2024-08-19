@@ -34,8 +34,6 @@ export class Action {
 
   _branch?: string;
 
-  _stage?: string;
-
   constructor(private mode: Mode) {
     this.gitService = new GitService(this.cwd);
     this.apiHelper = new ApiHelper(process.argv);
@@ -46,7 +44,6 @@ export class Action {
   async init(): Promise<Action> {
     debug('Initializing action...');
     this._token = await this.scms.getGithubToken(getInput('github-token'));
-    this._stage = await this.gitService.stage;
     this._branch = await this.gitService.branch;
     this._sha = await this.gitService.sha;
 

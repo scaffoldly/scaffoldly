@@ -5,7 +5,7 @@ import { IamDeployStatus, IamService } from './iam';
 import { EcrDeployStatus, EcrService } from './ecr';
 import { DockerDeployStatus, DockerService } from '../docker';
 import { SecretDeployStatus, SecretService } from './secret';
-import { GitDeployStatus, GitService } from '../git';
+import { GitDeployStatus } from '../git';
 import { EnvDeployStatus, EnvService } from '../env';
 import { ScheduleService, ScheduleDeployStatus } from './schedule';
 import { DynamoDbService } from './dynamodb';
@@ -34,7 +34,6 @@ export class AwsService {
 
   constructor(
     private config: ScaffoldlyConfig,
-    private gitService: GitService,
     private envService: EnvService,
     private dockerService: DockerService,
   ) {
@@ -49,21 +48,12 @@ export class AwsService {
   async predeploy(status: DeployStatus, options: ResourceOptions): Promise<void> {
     // TODO Check if auth'd to AWS
 
-    // Deploy ECR with a unqualified name
-    this.config.id = '';
+    // Deploy ECR
     await this.ecrService.predeploy(status, options);
 
-    const branch = await this.gitService.branch;
-    if (!branch) {
-      throw new Error('Missing branch. Make sure this repo is initialized with git.');
-    }
-
-    // Deploy Secret using branch name for uniqueness
-    this.config.id = branch;
+    // Deploy Secret
     await this.secretService.predeploy(status, this.config, options);
 
-    // Set Unique ID for the rest of the steps...
-    this.config.id = status.uniqueId || '';
     // Deploy IAM
     await this.iamService.predeploy(
       status,
@@ -73,6 +63,9 @@ export class AwsService {
 
     // Pre-Deploy Lambda (Creates the Function URL and other pre-deploy steps)
     await this.lambdaService.predeploy(status, options);
+
+    // Set a Unique ID for the rest of the steps...
+    this.config.id = status.uniqueId || '';
 
     // Pre-Deploy Schedules
     await this.scheduleService.predeploy(status, options);

@@ -21,6 +21,9 @@ function HomepageHeader() {
             NextJS on AWS Lambda Tutorial - 5min ⏱️
           </Link>
         </div>
+        <p>
+          My URL is <code>{siteConfig.url}</code>
+        </p>
       </div>
     </header>
   );
