@@ -147,6 +147,10 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
       async (retry) => {
         try {
           const readResponse = await read();
+          if (isDebug() && readResponse) {
+            console.log(`   --> [READ] ${JSON.stringify(readResponse)}`);
+          }
+
           const difference = getDifferences(desired || {}, readResponse);
 
           if (Object.keys(difference).length) {
@@ -159,7 +163,12 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
             return retry(new Error('Resource is not ready'));
           }
 
-          return this.resourceExtractor(readResponse);
+          const resource = this.resourceExtractor(readResponse);
+          if (isDebug() && resource) {
+            console.log(`   ${JSON.stringify(resource)}`);
+          }
+
+          return resource;
         } catch (e) {
           if (e instanceof NotFoundException) {
             return undefined;
@@ -201,10 +210,14 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
       return undefined;
     }
 
-    await promiseRetry((retry) => create().catch(retry), {
+    const created = await promiseRetry((retry) => create().catch(retry), {
       retries: options.retries !== Infinity ? options.retries || 0 : 0,
       forever: options.retries === Infinity,
     });
+
+    if (isDebug() && created) {
+      console.log(`   --> [CREATED] ${JSON.stringify(created)}`);
+    }
 
     const resource = await this.read(options, desired);
 
@@ -221,10 +234,14 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
       return existing;
     }
 
-    await promiseRetry((retry) => update(existing).catch(retry), {
+    const updated = await promiseRetry((retry) => update(existing).catch(retry), {
       retries: options.retries !== Infinity ? options.retries || 0 : 0,
       forever: options.retries === Infinity,
     });
+
+    if (isDebug() && updated) {
+      console.log(`   --> [UPDATED] ${JSON.stringify(updated)}`);
+    }
 
     const resource = await this.read(options, desired);
 
@@ -306,11 +323,6 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
         console.log(`${emoji ? `${emoji} ` : ''}${messageOutput}`);
         if (options.notify) {
           options.notify(messageOutput, resource instanceof Error ? 'error' : 'notice');
-        }
-        if (isDebug()) {
-          console.log(`   ${JSON.stringify(resource)}`);
-        } else {
-          console.log('');
         }
         break;
       case 'Reading':

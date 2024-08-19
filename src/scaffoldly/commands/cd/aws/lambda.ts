@@ -21,12 +21,13 @@ import {
   GetPolicyCommandOutput,
 } from '@aws-sdk/client-lambda';
 import { ScaffoldlyConfig } from '../../../../config';
-import { IamConsumer, PolicyDocument, TrustRelationship } from './iam';
+import { IamConsumer, IamDeployStatus, PolicyDocument, TrustRelationship } from './iam';
 import { DeployStatus } from '.';
 import { CloudResource, ResourceOptions } from '..';
 import { EnvService } from '../env';
-import { DockerService } from '../docker';
+import { DockerDeployStatus, DockerService } from '../docker';
 import { Architecture } from '../../ci/docker';
+import { EcrDeployStatus } from './ecr';
 
 export type LambdaDeployStatus = {
   functionArn?: string;
@@ -47,28 +48,21 @@ export class LambdaService implements IamConsumer {
   }
 
   public async predeploy(status: LambdaDeployStatus, options: ResourceOptions): Promise<void> {
-    const configuration = await this.configureFunction(status, options);
-    status.functionArn = configuration.FunctionArn;
-    status.architecture = configuration.Architectures?.[0];
-
+    await this.configureFunction(status, options);
     await this.configureOrigin(status, options);
     await this.configurePermissions(status, options);
   }
 
   public async deploy(status: LambdaDeployStatus, options: ResourceOptions): Promise<void> {
-    const { imageUri, architecture } = await this.publishCode(status, options);
-    status.imageUri = imageUri;
-    // TODO: Warn if architecture changes
-    status.architecture = architecture;
-
-    // const origin = await this.configureOrigin(status, options);
-    // lambdaDeployStatus.origin = origin;
+    // TODO: Create Alias for PR branches
+    await this.publishCode(status, options);
+    await this.configureOrigin(status, options);
   }
 
   private async configureFunction(
-    status: DeployStatus,
+    status: LambdaDeployStatus & IamDeployStatus & EcrDeployStatus & DockerDeployStatus,
     options: ResourceOptions,
-  ): Promise<FunctionConfiguration> {
+  ): Promise<void> {
     const { name } = this.config;
 
     const desired: Partial<GetFunctionCommandOutput> = {
@@ -145,15 +139,14 @@ export class LambdaService implements IamConsumer {
       desired,
     );
 
-    return configuration;
+    status.functionArn = configuration.FunctionArn;
+    status.architecture = configuration.Architectures?.[0];
   }
 
   private async configureOrigin(
     status: LambdaDeployStatus,
     options: ResourceOptions,
   ): Promise<void> {
-    const { name } = this.config;
-
     const { functionUrl } = await new CloudResource<
       { functionUrl: string },
       GetFunctionUrlConfigCommandOutput
@@ -162,23 +155,26 @@ export class LambdaService implements IamConsumer {
         describe: (resource) => {
           return { type: 'Function URL', label: resource.functionUrl };
         },
-        read: () => this.lambdaClient.send(new GetFunctionUrlConfigCommand({ FunctionName: name })),
+        read: () =>
+          this.lambdaClient.send(
+            new GetFunctionUrlConfigCommand({
+              FunctionName: status.functionArn,
+            }),
+          ),
         create: () =>
           this.lambdaClient.send(
             new CreateFunctionUrlConfigCommand({
-              FunctionName: name,
+              FunctionName: status.functionArn,
               AuthType: 'NONE',
               InvokeMode: 'BUFFERED',
-              // TODO: Qualifier
             }),
           ),
         update: () =>
           this.lambdaClient.send(
             new UpdateFunctionUrlConfigCommand({
-              FunctionName: name,
+              FunctionName: status.functionArn,
               AuthType: 'NONE',
               InvokeMode: 'BUFFERED',
-              // TODO: Qualifier
             }),
           ),
       },
@@ -191,14 +187,12 @@ export class LambdaService implements IamConsumer {
   }
 
   private async configurePermissions(
-    _status: DeployStatus,
+    status: DeployStatus,
     options: ResourceOptions,
   ): Promise<void> {
-    const { name } = this.config;
-
     const requests: AddPermissionRequest[] = [
       {
-        FunctionName: name,
+        FunctionName: status.functionArn,
         StatementId: 'InvokeFunctionUrl',
         Action: 'lambda:InvokeFunctionUrl',
         Principal: '*',
@@ -214,7 +208,8 @@ export class LambdaService implements IamConsumer {
             label: `${resource.policy?.Statement?.map((s) => s.Sid)}`,
           };
         },
-        read: () => this.lambdaClient.send(new GetPolicyCommand({ FunctionName: name })),
+        read: () =>
+          this.lambdaClient.send(new GetPolicyCommand({ FunctionName: status.functionArn })),
         create: () =>
           Promise.all(
             requests.map((request) => this.lambdaClient.send(new AddPermissionCommand(request))),
@@ -240,14 +235,17 @@ export class LambdaService implements IamConsumer {
   }
 
   private async publishCode(
-    status: DeployStatus,
+    status: LambdaDeployStatus & EcrDeployStatus & DockerDeployStatus,
     options: ResourceOptions,
-  ): Promise<{ imageUri?: string; architecture?: Architecture }> {
-    const { name } = this.config;
+  ): Promise<void> {
+    const { imageDigest } = status;
+    if (!imageDigest) {
+      throw new Error('Missing image digest');
+    }
 
     const desired: Partial<GetFunctionCommandOutput> = {
       Code: {
-        ImageUri: `${status.repositoryUri}@${status.imageDigest}`,
+        ImageUri: `${status.repositoryUri}@${imageDigest}`,
       },
       Configuration: {
         LastUpdateStatus: 'Successful',
@@ -263,12 +261,13 @@ export class LambdaService implements IamConsumer {
         describe: (resource) => {
           return { type: 'Function Code', label: resource.imageUri?.split('/').pop() };
         },
-        read: () => this.lambdaClient.send(new GetFunctionCommand({ FunctionName: name })),
+        read: () =>
+          this.lambdaClient.send(new GetFunctionCommand({ FunctionName: status.functionArn })),
         update: () =>
           this.dockerService.getPlatform('match-host').then((platform) =>
             this.lambdaClient.send(
               new UpdateFunctionCodeCommand({
-                FunctionName: name,
+                FunctionName: status.functionArn,
                 ImageUri: desired.Code?.ImageUri,
                 Architectures: platform === 'linux/arm64' ? ['arm64'] : ['x86_64'],
                 Publish: true,
@@ -284,7 +283,9 @@ export class LambdaService implements IamConsumer {
       },
     ).manage({ ...options, retries: Infinity }, desired);
 
-    return { imageUri, architecture };
+    status.imageUri = imageUri;
+    // TODO: warn if architecture changes?
+    status.architecture = architecture;
   }
 
   get trustRelationship(): TrustRelationship {
