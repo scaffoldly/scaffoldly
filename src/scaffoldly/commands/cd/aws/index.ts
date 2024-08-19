@@ -7,7 +7,7 @@ import { DockerDeployStatus, DockerService } from '../docker';
 import { SecretDeployStatus, SecretService } from './secret';
 import { GitDeployStatus, GitService } from '../git';
 import { EnvDeployStatus, EnvService } from '../env';
-import { ScheduleService, ScheduleStatus } from './schedule';
+import { ScheduleService, ScheduleDeployStatus } from './schedule';
 import { DynamoDbService } from './dynamodb';
 
 export type DeployStatus = GitDeployStatus &
@@ -17,7 +17,7 @@ export type DeployStatus = GitDeployStatus &
   IamDeployStatus &
   SecretDeployStatus &
   LambdaDeployStatus &
-  ScheduleStatus;
+  ScheduleDeployStatus;
 
 export class AwsService {
   secretService: SecretService;
@@ -46,12 +46,12 @@ export class AwsService {
     this.scheduleService = new ScheduleService(this.config);
   }
 
-  async predeploy(status: DeployStatus, options: ResourceOptions): Promise<DeployStatus> {
+  async predeploy(status: DeployStatus, options: ResourceOptions): Promise<void> {
     // TODO Check if auth'd to AWS
 
     // Deploy ECR with a unqualified name
     this.config.id = '';
-    status = await this.ecrService.predeploy(status, options);
+    await this.ecrService.predeploy(status, options);
 
     const branch = await this.gitService.branch;
     if (!branch) {
@@ -60,42 +60,38 @@ export class AwsService {
 
     // Deploy Secret using branch name for uniqueness
     this.config.id = branch;
-    status = await this.secretService.predeploy(status, this.config, options);
+    await this.secretService.predeploy(status, this.config, options);
 
     // Set Unique ID for the rest of the steps...
     this.config.id = status.uniqueId || '';
     // Deploy IAM
-    status = await this.iamService.predeploy(
+    await this.iamService.predeploy(
       status,
       [this.secretService, this.lambdaService, this.dynamoDbService, this.scheduleService],
       options,
     );
 
     // Pre-Deploy Lambda (Creates the Function URL and other pre-deploy steps)
-    status = await this.lambdaService.predeploy(status, options);
+    await this.lambdaService.predeploy(status, options);
 
     // Pre-Deploy Schedules
-    status = await this.scheduleService.predeploy(status, options);
+    await this.scheduleService.predeploy(status, options);
 
     // Pre-Deploy Environment Variables
-    status = await this.envService.predeploy(status, options);
-
-    return status;
+    await this.envService.predeploy(status);
   }
 
-  async deploy(status: DeployStatus, options: ResourceOptions): Promise<DeployStatus> {
+  async deploy(status: DeployStatus, options: ResourceOptions): Promise<void> {
     // Deploy Environment Variables
-    status = await this.envService.deploy(status, options);
+    await this.envService.deploy(status, options);
 
     // Deploy Docker Container
-    status = await this.dockerService.deploy(status, this.ecrService, options);
+    await this.dockerService.deploy(status, this.ecrService, options);
 
     // Deploy Lambda
-    status = await this.lambdaService.deploy(status, options);
+    await this.lambdaService.deploy(status, options);
 
-    // Deploy Events
-    status = await this.scheduleService.deploy(status, options);
-
-    return status;
+    // Deploy Schedules
+    await this.scheduleService.deploy(status, options);
   }
 }

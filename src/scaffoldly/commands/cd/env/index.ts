@@ -14,38 +14,29 @@ export type EnvDeployStatus = {
 const normalizeBranch = (branch: string | undefined) => branch?.replace('/', '-');
 
 export class EnvService {
-  private lastStatus: DeployStatus = {};
+  private lastStatus?: DeployStatus;
 
   constructor(private cwd: string, private config: ScaffoldlyConfig) {}
 
-  public async predeploy(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    status: DeployStatus,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _options: ResourceOptions,
-  ): Promise<DeployStatus> {
+  public async predeploy(status: DeployStatus): Promise<void> {
     this.lastStatus = status;
 
-    const envDeployStatus: EnvDeployStatus = {
-      envFiles: this.envFiles,
-      buildEnv: this.buildEnv,
-    };
+    status.envFiles = this.envFiles;
+    status.buildEnv = this.buildEnv;
 
-    return { ...status, ...envDeployStatus };
+    this.lastStatus = status;
   }
 
   public async deploy(
     status: DeployStatus,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _options: ResourceOptions,
-  ): Promise<DeployStatus> {
+  ): Promise<void> {
     this.lastStatus = status;
 
-    const envDeployStatus: EnvDeployStatus = {
-      buildEnv: this.buildEnv,
-    };
+    status.buildEnv = this.buildEnv;
 
-    return { ...status, ...envDeployStatus };
+    this.lastStatus = status;
   }
 
   private get baseEnv(): Record<string, string> {
@@ -53,8 +44,8 @@ export class EnvService {
     return {
       SLY_ROUTES: JSON.stringify(this.config.routes), // TODO encode
       SLY_SERVE: this.config.serveCommands.encode(),
-      SLY_SECRET: this.lastStatus.secretName || '',
-      SLY_ORIGIN: this.lastStatus.origin || '',
+      SLY_SECRET: this.lastStatus?.secretName || '',
+      SLY_ORIGIN: this.lastStatus?.origin || '',
     };
   }
 
@@ -95,8 +86,8 @@ export class EnvService {
     const base = '.env';
 
     const files = [
-      normalizeBranch(this.lastStatus.branch),
-      normalizeBranch(this.lastStatus.defaultBranch),
+      normalizeBranch(this.lastStatus?.branch),
+      normalizeBranch(this.lastStatus?.defaultBranch),
     ].filter((f) => !!f) as string[];
 
     const envFiles = new Set(files.map((f) => `${base}.${f}`));

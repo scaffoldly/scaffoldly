@@ -9,7 +9,6 @@ import {
 } from '@aws-sdk/client-secrets-manager';
 import { CloudResource, ResourceOptions } from '..';
 import { NotFoundException } from './errors';
-import { DeployStatus } from '.';
 import { createHash } from 'crypto';
 import { IamConsumer, PolicyDocument } from './iam';
 
@@ -25,17 +24,17 @@ export type SecretDeployStatus = {
 export class SecretService implements IamConsumer {
   secretsManagerClient: SecretsManagerClient;
 
-  private secretDeployStatus: SecretDeployStatus = {};
+  lastDeployStatus?: SecretDeployStatus;
 
   constructor(private config: ScaffoldlyConfig) {
     this.secretsManagerClient = new SecretsManagerClient();
   }
 
   public async predeploy(
-    status: DeployStatus,
+    status: SecretDeployStatus,
     consumer: SecretConsumer,
     options: ResourceOptions,
-  ): Promise<DeployStatus> {
+  ): Promise<void> {
     const { name } = this.config;
 
     const { secretId, secretName, uniqueId } = await new CloudResource<
@@ -72,11 +71,11 @@ export class SecretService implements IamConsumer {
       },
     ).manage(options);
 
-    this.secretDeployStatus.secretId = secretId;
-    this.secretDeployStatus.secretName = secretName;
-    this.secretDeployStatus.uniqueId = uniqueId;
+    status.secretId = secretId;
+    status.secretName = secretName;
+    status.uniqueId = uniqueId;
 
-    return { ...status, ...this.secretDeployStatus };
+    this.lastDeployStatus = status;
   }
 
   get trustRelationship(): undefined {
@@ -84,7 +83,8 @@ export class SecretService implements IamConsumer {
   }
 
   get policyDocument(): PolicyDocument | undefined {
-    if (!this.secretDeployStatus.secretId) {
+    const { secretId } = this.lastDeployStatus || {};
+    if (!secretId) {
       return;
     }
     return {
@@ -92,7 +92,7 @@ export class SecretService implements IamConsumer {
         {
           Effect: 'Allow',
           Action: ['secretsmanager:GetSecretValue'],
-          Resource: [this.secretDeployStatus.secretId],
+          Resource: [secretId],
         },
       ],
       Version: '2012-10-17',

@@ -33,6 +33,7 @@ function getDifferences(subset: any, superset: any): Differences {
 export type ResourceOptions = {
   destroy?: boolean;
   retries?: number;
+  notify?: (message: string, level?: 'notice' | 'error') => void;
 };
 
 export type ResourceExtractor<Resource, ReadCommandOutput> = (
@@ -83,24 +84,24 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
       throw new Error('Not implemented');
     }
 
-    this.logResource('Reading', {});
+    this.logResource('Reading', {}, options);
     let existing = await this.read(options);
 
     if (existing) {
       try {
-        this.logResource('Updating', existing);
+        this.logResource('Updating', existing, options);
         existing = await this.update(options, existing, desired);
-        this.logResource('Updated', existing);
+        this.logResource('Updated', existing, options);
       } catch (e) {
-        this.logResource('Updated', e);
+        this.logResource('Updated', e, options);
       }
     } else {
       try {
-        this.logResource('Creating', existing);
+        this.logResource('Creating', existing, options);
         existing = await this.create(options, desired);
-        this.logResource('Created', existing);
+        this.logResource('Created', existing, options);
       } catch (e) {
-        this.logResource('Created', e);
+        this.logResource('Created', e, options);
       }
     }
 
@@ -233,6 +234,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
   logResource(
     action: 'Reading' | 'Creating' | 'Created' | 'Updating' | 'Updated',
     resource: Partial<Resource | undefined> | Error,
+    options: ResourceOptions,
   ): void {
     let verb:
       | 'Reading'
@@ -277,7 +279,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
       label = description.label;
     }
 
-    const message = `${emoji ? `${emoji} ` : ''}${verb} ${type}`;
+    const message = `${verb} ${type}`;
     let resourceMessage = '';
 
     if (!resource) {
@@ -301,7 +303,10 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
       case 'Failed to Create':
       case 'Failed to Update':
         ui.updateBottomBar('');
-        console.log(messageOutput);
+        console.log(`${emoji ? `${emoji} ` : ''}${messageOutput}`);
+        if (options.notify) {
+          options.notify(messageOutput, resource instanceof Error ? 'error' : 'notice');
+        }
         if (isDebug()) {
           console.log(`   ${JSON.stringify(resource)}`);
         } else {

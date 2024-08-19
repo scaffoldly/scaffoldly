@@ -820,7 +820,6 @@ export class DockerService {
     let bin = bins.pop();
 
     const container = await this.docker.createContainer({
-      name: 'make-an-error',
       Image: image.RepoDigests[0],
       Cmd: [`command -v ${bin}`],
       Tty: false,
@@ -829,7 +828,7 @@ export class DockerService {
 
     await container.start();
     const wait = await container.wait();
-    // await container.remove();
+    await container.remove();
 
     if ('StatusCode' in wait && wait.StatusCode !== 0) {
       bin = await this.checkBin(runtime, bins, platform);

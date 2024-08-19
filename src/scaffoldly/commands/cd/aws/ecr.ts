@@ -13,7 +13,6 @@ import { AuthConfig } from 'dockerode';
 import { CloudResource, ResourceOptions } from '..';
 import {} from '@smithy/types';
 import { NotFoundException } from './errors';
-import { DeployStatus } from '.';
 
 export type EcrDeployStatus = {
   repositoryUri?: string;
@@ -30,9 +29,7 @@ export class EcrService implements RegistryAuthConsumer {
     this.ecrClient = new ECRClient();
   }
 
-  public async predeploy(status: DeployStatus, options: ResourceOptions): Promise<DeployStatus> {
-    const ecrDeployStatus: EcrDeployStatus = {};
-
+  public async predeploy(status: EcrDeployStatus, options: ResourceOptions): Promise<void> {
     const { name } = this.config;
 
     const repository = await new CloudResource<Repository, DescribeRepositoriesCommandOutput>(
@@ -49,9 +46,7 @@ export class EcrService implements RegistryAuthConsumer {
       },
     ).manage(options);
 
-    ecrDeployStatus.repositoryUri = repository.repositoryUri;
-
-    return { ...status, ...ecrDeployStatus };
+    status.repositoryUri = repository.repositoryUri;
   }
 
   get authConfig(): Promise<AuthConfig> {

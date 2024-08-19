@@ -1,10 +1,10 @@
+import { DeployStatus } from '../scaffoldly/commands/cd/aws';
+
 export type State = {
-  action?: 'deploy' | 'destroy';
-  stage?: string;
-  httpApiUrl?: string;
-  deploymentId?: number;
-  commentId?: number;
   failed?: boolean;
+  commitSha?: string;
+  deployLogsUrl?: string;
   shortMessage?: string;
   longMessage?: string;
+  deployStatus: DeployStatus;
 };

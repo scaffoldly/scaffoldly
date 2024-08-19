@@ -1,11 +1,8 @@
 import ejs, { Options } from 'ejs';
 import roleSetupMd from './templates/roleSetup.md';
-import preparingCommentMd from './templates/preparingComment.md';
-import deployingCommentMd from './templates/deployingComment.md';
-import destroyingCommentMd from './templates/destroyingComment.md';
 import deployedCommentMd from './templates/deployedComment.md';
-import destroyedCommentMd from './templates/destroyedComment.md';
 import failedCommentMd from './templates/failedComment.md';
+import { State } from './state';
 
 const ejsOptions: Options = { openDelimiter: '{', closeDelimiter: '}' };
 
@@ -17,77 +14,19 @@ export type Message = {
 export const roleSetupMoreInfo = async (
   owner: string,
   repo: string,
-  logsUrl: string,
+  state: State,
 ): Promise<string> => {
-  return ejs.render(roleSetupMd, { owner, repo, logsUrl }, ejsOptions);
+  return ejs.render(roleSetupMd, { owner, repo, state }, ejsOptions);
 };
 
-export const preparingMarkdown = async (
-  commitSha: string,
-  stage: string,
-  logsUrl?: string,
-): Promise<Message> => {
-  const long = await ejs.render(preparingCommentMd, { commitSha, stage, logsUrl }, ejsOptions);
-  const short = `Preparing stage ${stage}`;
+export const deployedMarkdown = async (state: State): Promise<Message> => {
+  const long = await ejs.render(deployedCommentMd, { state }, ejsOptions);
+  const short = `Successfully deployed branch ${state.deployStatus?.branch}`;
   return { longMessage: long, shortMessage: short };
 };
 
-export const deployingMarkdown = async (
-  commitSha: string,
-  stage: string,
-  logsUrl?: string,
-): Promise<Message> => {
-  const long = await ejs.render(deployingCommentMd, { commitSha, stage, logsUrl }, ejsOptions);
-  const short = `Deploying stage ${stage}`;
-  return { longMessage: long, shortMessage: short };
-};
-
-export const destroyingMarkdown = async (
-  commitSha: string,
-  stage: string,
-  logsUrl?: string,
-): Promise<Message> => {
-  const long = await ejs.render(destroyingCommentMd, { commitSha, stage, logsUrl }, ejsOptions);
-  const short = `Deleting stage ${stage}`;
-  return { longMessage: long, shortMessage: short };
-};
-
-export const deployedMarkdown = async (
-  commitSha: string,
-  stage: string,
-  httpApiUrl?: string,
-  logsUrl?: string,
-): Promise<Message> => {
-  const long = await ejs.render(
-    deployedCommentMd,
-    { commitSha, stage, httpApiUrl, logsUrl },
-    ejsOptions,
-  );
-  const short = `Deployed stage ${stage} to ${httpApiUrl}`;
-  return { longMessage: long, shortMessage: short };
-};
-
-export const destroyedMarkdown = async (
-  commitSha: string,
-  stage: string,
-  logsUrl?: string,
-): Promise<Message> => {
-  const long = await ejs.render(destroyedCommentMd, { commitSha, stage, logsUrl }, ejsOptions);
-  const short = `Deleted stage ${stage}`;
-  return { longMessage: long, shortMessage: short };
-};
-
-export const failedMarkdown = async (
-  commitSha: string,
-  stage: string,
-  logsUrl?: string,
-  moreInfo?: string,
-): Promise<Message> => {
-  const long = await ejs.render(
-    failedCommentMd,
-    { commitSha, stage, logsUrl, moreInfo },
-    ejsOptions,
-  );
-  const short = `Failed to update stage ${stage}`;
+export const failedMarkdown = async (state: State, moreInfo?: string): Promise<Message> => {
+  const long = await ejs.render(failedCommentMd, { state, moreInfo }, ejsOptions);
+  const short = state.shortMessage || `Failed to deploy branch ${state.deployStatus?.branch}`;
   return { longMessage: long, shortMessage: short };
 };

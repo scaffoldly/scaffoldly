@@ -1,6 +1,5 @@
 // eslint-disable-next-line import/named
 import { simpleGit, SimpleGit } from 'simple-git';
-import { DeployStatus } from '../aws';
 import { ResourceOptions } from '..';
 import { context } from '@actions/github';
 
@@ -45,17 +44,13 @@ export class GitService {
 
   public async predeploy(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    status: DeployStatus,
+    status: GitDeployStatus,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _options: ResourceOptions,
-  ): Promise<DeployStatus> {
-    const gitDeployStatus: GitDeployStatus = {};
-
-    gitDeployStatus.branch = await this.branch;
-    gitDeployStatus.defaultBranch = await this.defaultBranch;
-    gitDeployStatus.remote = await this.remote;
-
-    return { ...status, ...gitDeployStatus };
+  ): Promise<void> {
+    status.branch = await this.branch;
+    status.defaultBranch = await this.defaultBranch;
+    status.remote = await this.remote;
   }
 
   get defaultBranch(): Promise<string | undefined> {
@@ -118,33 +113,6 @@ export class GitService {
         return remotes.find((r) => r.name === 'origin');
       })
       .then((remote) => remote?.refs.fetch);
-  }
-
-  get owner(): Promise<string> {
-    if (process.env.GITHUB_REPOSITORY_OWNER) {
-      return Promise.resolve(process.env.GITHUB_REPOSITORY_OWNER);
-    }
-
-    return this.origin.then((origin) => {
-      const [owner] = origin?.path.split('/') || [];
-      if (!owner) {
-        throw new Error('Unable to determine owner from origin');
-      }
-      return owner;
-    });
-  }
-
-  get repo(): Promise<string> {
-    if (process.env.GITHUB_REPOSITORY) {
-      return Promise.resolve(process.env.GITHUB_REPOSITORY.split('/')[1]);
-    }
-    return this.origin.then((origin) => {
-      const [, repo] = origin?.path.split('/') || [];
-      if (!repo) {
-        throw new Error('Unable to determine repo from origin');
-      }
-      return repo;
-    });
   }
 
   get sha(): Promise<string> {

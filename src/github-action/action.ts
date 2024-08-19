@@ -1,4 +1,4 @@
-import { debug, getIDToken, exportVariable, notice, getInput, setFailed } from '@actions/core';
+import { debug, getIDToken, exportVariable, notice, getInput, error } from '@actions/core';
 import { context, getOctokit } from '@actions/github';
 import { warn } from 'console';
 import {
@@ -6,16 +6,7 @@ import {
   AssumeRoleWithWebIdentityCommand,
   GetCallerIdentityCommand,
 } from '@aws-sdk/client-sts';
-import {
-  deployedMarkdown,
-  deployingMarkdown,
-  destroyedMarkdown,
-  destroyingMarkdown,
-  failedMarkdown,
-  preparingMarkdown,
-  roleSetupMoreInfo,
-} from './messages';
-import { boolean } from 'boolean';
+import { deployedMarkdown, failedMarkdown, roleSetupMoreInfo } from './messages';
 import { State } from './state';
 import { GitService } from '../scaffoldly/commands/cd/git';
 import { DeployCommand } from '../scaffoldly/commands/cd/deploy';
@@ -37,15 +28,9 @@ export class Action {
 
   scms: Scms;
 
-  _owner?: string;
-
-  _repo?: string;
-
   _token?: string;
 
   _sha?: string;
-
-  // _ref?: string;
 
   _branch?: string;
 
@@ -62,35 +47,16 @@ export class Action {
     debug('Initializing action...');
     this._token = await this.scms.getGithubToken(getInput('github-token'));
     this._stage = await this.gitService.stage;
-    this._owner = await this.gitService.owner;
-    this._repo = await this.gitService.repo;
     this._branch = await this.gitService.branch;
     this._sha = await this.gitService.sha;
-    // this._ref = await this.gitService.ref;
 
     return this;
   }
 
   async pre(state: State): Promise<State> {
-    state.stage = this.stage;
-
-    exportVariable('STAGE', state.stage);
-
-    if (boolean(getInput('destroy') || 'false') === true) {
-      notice(`Destruction enabled. Destroying ${this.stage}...`);
-      state.action = 'destroy';
-    } else if (context.eventName === 'pull_request' && context.payload.action === 'closed') {
-      notice(`Pull request has been closed. Destroying ${this.stage}...`);
-      state.action = 'destroy';
-    } else if (
-      context.eventName === 'workflow_dispatch' &&
-      boolean(this.workflowInputs.destroy) === true
-    ) {
-      notice(`Workflow dispatch triggered with destruction enabled. Destroying ${this.stage}...`);
-      state.action = 'destroy';
-    } else {
-      state.action = 'deploy';
-    }
+    state.deployStatus = {};
+    state.deployLogsUrl = await this.logsUrl;
+    state.commitSha = this.commitSha;
 
     const region =
       getInput('aws-region') ||
@@ -100,17 +66,6 @@ export class Action {
     const role = getInput('aws-role') || process.env.SCAFFOLDLY_AWS_ROLE;
 
     const idToken = await this.idToken;
-    const logsUrl = await this.logsUrl;
-
-    const { shortMessage, longMessage } = await preparingMarkdown(
-      this.commitSha,
-      this.stage,
-      logsUrl,
-    );
-    state.shortMessage = shortMessage;
-    state.longMessage = longMessage;
-
-    state = await this.createDeployment(state);
 
     try {
       if (!role || !role.trim()) {
@@ -124,7 +79,7 @@ export class Action {
         new AssumeRoleWithWebIdentityCommand({
           WebIdentityToken: idToken,
           RoleArn: role,
-          RoleSessionName: `${this.owner}-${this.repo}-${context.runNumber}-${context.runId}`,
+          RoleSessionName: `gha-${context.runNumber}-${context.runId}`,
         }),
       );
 
@@ -161,15 +116,11 @@ export class Action {
         throw e;
       }
 
-      const newLongMessage = await roleSetupMoreInfo(this.owner, this.repo, await this.logsUrl);
+      const newLongMessage = await roleSetupMoreInfo(this.owner, this.repo, state);
 
-      return {
-        ...state,
-        action: undefined,
-        failed: true,
-        shortMessage: e.message,
-        longMessage: newLongMessage,
-      };
+      state.failed = true;
+      state.shortMessage = e.message;
+      state.longMessage = newLongMessage;
     }
 
     return state;
@@ -184,58 +135,26 @@ export class Action {
       return state;
     }
 
-    const logsUrl = await this.logsUrl;
-
-    if (state.action === 'deploy') {
-      const { shortMessage, longMessage } = await deployingMarkdown(
-        this.commitSha,
-        this.stage,
-        logsUrl,
-      );
-      state.shortMessage = shortMessage;
-      state.longMessage = longMessage;
-    }
-
-    if (state.action === 'destroy') {
-      const { shortMessage, longMessage } = await destroyingMarkdown(
-        this.commitSha,
-        this.stage,
-        logsUrl,
-      );
-      state.shortMessage = shortMessage;
-      state.longMessage = longMessage;
-    }
-
-    await this.updateDeployment(state, 'in_progress');
-
     const deployCommand = new DeployCommand(this.gitService);
 
-    if (state.action === 'destroy') {
-      // TODO: Ensure not a protected branch
-      //       - If so, make sure destroy on action is explicitly set
-      notice(`Destroying ${this.stage}...`);
-      throw new Error('Not implemented');
-    }
-
-    if (state.action === 'deploy') {
-      notice(`Deploying ${this.stage}...`);
-
-      try {
-        const status = await deployCommand.handle();
-        console.log('!!! deploy status', status);
-      } catch (e) {
-        if (!(e instanceof Error)) {
-          throw e;
-        }
-
-        return {
-          ...state,
-          action: 'deploy',
-          failed: true,
-          shortMessage: e.message,
-          longMessage: 'TODO: Implement long message',
-        };
+    try {
+      await deployCommand.handle(state.deployStatus, {
+        notify: (message, level) => {
+          if (level === 'error') {
+            error(message);
+          } else {
+            notice(message);
+          }
+        },
+      });
+    } catch (e) {
+      if (!(e instanceof Error)) {
+        throw e;
       }
+
+      state.failed = true;
+      state.shortMessage = e.message;
+      state.longMessage = 'TODO: Implement long message';
     }
 
     return state;
@@ -244,41 +163,15 @@ export class Action {
   async post(state: State): Promise<State> {
     debug(`state: ${JSON.stringify(state)}`);
 
-    state.httpApiUrl = await this.httpApiUrl;
-    const logsUrl = await this.logsUrl;
-
     if (!state.failed) {
-      if (state.action === 'deploy') {
-        const { longMessage, shortMessage } = await deployedMarkdown(
-          this.commitSha,
-          this.stage,
-          state.httpApiUrl,
-          logsUrl,
-        );
-        state.shortMessage = shortMessage;
-        state.longMessage = longMessage;
-      } else if (state.action === 'destroy') {
-        const { longMessage, shortMessage } = await destroyedMarkdown(
-          this.commitSha,
-          this.stage,
-          logsUrl,
-        );
-        state.shortMessage = shortMessage;
-        state.longMessage = longMessage;
-      }
+      const { longMessage, shortMessage } = await deployedMarkdown(state);
+      state.shortMessage = shortMessage;
+      state.longMessage = longMessage;
     } else {
-      const { longMessage, shortMessage } = await failedMarkdown(
-        this.commitSha,
-        this.stage,
-        logsUrl,
-        state.longMessage,
-      );
-      state.shortMessage = state.shortMessage || shortMessage;
+      const { longMessage, shortMessage } = await failedMarkdown(state, state.longMessage);
+      state.shortMessage = shortMessage;
       state.longMessage = longMessage;
     }
-
-    const status = state.failed ? 'failure' : state.action === 'destroy' ? 'inactive' : 'success';
-    state = await this.updateDeployment(state, status);
 
     return state;
   }
@@ -336,27 +229,6 @@ export class Action {
     return cwd;
   }
 
-  get stage(): string {
-    if (!this._stage) {
-      throw new Error('Unable to determine stage. Was init() called?');
-    }
-    return this._stage;
-  }
-
-  get owner(): string {
-    if (!this._owner) {
-      throw new Error('Unable to determine owner. Was init() called?');
-    }
-    return this._owner;
-  }
-
-  get repo(): string {
-    if (!this._repo) {
-      throw new Error('Unable to determine repo. Was init() called?');
-    }
-    return this._repo;
-  }
-
   get token(): string {
     if (!this._token) {
       throw new Error('Unable to determine github token. Was init() called?');
@@ -382,251 +254,11 @@ export class Action {
     return this._sha.substring(0, 7);
   }
 
-  get prNumber(): number | undefined {
-    return this.gitService.prNumber;
+  get owner(): string {
+    return context.repo.owner;
   }
 
-  get workflowInputs(): { [key: string]: string } {
-    return context.payload.inputs || {};
-  }
-
-  // get ref(): string {
-  //   if (!this._ref) {
-  //     throw new Error('Unable to determine ref. Was init() called?');
-  //   }
-  //   return this._ref;
-  // }
-
-  async createDeployment(state: State): Promise<State> {
-    const octokit = getOctokit(this.token);
-
-    const { prNumber } = this;
-    const { GITHUB_REF } = process.env;
-    if (!GITHUB_REF) {
-      throw new Error('GITHUB_REF is not defined');
-    }
-
-    try {
-      const response = await octokit.rest.repos.createDeployment({
-        ref: GITHUB_REF, // TODO: figure this out
-        required_contexts: [],
-        environment: this.stage,
-        transient_environment: !!this.prNumber,
-        auto_merge: false,
-        owner: this.owner,
-        repo: this.repo,
-        task: context.job,
-        payload: {},
-        production_environment: this.stage === 'production',
-        description: state.shortMessage,
-      });
-
-      if (typeof response.data === 'number') {
-        state.deploymentId = response.data;
-      } else if ('id' in response.data) {
-        state.deploymentId = response.data.id;
-      }
-    } catch (e) {
-      if (!(e instanceof Error)) {
-        throw e;
-      }
-
-      warn(`Unable to create deployment: ${e.message}`);
-      state.deploymentId = undefined;
-    }
-
-    if (prNumber && state.longMessage) {
-      const response = await octokit.rest.issues.createComment({
-        body: state.longMessage,
-        owner: this.owner,
-        repo: this.repo,
-        issue_number: prNumber,
-      });
-
-      state.commentId = response.data.id;
-    }
-
-    return state;
-  }
-
-  async updateDeployment(
-    state: State,
-    status: 'success' | 'failure' | 'in_progress' | 'inactive',
-  ): Promise<State> {
-    const octokit = getOctokit(this.token);
-    const { deploymentId, commentId } = state;
-
-    if (status === 'failure' && state.shortMessage) {
-      setFailed(state.shortMessage);
-    }
-
-    if (deploymentId) {
-      try {
-        await octokit.rest.repos.createDeploymentStatus({
-          deployment_id: deploymentId,
-          state: status,
-          environment_url: await this.httpApiUrl,
-          log_url: await this.logsUrl,
-          environment: this.stage,
-          owner: this.owner,
-          repo: this.repo,
-          description: state.shortMessage,
-        });
-        notice(`Updated deployment for ${this.stage} to ${status}`);
-      } catch (e) {
-        if (!(e instanceof Error)) {
-          throw e;
-        }
-
-        warn(`Unable to update deployment ${deploymentId}: ${e.message}`);
-      }
-    }
-
-    // If state is inactive:
-    // - Mark all deployments as inactive
-    // - If its a PR:
-    //    - Delete the deployment
-    //    - Delete the environment
-    if (status === 'inactive') {
-      const deployments = await octokit.paginate(octokit.rest.repos.listDeployments, {
-        owner: this.owner,
-        repo: this.repo,
-        environment: this.stage,
-      });
-
-      await Promise.all(
-        deployments.map(async (deployment) => {
-          if (deployment.id === deploymentId) {
-            return;
-          }
-
-          try {
-            debug(`Deactivating deployment ${deployment.id}`);
-            await octokit.rest.repos.createDeploymentStatus({
-              deployment_id: deployment.id,
-              state: 'inactive',
-              environment: this.stage,
-              owner: this.owner,
-              repo: this.repo,
-            });
-          } catch (e) {
-            if (!(e instanceof Error)) {
-              throw e;
-            }
-
-            warn(`Unable to deactivate deployment ${deployment.id}: ${e.message}`);
-          }
-        }),
-      );
-
-      if (this.prNumber) {
-        await Promise.all(
-          deployments.map(async (deployment) => {
-            try {
-              debug(`Deleting deployment ${deployment.id}`);
-              await octokit.rest.repos.deleteDeployment({
-                deployment_id: deployment.id,
-                owner: this.owner,
-                repo: this.repo,
-              });
-            } catch (e) {
-              if (!(e instanceof Error)) {
-                throw e;
-              }
-
-              warn(`Unable to delete deployment ${deployment.id}: ${e.message}`);
-            }
-          }),
-        );
-
-        try {
-          await octokit.rest.repos.deleteAnEnvironment({
-            environment_name: this.stage,
-            owner: this.owner,
-            repo: this.repo,
-          });
-          notice(`Deleted environment ${this.stage}`);
-        } catch (e) {
-          if (!(e instanceof Error)) {
-            throw e;
-          }
-
-          warn(`Unable to delete environment ${this.stage}: ${e.message}`);
-        }
-      }
-    }
-
-    if (commentId && state.longMessage) {
-      debug(`Updating PR comment ${commentId}`);
-
-      await octokit.rest.issues.updateComment({
-        comment_id: commentId,
-        body: state.longMessage,
-        owner: this.owner,
-        repo: this.repo,
-        issue_number: this.prNumber,
-      });
-    }
-
-    return state;
-  }
-
-  get serverlessState(): Promise<{ foo: string } | undefined> {
-    return Promise.resolve(undefined);
-    // return new Promise(async (resolve) => {
-    //   try {
-    //     const serverlessState = JSON.parse(
-    //       fs.readFileSync(path.join('.serverless', 'serverless-state.json'), 'utf8'),
-    //     );
-    //     resolve(serverlessState);
-    //   } catch (e) {
-    //     warn('No serverless state found.');
-    //     debug(`Caught Error: ${e}`);
-    //     resolve(undefined);
-    //   }
-    // });
-  }
-
-  get stack(): Promise<{ foo: string } | undefined> {
-    return Promise.resolve(undefined);
-    // return new Promise(async (resolve) => {
-    //   const serverlessState = await this.serverlessState;
-    //   if (!serverlessState) {
-    //     resolve(undefined);
-    //     return;
-    //   }
-    //   const stackName = `${serverlessState.service.service}-${serverlessState.service.provider.stage}`;
-    //   const client = new CloudFormationClient({ region: serverlessState.service.provider.region });
-    //   const describeStacks = await client.send(new DescribeStacksCommand({ StackName: stackName }));
-    //   const stack = describeStacks.Stacks?.find(
-    //     (s) =>
-    //       s.StackName === stackName &&
-    //       s.Tags?.find(
-    //         (t) => t.Key === 'STAGE' && t.Value === serverlessState.service.provider.stage,
-    //       ),
-    //   );
-    //   if (!stack) {
-    //     warn('Unable to find stack.');
-    //     debug(JSON.stringify(describeStacks));
-    //     resolve(undefined);
-    //     return;
-    //   }
-    //   resolve(stack);
-    // });
-  }
-
-  get httpApiUrl(): Promise<string | undefined> {
-    return Promise.resolve(undefined);
-    //   return new Promise(async (resolve) => {
-    //     const stack = await this.stack;
-
-    //     if (!stack) {
-    //       resolve(undefined);
-    //       return;
-    //     }
-
-    //     resolve(stack.Outputs?.find((o) => o.OutputKey === 'HttpApiUrl')?.OutputValue);
-    //   });
-    // }
+  get repo(): string {
+    return context.repo.repo;
   }
 }

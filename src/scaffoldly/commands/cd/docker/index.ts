@@ -6,8 +6,9 @@ import {
 } from '../../ci/docker';
 import { CloudResource, ResourceOptions } from '..';
 import { ScaffoldlyConfig } from '../../../../config';
-import { DeployStatus } from '../aws';
-import { RegistryAuthConsumer } from '../aws/ecr';
+import { EcrDeployStatus, RegistryAuthConsumer } from '../aws/ecr';
+import { LambdaDeployStatus } from '../aws/lambda';
+import { EnvDeployStatus } from '../env';
 
 export type Platform = 'linux/amd64' | 'linux/arm64';
 
@@ -29,12 +30,10 @@ export class DockerService {
   }
 
   public async deploy(
-    status: DeployStatus,
+    status: DockerDeployStatus & EcrDeployStatus & EnvDeployStatus & LambdaDeployStatus,
     consumer: RegistryAuthConsumer,
     options: ResourceOptions,
-  ): Promise<DeployStatus> {
-    const dockerStatus: DockerDeployStatus = {};
-
+  ): Promise<void> {
     const { architecture } = status;
     if (!architecture) {
       throw new Error('Missing architecture');
@@ -61,8 +60,8 @@ export class DockerService {
       (existing) => existing,
     ).manage(options);
 
-    dockerStatus.imageTag = imageTag;
-    dockerStatus.imageName = imageName;
+    status.imageTag = imageTag;
+    status.imageName = imageName;
 
     if (!imageName) {
       throw new Error('Missing image name');
@@ -85,8 +84,6 @@ export class DockerService {
       (existing) => existing,
     ).manage(options);
 
-    dockerStatus.imageDigest = imageDigest;
-
-    return { ...status, ...dockerStatus };
+    status.imageDigest = imageDigest;
   }
 }

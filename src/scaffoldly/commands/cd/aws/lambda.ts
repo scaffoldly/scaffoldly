@@ -46,33 +46,23 @@ export class LambdaService implements IamConsumer {
     this.lambdaClient = new LambdaClient();
   }
 
-  public async predeploy(status: DeployStatus, options: ResourceOptions): Promise<DeployStatus> {
-    const lambdaDeployStatus: LambdaDeployStatus = {};
-
+  public async predeploy(status: LambdaDeployStatus, options: ResourceOptions): Promise<void> {
     const configuration = await this.configureFunction(status, options);
     status.functionArn = configuration.FunctionArn;
     status.architecture = configuration.Architectures?.[0];
 
-    const origin = await this.configureOrigin(status, options);
-    lambdaDeployStatus.origin = origin;
-
+    await this.configureOrigin(status, options);
     await this.configurePermissions(status, options);
-
-    return { ...status, ...lambdaDeployStatus };
   }
 
-  public async deploy(status: DeployStatus, options: ResourceOptions): Promise<DeployStatus> {
-    const lambdaDeployStatus: LambdaDeployStatus = {};
-
+  public async deploy(status: LambdaDeployStatus, options: ResourceOptions): Promise<void> {
     const { imageUri, architecture } = await this.publishCode(status, options);
-    lambdaDeployStatus.imageUri = imageUri;
+    status.imageUri = imageUri;
     // TODO: Warn if architecture changes
-    lambdaDeployStatus.architecture = architecture;
+    status.architecture = architecture;
 
     // const origin = await this.configureOrigin(status, options);
     // lambdaDeployStatus.origin = origin;
-
-    return { ...status, ...lambdaDeployStatus };
   }
 
   private async configureFunction(
@@ -159,9 +149,9 @@ export class LambdaService implements IamConsumer {
   }
 
   private async configureOrigin(
-    _status: DeployStatus,
+    status: LambdaDeployStatus,
     options: ResourceOptions,
-  ): Promise<string | undefined> {
+  ): Promise<void> {
     const { name } = this.config;
 
     const { functionUrl } = await new CloudResource<
@@ -197,7 +187,7 @@ export class LambdaService implements IamConsumer {
       },
     ).manage(options);
 
-    return functionUrl;
+    status.origin = functionUrl;
   }
 
   private async configurePermissions(

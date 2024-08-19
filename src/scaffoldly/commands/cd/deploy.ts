@@ -27,29 +27,14 @@ export class DeployCommand extends CdCommand {
     );
   }
 
-  async handle(): Promise<DeployStatus> {
+  async handle(status: DeployStatus, options?: ResourceOptions): Promise<void> {
     event('deploy');
 
-    const options: ResourceOptions = {}; // TODO: Add options
-    let status: DeployStatus = {};
+    options = options || {};
 
-    try {
-      status = await this.gitService.predeploy(status, options);
-    } catch (e) {
-      throw new Error(`Error predeploying git: ${e.message}`, { cause: e });
-    }
-
-    try {
-      status = await this.awsService.predeploy(status, options);
-    } catch (e) {
-      throw new Error(`Error predeploying AWS: ${e.message}`, { cause: e });
-    }
-
-    try {
-      status = await this.awsService.deploy(status, options);
-    } catch (e) {
-      throw new Error(`Error deploying AWS: ${e.message}`, { cause: e });
-    }
+    await this.gitService.predeploy(status, options);
+    await this.awsService.predeploy(status, options);
+    await this.awsService.deploy(status, options);
 
     ui.updateBottomBar('');
     if (isDebug()) {
@@ -58,7 +43,5 @@ export class DeployCommand extends CdCommand {
     console.log('');
     console.log('🚀 Deployment Complete!');
     console.log(`   🌎 Origin: ${status.origin}`);
-
-    return status;
   }
 }

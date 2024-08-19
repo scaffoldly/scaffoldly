@@ -12,7 +12,6 @@ import {
   GetRolePolicyCommandOutput,
 } from '@aws-sdk/client-iam';
 import { CloudResource, ResourceOptions } from '..';
-import { DeployStatus } from '.';
 
 export type IamDeployStatus = {
   roleArn?: string;
@@ -72,12 +71,10 @@ export class IamService {
   }
 
   public async predeploy(
-    status: DeployStatus,
+    status: IamDeployStatus,
     consumers: IamConsumer[],
     options: ResourceOptions,
-  ): Promise<DeployStatus> {
-    const iamDeployStatus: IamDeployStatus = {};
-
+  ): Promise<void> {
     const { name } = this.config;
 
     const trustRelationship = mergeTrustRelationships(
@@ -116,7 +113,7 @@ export class IamService {
       },
     ).manage(options);
 
-    iamDeployStatus.roleArn = roleArn;
+    status.roleArn = roleArn;
 
     const policyDocument = mergePolicyDocuments(
       consumers.map((consumer) => consumer.policyDocument),
@@ -153,7 +150,5 @@ export class IamService {
         };
       },
     ).manage(options);
-
-    return { ...status, ...iamDeployStatus };
   }
 }

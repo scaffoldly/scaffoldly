@@ -113,7 +113,7 @@ export class Command {
         describe: `Deploy the environment`,
         handler: ({ withToken }) =>
           this.loginWrapper(
-            () => this.deploy.handle().then(() => {}),
+            () => this.deploy.handle({}),
             isHeadless(),
             withToken as string | undefined,
           ),

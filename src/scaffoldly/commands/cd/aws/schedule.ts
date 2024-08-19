@@ -15,8 +15,7 @@ import {
   UpdateScheduleCommand,
 } from '@aws-sdk/client-scheduler';
 import { CloudResource, ResourceOptions } from '..';
-import { DeployStatus } from '.';
-import { IamConsumer, PolicyDocument, TrustRelationship } from './iam';
+import { IamConsumer, IamDeployStatus, PolicyDocument, TrustRelationship } from './iam';
 import {
   InvokeCommand,
   // eslint-disable-next-line import/named
@@ -24,8 +23,9 @@ import {
   LambdaClient,
 } from '@aws-sdk/client-lambda';
 import { NotFoundException } from './errors';
+import { LambdaDeployStatus } from './lambda';
 
-export type ScheduleStatus = {
+export type ScheduleDeployStatus = {
   scheduleGroup?: string;
 };
 
@@ -126,9 +126,7 @@ export class ScheduleService implements IamConsumer {
     this.lambdaClient = new LambdaClient();
   }
 
-  public async predeploy(status: DeployStatus, options: ResourceOptions): Promise<DeployStatus> {
-    const scheduleStatus: ScheduleStatus = {};
-
+  public async predeploy(status: ScheduleDeployStatus, options: ResourceOptions): Promise<void> {
     const { scheduleGroup } = await new CloudResource<
       { scheduleGroup: string },
       GetScheduleGroupCommandOutput
@@ -147,12 +145,13 @@ export class ScheduleService implements IamConsumer {
       },
     ).manage(options);
 
-    scheduleStatus.scheduleGroup = scheduleGroup;
-
-    return { ...status, ...scheduleStatus };
+    status.scheduleGroup = scheduleGroup;
   }
 
-  public async deploy(status: DeployStatus, options: ResourceOptions): Promise<DeployStatus> {
+  public async deploy(
+    status: ScheduleDeployStatus & LambdaDeployStatus & IamDeployStatus,
+    options: ResourceOptions,
+  ): Promise<void> {
     const { name } = this.config;
 
     const schedules = mapSchedules(this.config);
@@ -313,8 +312,6 @@ export class ScheduleService implements IamConsumer {
         (output) => output,
       ).manage(options);
     }
-
-    return { ...status };
   }
 
   get trustRelationship(): TrustRelationship {
