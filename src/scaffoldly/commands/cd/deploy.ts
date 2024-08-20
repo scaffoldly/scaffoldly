@@ -17,6 +17,7 @@ export class DeployCommand extends CdCommand {
 
   constructor(private gitService: GitService) {
     super(gitService.cwd);
+    this.gitService = gitService.withConfig(this.config);
     this.envService = new EnvService(this.cwd, this.config, this.gitService);
     this.dockerService = new DockerService(this.config, new DockerCiService(this.cwd));
     this.awsService = new AwsService(this.config, this.envService, this.dockerService);
@@ -27,7 +28,7 @@ export class DeployCommand extends CdCommand {
 
     options = options || {};
 
-    await this.gitService.withConfig(this.config).predeploy(status, options);
+    await this.gitService.predeploy(status, options);
     await this.awsService.predeploy(status, options);
     await this.awsService.deploy(status, options);
 
