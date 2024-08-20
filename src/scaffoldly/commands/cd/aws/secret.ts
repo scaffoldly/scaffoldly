@@ -8,7 +8,7 @@ import {
   DescribeSecretCommandOutput,
 } from '@aws-sdk/client-secrets-manager';
 import { CloudResource, ResourceOptions } from '..';
-import { NotFoundException } from './errors';
+import { NotFoundException } from '../errors';
 import { createHash } from 'crypto';
 import { IamConsumer, PolicyDocument } from './iam';
 import { GitDeployStatus } from '../git';

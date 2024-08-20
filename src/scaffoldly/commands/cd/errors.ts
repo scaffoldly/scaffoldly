@@ -5,3 +5,10 @@ export class NotFoundException extends Error {
     this.name = 'NotFoundException';
   }
 }
+
+export class SkipAction extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'SkipAction';
+  }
+}

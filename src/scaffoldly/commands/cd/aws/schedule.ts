@@ -22,7 +22,7 @@ import {
   InvokeCommandOutput,
   LambdaClient,
 } from '@aws-sdk/client-lambda';
-import { NotFoundException } from './errors';
+import { NotFoundException, SkipAction } from '../errors';
 import { LambdaDeployStatus } from './lambda';
 
 export type ScheduleDeployStatus = {
@@ -137,8 +137,14 @@ export class ScheduleService implements IamConsumer {
         },
         read: () =>
           this.schedulerClient.send(new GetScheduleGroupCommand({ Name: this.config.name })),
-        create: () =>
-          this.schedulerClient.send(new CreateScheduleGroupCommand({ Name: this.config.name })),
+        create: () => {
+          if (!this.config.schedules) {
+            throw new SkipAction('No schedules to create');
+          }
+          return this.schedulerClient.send(
+            new CreateScheduleGroupCommand({ Name: this.config.name }),
+          );
+        },
       },
       (existing) => {
         return { scheduleGroup: existing.Name };
@@ -171,8 +177,11 @@ export class ScheduleService implements IamConsumer {
         },
         read: () =>
           this.schedulerClient.send(new ListSchedulesCommand({ GroupName: status.scheduleGroup })),
-        update: () =>
-          Promise.all(
+        update: () => {
+          if (!desiredSchedules.length) {
+            throw new SkipAction('No schedules to update');
+          }
+          return Promise.all(
             desiredSchedules.map(([schedule, commands]) =>
               this.schedulerClient
                 .send(
@@ -210,7 +219,8 @@ export class ScheduleService implements IamConsumer {
                   ),
                 ),
             ),
-          ),
+          );
+        },
         dispose: () =>
           Promise.all(
             undesiredSchedules.map(([schedule]) =>

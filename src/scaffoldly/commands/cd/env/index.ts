@@ -96,10 +96,9 @@ export class EnvService {
 
     const { branch, defaultBranch } = this.lastStatus || {};
 
-    const { tag } = this.gitService;
-
-    if (tag) {
-      files.push(tag);
+    if (branch === 'tagged') {
+      files.push(this.gitService.tag);
+      files.push('tagged');
     }
 
     if (branch) {

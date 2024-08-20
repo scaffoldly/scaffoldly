@@ -2,10 +2,13 @@
 import { simpleGit, SimpleGit } from 'simple-git';
 import { ResourceOptions } from '..';
 import { context } from '@actions/github';
+import semver from 'semver';
+import { ScaffoldlyConfig } from '../../../../config';
 
 export type GitDeployStatus = {
   branch?: string;
   defaultBranch?: string;
+  alias?: string;
   remote?: string;
 };
 
@@ -21,11 +24,15 @@ export class GitService {
 
   _cwd?: string;
 
-  constructor(cwd?: string) {
+  constructor(cwd?: string, private config?: ScaffoldlyConfig) {
     this._cwd = cwd;
     if (cwd) {
       this._git = simpleGit({ baseDir: cwd });
     }
+  }
+
+  withConfig(config: ScaffoldlyConfig): GitService {
+    return new GitService(this._cwd, config);
   }
 
   get git(): SimpleGit {
@@ -51,6 +58,12 @@ export class GitService {
     status.branch = await this.branch;
     status.defaultBranch = await this.defaultBranch;
     status.remote = await this.remote;
+
+    if (status.branch === 'tagged') {
+      status.alias = this.tag;
+    } else {
+      status.alias = status.branch;
+    }
   }
 
   get defaultBranch(): Promise<string | undefined> {
@@ -73,7 +86,7 @@ export class GitService {
       );
   }
 
-  get branch(): Promise<string | undefined> {
+  get branch(): Promise<'tagged' | string | undefined> {
     if (context.ref) {
       if (context.ref.startsWith('refs/heads/')) {
         return Promise.resolve(context.ref.replace('refs/heads/', ''));
@@ -131,10 +144,33 @@ export class GitService {
     return this.git.revparse(['HEAD']);
   }
 
-  get tag(): string | undefined {
-    if (context.ref && context.ref.startsWith('refs/tags/')) {
-      return context.ref.replace('refs/tags/', '');
+  get tag(): string {
+    if (!context.ref) {
+      // TODO Support deploying from a tag locally
+      throw new Error(
+        'Unable to determine tag. Make sure this operation is running in GitHub Actions',
+      );
     }
-    return undefined;
+
+    let tag: string | undefined = undefined;
+    if (context.ref && context.ref.startsWith('refs/tags/')) {
+      tag = context.ref.replace('refs/tags/', '');
+    }
+
+    const parsed = semver.parse(this.config?.version) || semver.parse(tag);
+
+    if (parsed) {
+      tag = `v${parsed.major}`;
+    }
+
+    if (parsed && parsed.prerelease.length && tag) {
+      tag = `${tag}-${parsed.prerelease[0]}`;
+    }
+
+    if (tag) {
+      return tag;
+    }
+
+    throw new Error(`Unable to parse version or tag (${JSON.stringify(parsed)})`);
   }
 }

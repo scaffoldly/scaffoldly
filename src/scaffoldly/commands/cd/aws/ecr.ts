@@ -12,7 +12,7 @@ import { ScaffoldlyConfig } from '../../../../config';
 import { AuthConfig } from 'dockerode';
 import { CloudResource, ResourceOptions } from '..';
 import {} from '@smithy/types';
-import { NotFoundException } from './errors';
+import { NotFoundException } from '../errors';
 
 export type EcrDeployStatus = {
   repositoryUri?: string;

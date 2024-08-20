@@ -27,7 +27,7 @@ export class DeployCommand extends CdCommand {
 
     options = options || {};
 
-    await this.gitService.predeploy(status, options);
+    await this.gitService.withConfig(this.config).predeploy(status, options);
     await this.awsService.predeploy(status, options);
     await this.awsService.deploy(status, options);
 

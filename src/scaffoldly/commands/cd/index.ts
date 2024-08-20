@@ -3,7 +3,7 @@ import { isDebug } from '../../ui';
 import { ui } from '../../command';
 import promiseRetry from 'promise-retry';
 import _ from 'lodash';
-import { NotFoundException } from './aws/errors';
+import { NotFoundException, SkipAction } from './errors';
 
 type Differences = {
   [key: string]: unknown | Differences;
@@ -314,6 +314,13 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
       messageOutput = `${messageOutput}: ${resourceMessage}`;
     }
 
+    if (resource instanceof SkipAction) {
+      if (isDebug()) {
+        console.log(`   --> [SKIPPED] ${messageOutput}`);
+      }
+      return;
+    }
+
     switch (verb) {
       case 'Created':
       case 'Updated':
@@ -332,11 +339,9 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
         break;
     }
 
-    // if (resource instanceof Error) {
-    //   throw new Error(messageOutput, { cause: resource });
-    // }
-
-    // return resource;
+    if (resource instanceof Error) {
+      throw new Error(messageOutput, { cause: resource });
+    }
   }
 }
 
