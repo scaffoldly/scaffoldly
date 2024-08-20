@@ -37,9 +37,9 @@ export class SecretService implements IamConsumer {
     options: ResourceOptions,
   ): Promise<void> {
     const { name } = this.config;
-    const { branch } = status;
+    const { alias } = status;
 
-    const secretName = `${name}@${branch}`;
+    const secretName = `${name}@${alias}`;
 
     const { secretId, uniqueId } = await new CloudResource<
       { secretId: string; uniqueId: string },

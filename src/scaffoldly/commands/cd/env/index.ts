@@ -4,7 +4,6 @@ import { ScaffoldlyConfig } from '../../../../config';
 import { config as dotenv } from 'dotenv';
 import { expand as dotenvExpand } from 'dotenv-expand';
 import { join } from 'path';
-import { isDebug } from '../../../ui';
 import { GitService } from '../git';
 
 export type EnvDeployStatus = {
