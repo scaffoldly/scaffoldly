@@ -5,6 +5,7 @@ import { config as dotenv } from 'dotenv';
 import { expand as dotenvExpand } from 'dotenv-expand';
 import { join } from 'path';
 import { GitService } from '../git';
+import { isDebug } from '@actions/core';
 
 export type EnvDeployStatus = {
   envFiles?: string[];
@@ -55,11 +56,9 @@ export class EnvService {
 
     dotenv({
       path: this.envFiles.map((f) => join(this.cwd, f)),
-      debug: true,
+      debug: isDebug(),
       processEnv,
     });
-
-    console.log('!!! Process Env:', processEnv);
 
     const combinedEnv = Object.entries(process.env).reduce(
       (acc, [k, v]) => {
@@ -72,14 +71,10 @@ export class EnvService {
       this.baseEnv,
     );
 
-    console.log('!!! Combined Env:', combinedEnv);
-
     const { parsed: expanded = {} } = dotenvExpand({
       parsed: processEnv,
       processEnv: combinedEnv, // Don't mutuate processEnv
     });
-
-    console.log('!!! Expanded Env:', expanded);
 
     return expanded;
   }
