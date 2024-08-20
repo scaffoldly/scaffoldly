@@ -163,10 +163,6 @@ export class GitService {
       tag = `v${parsed.major}`;
     }
 
-    if (parsed && parsed.prerelease.length && tag) {
-      tag = `${tag}-${parsed.prerelease[0]}`;
-    }
-
     if (tag) {
       return tag;
     }
