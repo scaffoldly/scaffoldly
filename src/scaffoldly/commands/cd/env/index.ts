@@ -56,9 +56,11 @@ export class EnvService {
 
     dotenv({
       path: this.envFiles.map((f) => join(this.cwd, f)),
-      debug: isDebug(),
+      debug: true,
       processEnv,
     });
+
+    console.log('!!! Process Env:', processEnv);
 
     const combinedEnv = Object.entries(process.env).reduce(
       (acc, [k, v]) => {
@@ -71,10 +73,14 @@ export class EnvService {
       this.baseEnv,
     );
 
+    console.log('!!! Combined Env:', combinedEnv);
+
     const { parsed: expanded = {} } = dotenvExpand({
       parsed: processEnv,
       processEnv: combinedEnv, // Don't mutuate processEnv
     });
+
+    console.log('!!! Expanded Env:', expanded);
 
     return expanded;
   }
