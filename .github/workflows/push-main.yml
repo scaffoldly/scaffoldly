@@ -59,22 +59,23 @@ jobs:
           # TODO: upload artifacts to github
           tags: |
             type=raw,value=${{ steps.package.outputs.version }},enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+            type=raw,value=${{ steps.package.outputs.major }},enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
             type=raw,value=${{ steps.package.outputs.major }}.${{ steps.package.outputs.minor }},enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
             type=raw,value=${{ steps.package.outputs.version }}-{{date 'YYYYMMDD'}},enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
             type=raw,value=${{ steps.package.outputs.version }}-${{ github.sha }}
           labels: |
             maintainer=Scaffoldly <docker@scaffold.ly>
-      # - uses: docker/build-push-action@v6
-      #   with:
-      #     file: scripts/Dockerfile
-      #     context: .
-      #     platforms: linux/amd64,linux/arm64
-      #     pull: true
-      #     push: true
-      #     tags: ${{ steps.meta.outputs.tags }}
-      #     labels: ${{ steps.meta.outputs.labels }}
-      #     cache-from: type=gha,scope=${{ runner.os }}-${{ steps.name.outputs.name }}
-      #     cache-to: type=gha,scope=${{ runner.os }}-${{ steps.name.outputs.name }},mode=max
+      - uses: docker/build-push-action@v6
+        with:
+          file: scripts/Dockerfile
+          context: .
+          platforms: linux/amd64,linux/arm64
+          pull: true
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ runner.os }}-${{ steps.name.outputs.name }}
+          cache-to: type=gha,scope=${{ runner.os }}-${{ steps.name.outputs.name }},mode=max
 
   deploy-website:
     runs-on: ubuntu-latest
