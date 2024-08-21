@@ -36,6 +36,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main # checkout the newly pushed code
+      - run: yarn
       - name: Parse package.json
         id: package
         run: |
