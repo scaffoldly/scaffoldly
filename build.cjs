@@ -86,8 +86,8 @@ const build = async (ts, tsOptions) => {
       entryPoints: ['src/scaffoldly.ts', 'src/github-action.ts', 'src/awslambda-entrypoint.ts'],
       bundle: true,
       outdir: 'dist',
-      minify: true,
-      sourcemap: true,
+      minify: false,
+      sourcemap: false,
       platform: 'node',
       target: ['node18'],
       external: [
