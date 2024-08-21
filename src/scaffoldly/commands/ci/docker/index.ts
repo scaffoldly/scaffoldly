@@ -183,6 +183,7 @@ export class DockerService {
     const dockerfilePath = join(this.cwd, `Dockerfile.${mode}`) as Path;
     writeFileSync(dockerfilePath, Buffer.from(dockerfile, 'utf-8'));
 
+    ui.updateBottomBarSubtext('Creating tarball');
     const stream = tar.pack(this.cwd, {
       filter: (path) => {
         const relativePath = relative(this.cwd, path);
@@ -222,10 +223,13 @@ export class DockerService {
     const platform = await this.getPlatform(runtimes, architecture);
 
     // TODO: Multi-platform
+    ui.updateBottomBarSubtext('Building Image');
     const buildStream = await this.docker.buildImage(stream, {
       dockerfile: dockerfilePath.replace(this.cwd, DEFAULT_SRC_ROOT),
       t: imageName,
       q: true,
+      rm: true,
+      forcerm: true,
       platform,
       version: '2', // FYI: Not in the type
     } as ImageBuildOptions);
@@ -660,6 +664,7 @@ export class DockerService {
 
     const pushStream = await image.push({ authconfig: authConfig });
 
+    ui.updateBottomBarSubtext('Pushing Image');
     const events = await new Promise<DockerEvent[]>((resolve, reject) => {
       this.docker.modem.followProgress(
         pushStream,
