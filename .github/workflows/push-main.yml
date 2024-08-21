@@ -58,9 +58,9 @@ jobs:
           # TODO: publish to github packages
           # TODO: upload artifacts to github
           tags: |
-            type=semver,value=${{ steps.version.outputs.version }},pattern={{major}}.{{minor}}.{{patch}},enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
-            type=semver,value=${{ steps.version.outputs.version }},pattern={{major}}.{{minor}},enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
-            type=semver,value=${{ steps.version.outputs.version }},pattern={{major}},enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+            type=semver,value=v${{ steps.version.outputs.version }},pattern={{major}}.{{minor}}.{{patch}},enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+            type=semver,value=v${{ steps.version.outputs.version }},pattern={{major}}.{{minor}},enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+            type=semver,value=v${{ steps.version.outputs.version }},pattern={{major}},enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
             type=raw,value=${{ steps.version.outputs.version }}-{{date 'YYYYMMDD'}},enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
             type=raw,value=${{ steps.version.outputs.version }}-${{ github.sha }}
           labels: |
