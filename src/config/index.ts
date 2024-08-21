@@ -3,7 +3,11 @@ import { join, sep } from 'path';
 export const DEFAULT_SRC_ROOT = `.`;
 export const DEFAULT_ROUTE = '/*';
 
-export const CONFIG_SIGNATURE = `scaffoldly@v1`;
+// DEVNOTE: Coupled with with the "scaffoldly/scaffoldly:1" docker image
+// We use this for:
+// - Version Consistency
+// - Scooping compiled binaries out of the container (such as awslambda-entrypoint)
+export const CONFIG_SIGNATURE = `scaffoldly/scaffoldly:1`;
 
 export const decode = <T>(config: string): T => {
   if (config.startsWith(`${CONFIG_SIGNATURE}:`)) {
@@ -416,7 +420,11 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
   }
 
   get runtimes(): string[] {
-    const runtimes = [this.runtime, ...this.services.map((service) => service.runtime)];
+    const runtimes = [
+      CONFIG_SIGNATURE, // Always pull the scaffoldly container
+      this.runtime,
+      ...this.services.map((service) => service.runtime),
+    ];
     return [...new Set(runtimes)];
   }
 }

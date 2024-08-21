@@ -43079,7 +43079,7 @@ var genBase58 = (abc) => /* @__PURE__ */ chain(/* @__PURE__ */ radix(58), /* @__
 var base58 = /* @__PURE__ */ genBase58("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz");
 
 // src/config/index.ts
-var CONFIG_SIGNATURE = `scaffoldly@v1`;
+var CONFIG_SIGNATURE = `scaffoldly/scaffoldly:1`;
 var decode = (config) => {
   if (config.startsWith(`${CONFIG_SIGNATURE}:`)) {
     return JSON.parse(

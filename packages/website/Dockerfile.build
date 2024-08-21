@@ -41,7 +41,7 @@ FROM install-base AS runtime
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
-COPY .entrypoint* /var/task/.entrypoint
 COPY --from=package-docusaurus /var/task/package.json /var/task/package.json
 COPY --from=package-docusaurus /var/task/build /var/task/build
+COPY --from=scaffoldly/scaffoldly:1 linux/arm64/awslambda-entrypoint /var/task/.entrypoint
 CMD [ "( serve build )" ]

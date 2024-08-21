@@ -8,6 +8,7 @@ import {
   Commands,
   Shell,
   ServiceName,
+  CONFIG_SIGNATURE,
 } from '../../../../config';
 import { join, relative, sep } from 'path';
 import { ui } from '../../../command';
@@ -29,6 +30,7 @@ type Copy = {
   src: string;
   dest: string;
   noGlob?: boolean;
+  absolute?: boolean;
   resolve?: boolean;
   entrypoint?: boolean;
   bin?: {
@@ -481,11 +483,23 @@ export class DockerService {
         })
         .flat();
 
+      // TODO: only do this if its definitely a node app
+      // copy.push({
+      //   src: join('node_modules', 'scaffoldly', 'dist', 'awslambda-entrypoint.js'),
+      //   dest: `.entrypoint`,
+      //   resolve: true,
+      //   mode: 0o755,
+      //   entrypoint: true,
+      // });
+      const platform = await this.getPlatform(config.runtimes, 'match-host');
       copy.push({
-        src: join('node_modules', 'scaffoldly', 'dist', 'awslambda-entrypoint.js'),
+        from: CONFIG_SIGNATURE, // Created in CI/CD
+        src: `/${platform}/awslambda-entrypoint`, // Set in in scripts/Dockerfile
         dest: `.entrypoint`,
-        resolve: true,
-        mode: 0o755,
+        noGlob: true,
+        absolute: true,
+        // resolve: false,
+        // mode: 0o755,
         entrypoint: true,
       });
 
@@ -607,6 +621,10 @@ export class DockerService {
           }
 
           if (c.noGlob && workdir) {
+            if (c.absolute) {
+              copyLines.add(`COPY --from=${c.from} ${src} ${join(workdir, c.dest)}`);
+              return;
+            }
             copyLines.add(`COPY --from=${c.from} ${join(workdir, src)} ${join(workdir, c.dest)}`);
             return;
           }
