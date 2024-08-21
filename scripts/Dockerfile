@@ -6,14 +6,14 @@ FROM node:18 AS build-linux-amd64
 WORKDIR /linux/amd64
 COPY dist/* .
 RUN npx pkg awslambda-entrypoint.js --target linuxstatic-x64
-RUN npx pkg scaffoldly.js --target linuxstatic-x64
+# RUN npx pkg scaffoldly.js --target linuxstatic-x64
 
 # ARM64
 FROM node:18 AS build-linux-arm64
 WORKDIR /linux/arm64
 COPY dist/* .
 RUN npx pkg awslambda-entrypoint.js --target linuxstatic-arm64
-RUN npx pkg scaffoldly.js --target linuxstatic-arm64
+# RUN npx pkg scaffoldly.js --target linuxstatic-arm64
 
 # Final
 FROM scratch
