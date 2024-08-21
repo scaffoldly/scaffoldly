@@ -1,22 +1,21 @@
 import { base58 } from '@scure/base';
-import pkg from '../../package.json';
 import { join, sep } from 'path';
 export const DEFAULT_SRC_ROOT = `.`;
 export const DEFAULT_ROUTE = '/*';
 
+export const CONFIG_SIGNATURE = `scaffoldly@v1`;
+
 export const decode = <T>(config: string): T => {
-  if (config.startsWith(`${pkg.name}@${pkg.version}:`)) {
+  if (config.startsWith(`${CONFIG_SIGNATURE}:`)) {
     return JSON.parse(
-      new TextDecoder().decode(base58.decode(config.split(`${pkg.name}@${pkg.version}:`)[1])),
+      new TextDecoder().decode(base58.decode(config.split(`${CONFIG_SIGNATURE}:`)[1])),
     );
   }
   throw new Error(`Invalid config: ${config}`);
 };
 
 export const encode = <T>(config: T): string => {
-  return `${pkg.name}@${pkg.version}:${base58.encode(
-    new TextEncoder().encode(JSON.stringify(config)),
-  )}`;
+  return `${CONFIG_SIGNATURE}:${base58.encode(new TextEncoder().encode(JSON.stringify(config)))}`;
 };
 
 export type Shell = 'direnv';
@@ -420,20 +419,4 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
     const runtimes = [this.runtime, ...this.services.map((service) => service.runtime)];
     return [...new Set(runtimes)];
   }
-
-  encode = (): string => {
-    return `${pkg.name}@${pkg.version}:${base58.encode(
-      new TextEncoder().encode(
-        JSON.stringify({
-          ...this.scaffoldly,
-          name: this.name,
-          version: this.version,
-          bin: this.bin,
-          files: this.files,
-          buildFiles: this.buildFiles,
-          packages: this.packages,
-        }),
-      ),
-    )}`;
-  };
 }

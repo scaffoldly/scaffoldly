@@ -5,7 +5,6 @@ import inquirer, { Answers, QuestionCollection } from 'inquirer';
 import { NoTokenError } from './stores/scms';
 import { GithubHelper } from './helpers/githubHelper';
 import { MessagesHelper } from './helpers/messagesHelper';
-import { version } from '../../package.json';
 import { ApiHelper } from './helpers/apiHelper';
 import { NOT_LOGGED_IN } from './messages';
 import { ErrorWithReturnCode, RETURN_CODE_NOT_LOGGED_IN } from './errors';
@@ -48,7 +47,7 @@ export class Command {
 
   private gitService: GitService;
 
-  constructor(argv: string[]) {
+  constructor(argv: string[], private version?: string) {
     this.apiHelper = new ApiHelper(argv);
     this.messagesHelper = new MessagesHelper(argv);
     this.gitService = new GitService(process.cwd());
@@ -127,7 +126,7 @@ export class Command {
       })
       .help()
       .wrap(null)
-      .version(version)
+      .version(this.version || 'latest')
       .fail((_msg, error) => {
         if (isAxiosError(error)) {
           if (error.response && error.response.status === 401) {

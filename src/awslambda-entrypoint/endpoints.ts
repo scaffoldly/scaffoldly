@@ -4,10 +4,9 @@ import net from 'net';
 import { EndpointProxyRequest, EndpointResponse } from './types';
 import { isDebug, log } from './log';
 import { ALBEvent, ALBEventQueryStringParameters, APIGatewayProxyEventV2 } from 'aws-lambda';
-import { Commands, Routes } from '../config';
+import { Commands, CONFIG_SIGNATURE, Routes } from '../config';
 import { pathToRegexp } from 'path-to-regexp';
 import { execa } from 'execa';
-import packageJson from '../../package.json';
 
 function convertHeaders(
   headers: RawAxiosResponseHeaders | AxiosResponseHeaders,
@@ -126,7 +125,7 @@ export const endpointProxy = async ({
 
   log('Received event', { rawEvent });
 
-  if (typeof rawEvent === 'string' && rawEvent.startsWith(`${packageJson.name}@`)) {
+  if (typeof rawEvent === 'string' && rawEvent.startsWith(`${CONFIG_SIGNATURE}@`)) {
     const commands = Commands.decode(rawEvent);
     log('Received scheduled event', { commands });
 

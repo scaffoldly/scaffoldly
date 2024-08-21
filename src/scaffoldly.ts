@@ -17,8 +17,8 @@ console.debug = customConsole.debug;
 console.clear = customConsole.clear;
 console.trace = customConsole.trace;
 
-export const run = async (): Promise<void> => {
-  const command = new Command(process.argv);
+export const run = async (version?: string): Promise<void> => {
+  const command = new Command(process.argv, version);
   try {
     await command.run(process.argv);
     process.exit(0);

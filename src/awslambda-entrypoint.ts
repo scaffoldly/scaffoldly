@@ -5,7 +5,6 @@ import { endpointProxy } from './awslambda-entrypoint/endpoints';
 import { isDebug, log } from './awslambda-entrypoint/log';
 import { getRuntimeEvent, postRuntimeEventResponse } from './awslambda-entrypoint/runtime';
 import { RuntimeEvent, EndpointProxyRequest, EndpointResponse } from './awslambda-entrypoint/types';
-import packageJson from '../package.json';
 import { Routes, Commands } from './config';
 import { GetSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
 import { execa } from 'execa';
@@ -13,11 +12,6 @@ import { execa } from 'execa';
 const { SLY_SERVE, SLY_ROUTES, SLY_SECRET, AWS_LAMBDA_RUNTIME_API } = process.env;
 
 export const run = async (): Promise<void> => {
-  if (process.argv.includes('--version')) {
-    console.log(packageJson.version);
-    return;
-  }
-
   if (!AWS_LAMBDA_RUNTIME_API) {
     throw new Error('Missing AWS_LAMBDA_RUNTIME_API');
   }
