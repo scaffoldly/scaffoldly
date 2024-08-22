@@ -1,6 +1,7 @@
 import { join } from 'path';
-import { PackageJson, ScaffoldlyConfig } from '..';
+import { PackageJson, PackageJsonBin, ScaffoldlyConfig } from '..';
 import { existsSync, readFileSync } from 'fs';
+import { isDebug } from 'src/scaffoldly/ui';
 
 export class NextJsPreset {
   constructor(private cwd: string) {}
@@ -9,15 +10,17 @@ export class NextJsPreset {
     return Promise.all([
       this.packageJson,
       this.packages,
+      this.bin,
       this.files,
       this.install,
       this.start,
-    ]).then(([packageJson, packages, files, install, start]) => {
+    ]).then(([packageJson, packages, bin, files, install, start]) => {
       packageJson.scaffoldly = {
         runtime: `node:${process.version.split('v')[1]}-alpine`,
         handler: 'localhost:3000',
         buildFiles: ['!node_modules'],
         packages,
+        bin,
         services: [
           {
             name: 'next',
@@ -31,7 +34,9 @@ export class NextJsPreset {
           },
         ],
       };
-      console.log('!!! scaffoldly config', JSON.stringify(packageJson.scaffoldly, null, 2));
+      if (isDebug()) {
+        console.log(`Using NextJS preset config:`, JSON.stringify(packageJson.scaffoldly, null, 2));
+      }
       return new ScaffoldlyConfig({ packageJson });
     });
   }
@@ -66,6 +71,15 @@ export class NextJsPreset {
     return this.nextOutput.then((output) => {
       if (output === 'export') {
         return ['npm:serve'];
+      }
+      return undefined;
+    });
+  }
+
+  get bin(): Promise<PackageJsonBin | undefined> {
+    return this.nextOutput.then((output) => {
+      if (output === 'standalone') {
+        return { 'server.js': 'next:.next/standalone/server.js' };
       }
       return undefined;
     });
@@ -118,7 +132,7 @@ export class NextJsPreset {
         return 'serve out';
       }
       if (output === 'standalone') {
-        return 'cd .next/standalone && node server.js';
+        return 'node server.js';
       }
       return packageJson.scripts?.start;
     });

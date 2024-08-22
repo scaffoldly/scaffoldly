@@ -41,5 +41,7 @@ COPY --from=package-next /var/task/package.json /var/task/package.json
 COPY --from=package-next /var/task/.next /var/task/.next
 COPY --from=package-next /var/task/public /var/task/public
 COPY --from=package-next /var/task/package-lock.json /var/task/package-lock.json
+COPY --from=package-next /var/task/.next/standalone /var/task/
+COPY --from=package-next /var/task/.next/standalone/server.js /var/task/server.js
 COPY --from=scaffoldly/scaffoldly:1 /linux/arm64/awslambda-entrypoint /var/task/.entrypoint
-CMD [ "( cd .next/standalone && node server.js )" ]
+CMD [ "( node server.js )" ]

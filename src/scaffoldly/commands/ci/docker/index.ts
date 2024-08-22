@@ -38,10 +38,6 @@ type Copy = {
   absolute?: boolean;
   resolve?: boolean;
   entrypoint?: boolean;
-  bin?: {
-    file: string;
-    dir: string;
-  };
   mode?: number;
 };
 
@@ -446,26 +442,6 @@ export class DockerService {
         return cp;
       });
 
-      Object.entries(bin).forEach(([script, path]) => {
-        if (!path) return;
-        if (!fromStage) return;
-
-        const scriptPath = join(src, script);
-        const [binDir, binFile] = splitPath(path);
-
-        paths.push(join(workdir, src, binDir));
-        copy.push({
-          from: fromStage.as,
-          src: join(src, binDir),
-          dest: join(src, binDir),
-          bin: {
-            file: binFile,
-            dir: scriptPath === path ? binDir : src,
-          },
-          resolve: false,
-        });
-      });
-
       spec.copy = copy;
       spec.paths = paths;
 
@@ -481,22 +457,41 @@ export class DockerService {
         .map((key) => {
           const fromStage = fromStages[key];
           return (fromStage?.copy || []).map((c) => {
-            if (c.bin) {
-              paths.push(join(workdir, c.bin.dir));
-              const cp: Copy = {
-                from: fromStage?.as,
-                src: `${c.src}${sep}`,
-                dest: `${c.bin.dir}${sep}`,
-                bin: c.bin,
-              };
-              return cp;
-            }
-
             const cp: Copy = { ...c, from: key, noGlob: true };
             return cp;
           });
         })
         .flat();
+
+      Object.entries(bin).forEach(([script, nameAndPath]) => {
+        if (!nameAndPath) return;
+
+        const [fromName, path] = nameAndPath.split(':');
+        if (!fromName) return;
+        if (!path) return;
+
+        const binStage = fromStages[`package-${fromName}`];
+        if (!binStage) return;
+
+        const scriptPath = join(src, script);
+        const [binDir, binFile] = splitPath(path);
+
+        // paths.push(join(workdir, src, binDir));
+        copy.push({
+          from: binStage.as,
+          src: join(src, binDir),
+          dest: join(src, sep),
+          resolve: false,
+          noGlob: true,
+        });
+        copy.push({
+          from: binStage.as,
+          src: join(src, binDir, binFile),
+          dest: scriptPath,
+          resolve: false,
+          noGlob: true,
+        });
+      });
 
       if (isDebug()) {
         // Debug mode, copy awslambda-entrypoint from this library
@@ -650,7 +645,7 @@ export class DockerService {
           const exists = existsSync(join(this.cwd, src));
           if (workdir) {
             let source = join(workdir, src);
-            if (!exists || c.bin) {
+            if (!exists) {
               source = `${source}*`;
             }
             copyLines.add(`COPY --from=${c.from} ${source} ${join(workdir, c.dest)}`);
