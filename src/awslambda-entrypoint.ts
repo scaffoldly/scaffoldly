@@ -51,7 +51,7 @@ export const run = async (): Promise<void> => {
         return obj;
       })
       .catch((e) => {
-        throw new Error(`Unable to fetch secret ${SLY_SECRET}: ${e.message}`, e);
+        throw new Error(`Unable to fetch secret ${SLY_SECRET}`, { cause: e });
       });
   }
 
@@ -61,13 +61,13 @@ export const run = async (): Promise<void> => {
   try {
     commands = Commands.decode(SLY_SERVE);
   } catch (e) {
-    throw new Error('Unable to parse SLY_SERVE');
+    throw new Error('Unable to parse SLY_SERVE', { cause: e });
   }
 
   try {
     routes = JSON.parse(SLY_ROUTES);
   } catch (e) {
-    throw new Error('Unable to parse SLY_ROUTES');
+    throw new Error('Unable to parse SLY_ROUTES', { cause: e });
   }
 
   if (!routes || !Object.keys(routes).length) {

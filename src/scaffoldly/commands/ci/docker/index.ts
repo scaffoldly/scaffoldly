@@ -483,14 +483,17 @@ export class DockerService {
         })
         .flat();
 
-      // TODO: only do this if its definitely a node app
-      // copy.push({
-      //   src: join('node_modules', 'scaffoldly', 'dist', 'awslambda-entrypoint.js'),
-      //   dest: `.entrypoint`,
-      //   resolve: true,
-      //   mode: 0o755,
-      //   entrypoint: true,
-      // });
+      // if (paths.some((path) => path.includes(join('node_modules', '.bin')))) {
+      //   // This is a node app, copy awslambda-entrypoint this library
+      //   copy.push({
+      //     src: join('node_modules', 'scaffoldly', 'dist', 'awslambda-entrypoint.js'),
+      //     dest: `.entrypoint`,
+      //     resolve: true,
+      //     mode: 0o755,
+      //     entrypoint: true,
+      //   });
+      // } else {
+      // Not a node app, copy awslambda-entrypoint from the scaffoldly image
       const platform = await this.getPlatform(config.runtimes, 'match-host');
       copy.push({
         from: CONFIG_SIGNATURE, // Created in CI/CD
@@ -498,10 +501,9 @@ export class DockerService {
         dest: `.entrypoint`,
         noGlob: true,
         absolute: true,
-        // resolve: false,
-        // mode: 0o755,
         entrypoint: true,
       });
+      // }
 
       spec.copy = copy;
       spec.paths = [

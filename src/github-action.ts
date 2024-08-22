@@ -9,7 +9,7 @@ import { saveState, getState, debug, setOutput, summary, error } from '@actions/
 export const run = async (mode: Mode): Promise<void> => {
   const action = await new Action(mode).init();
 
-  let state: State = { deployStatus: {} };
+  let state: State = { status: {} };
 
   try {
     switch (mode) {

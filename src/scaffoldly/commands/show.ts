@@ -40,7 +40,7 @@ export class ShowCommand extends Command {
     this.scms = new Scms(this.apiHelper, this.messagesHelper, this.gitService);
     this.awsHelper = new AwsHelper(this.apiHelper);
     this.dockerService = new DockerService(this.gitService.cwd);
-    this.envService = new EnvService(this.gitService.cwd, this.config);
+    this.envService = new EnvService(this.gitService.cwd, this.config, this.gitService);
   }
 
   public async handle(subcommand: ShowSubcommands, withToken?: string): Promise<void> {

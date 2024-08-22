@@ -1,10 +1,12 @@
 FROM alpine:3 AS install-base
 WORKDIR /var/task
+ENV SLY_DEBUG="true"
 RUN apk update && apk add --no-cache npm && rm -rf /var/cache/apk/*
 RUN npm install -g serve@14 --omit=dev --omit=optional --omit=peer && npm cache clean --force
 
 FROM node:22-alpine AS install-docusaurus
 WORKDIR /var/task
+ENV SLY_DEBUG="true"
 COPY . /var/task/
 RUN npm install
 
@@ -14,6 +16,7 @@ ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV URL="https://s7wcwsanfngscgkeaipiqh3lka0gnucv.lambda-url.us-east-1.on.aws"
 ENV PUBLIC_URL="https://s7wcwsanfngscgkeaipiqh3lka0gnucv.lambda-url.us-east-1.on.aws"
+ENV SLY_DEBUG="true"
 COPY . /var/task/
 
 FROM install-docusaurus AS build-docusaurus
@@ -22,6 +25,7 @@ ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
 ENV URL="https://s7wcwsanfngscgkeaipiqh3lka0gnucv.lambda-url.us-east-1.on.aws"
 ENV PUBLIC_URL="https://s7wcwsanfngscgkeaipiqh3lka0gnucv.lambda-url.us-east-1.on.aws"
+ENV SLY_DEBUG="true"
 COPY . /var/task/
 RUN docusaurus build
 
@@ -29,11 +33,13 @@ FROM install-base AS package-base
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
+ENV SLY_DEBUG="true"
 
 FROM install-docusaurus AS package-docusaurus
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
+ENV SLY_DEBUG="true"
 COPY --from=build-docusaurus /var/task/package.json /var/task/package.json
 COPY --from=build-docusaurus /var/task/build* /var/task/build
 
@@ -41,7 +47,8 @@ FROM install-base AS runtime
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
+ENV SLY_DEBUG="true"
+COPY .entrypoint* /var/task/.entrypoint
 COPY --from=package-docusaurus /var/task/package.json /var/task/package.json
 COPY --from=package-docusaurus /var/task/build /var/task/build
-COPY --from=scaffoldly/scaffoldly:1 linux/arm64/awslambda-entrypoint /var/task/.entrypoint
 CMD [ "( serve build )" ]
