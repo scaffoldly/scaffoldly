@@ -1,7 +1,7 @@
 import { join } from 'path';
 import { PackageJson, PackageJsonBin, ScaffoldlyConfig } from '..';
 import { existsSync, readFileSync } from 'fs';
-import { isDebug } from 'src/scaffoldly/ui';
+import { isDebug } from '../../scaffoldly/ui';
 
 export class NextJsPreset {
   constructor(private cwd: string) {}
