@@ -1,50 +1,45 @@
-FROM alpine:3 as install-base
+FROM alpine:3 AS install-base
 WORKDIR /var/task
-ENV SLY_DEBUG="true"
 RUN apk update && apk add --no-cache npm && rm -rf /var/cache/apk/*
 RUN npm install -g serve@14 --omit=dev --omit=optional --omit=peer && npm cache clean --force
 
-FROM node:22-alpine as install-next
+FROM node:22-alpine AS install-next
 WORKDIR /var/task
-ENV SLY_DEBUG="true"
 COPY . /var/task/
 RUN npm install
 
-FROM install-base as build-base
+FROM install-base AS build-base
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
-ENV SLY_DEBUG="true"
+ENV URL="https://q5mrlmcwmwl6qhijqtux2pxszi0jwzlv.lambda-url.us-east-1.on.aws"
 COPY . /var/task/
 
-FROM install-next as build-next
+FROM install-next AS build-next
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
-ENV SLY_DEBUG="true"
+ENV URL="https://q5mrlmcwmwl6qhijqtux2pxszi0jwzlv.lambda-url.us-east-1.on.aws"
 COPY . /var/task/
 RUN next build
 
-FROM install-base as package-base
+FROM install-base AS package-base
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
-ENV SLY_DEBUG="true"
 
-FROM install-next as package-next
+FROM install-next AS package-next
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
-ENV SLY_DEBUG="true"
 COPY --from=build-next /var/task/package.json /var/task/package.json
 COPY --from=build-next /var/task/out* /var/task/out
 
-FROM install-base as runtime
+FROM install-base AS runtime
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
-ENV SLY_DEBUG="true"
-COPY .entrypoint* /var/task/.entrypoint
 COPY --from=package-next /var/task/package.json /var/task/package.json
 COPY --from=package-next /var/task/out /var/task/out
-CMD ( serve out )
+COPY --from=scaffoldly/scaffoldly:1 /linux/arm64/awslambda-entrypoint /var/task/.entrypoint
+CMD [ "( serve out )" ]
