@@ -16,6 +16,7 @@ export type DockerDeployStatus = {
   imageTag?: string;
   imageName?: string;
   imageDigest?: string;
+  imageSize?: number;
 };
 
 export class DockerService {
@@ -39,7 +40,7 @@ export class DockerService {
       throw new Error('Missing architecture');
     }
 
-    const { imageName, imageTag } = await new CloudResource<BuildInfo, BuildInfo>(
+    const { imageName, imageTag, imageSize } = await new CloudResource<BuildInfo, BuildInfo>(
       {
         describe: (resource) => {
           return { type: 'Image', label: resource.imageName };
@@ -62,6 +63,7 @@ export class DockerService {
 
     status.imageTag = imageTag;
     status.imageName = imageName;
+    status.imageSize = imageSize;
 
     if (!imageName) {
       throw new Error('Missing image name');

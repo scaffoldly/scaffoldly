@@ -7,6 +7,7 @@ import { ui } from '../../command';
 import { isDebug } from '../../ui';
 import { EnvService } from './env';
 import { DockerService } from './docker';
+import { filesize } from 'filesize';
 
 export class DeployCommand extends CdCommand {
   envService: EnvService;
@@ -39,6 +40,7 @@ export class DeployCommand extends CdCommand {
     console.log('');
     console.log('🚀 Deployment Complete!');
     console.log(`   📄 Env Files: ${status.envFiles?.join(', ')}`);
+    console.log(`   📦 Image Size: ${filesize(status.imageSize || 0)}`);
     console.log(`   🌎 Function URL: ${status.url}`);
   }
 }

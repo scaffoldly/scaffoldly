@@ -17,7 +17,12 @@ import { Platform } from '../../cd/docker';
 import { PackageService } from './packages';
 import micromatch from 'micromatch';
 
-export type BuildInfo = { imageName?: string; imageTag?: string; entrypoint?: string[] };
+export type BuildInfo = {
+  imageName?: string;
+  imageTag?: string;
+  imageSize?: number;
+  entrypoint?: string[];
+};
 export type PushInfo = { imageName?: string; imageDigest?: string };
 
 const BASE = 'base';
@@ -120,6 +125,8 @@ export class DockerService {
 
   private imageDigest?: string;
 
+  private imageInfo?: Docker.ImageInspectInfo;
+
   constructor(private cwd: string) {
     this.docker = new Docker({ version: 'v1.45' });
   }
@@ -147,7 +154,12 @@ export class DockerService {
   async describeBuild(): Promise<BuildInfo> {
     // TODO: Dynamic entrypoint
     // DEVNOTE: Entrypoint is set during prebuild so it must be known before deploy
-    return { imageName: this.imageName, imageTag: this.imageTag, entrypoint: ['.entrypoint'] };
+    return {
+      imageName: this.imageName,
+      imageTag: this.imageTag,
+      imageSize: this.imageInfo?.Size,
+      entrypoint: ['.entrypoint'],
+    };
   }
 
   async generateDockerfile(
@@ -249,6 +261,9 @@ export class DockerService {
         },
       );
     });
+
+    const image = this.docker.getImage(imageName);
+    this.imageInfo = await image.inspect();
 
     this.imageName = imageName;
     this.imageTag = imageTag;
@@ -483,27 +498,28 @@ export class DockerService {
         })
         .flat();
 
-      // if (paths.some((path) => path.includes(join('node_modules', '.bin')))) {
-      //   // This is a node app, copy awslambda-entrypoint this library
-      //   copy.push({
-      //     src: join('node_modules', 'scaffoldly', 'dist', 'awslambda-entrypoint.js'),
-      //     dest: `.entrypoint`,
-      //     resolve: true,
-      //     mode: 0o755,
-      //     entrypoint: true,
-      //   });
-      // } else {
-      // Not a node app, copy awslambda-entrypoint from the scaffoldly image
-      const platform = await this.getPlatform(config.runtimes, 'match-host');
-      copy.push({
-        from: CONFIG_SIGNATURE, // Created in CI/CD
-        src: `/${platform}/awslambda-entrypoint`, // Set in in scripts/Dockerfile
-        dest: `.entrypoint`,
-        noGlob: true,
-        absolute: true,
-        entrypoint: true,
-      });
-      // }
+      if (isDebug()) {
+        // Debug mode, copy awslambda-entrypoint from this library
+        // DEVNOTE: node needs to be a package for this to work
+        copy.push({
+          src: join('node_modules', 'scaffoldly', 'dist', 'awslambda-entrypoint.js'),
+          dest: `.entrypoint`,
+          resolve: true,
+          mode: 0o755,
+          entrypoint: true,
+        });
+      } else {
+        // Copy awslambda-entrypoint from the scaffoldly image
+        const platform = await this.getPlatform(config.runtimes, 'match-host');
+        copy.push({
+          from: CONFIG_SIGNATURE, // Created in CI/CD
+          src: `/${platform}/awslambda-entrypoint`, // Set in in scripts/Dockerfile
+          dest: `.entrypoint`,
+          noGlob: true,
+          absolute: true,
+          entrypoint: true,
+        });
+      }
 
       spec.copy = copy;
       spec.paths = [
@@ -710,6 +726,8 @@ export class DockerService {
       throw new Error('Failed to get image digest');
     }
 
+    this.imageInfo = await image.inspect();
+
     return { imageDigest };
   }
 
@@ -730,9 +748,12 @@ export class DockerService {
   private async getImage(
     runtime: string,
     architecture: Architecture,
-    retry = true,
+    pull = true,
   ): Promise<Docker.ImageInspectInfo | undefined> {
-    ui.updateBottomBarSubtext(`Getting image for ${runtime}`);
+    if (pull) {
+      await this.pullImage(runtime, architecture);
+    }
+
     const image = this.docker.getImage(runtime);
 
     let inspected: Docker.ImageInspectInfo | undefined = undefined;
@@ -748,7 +769,7 @@ export class DockerService {
       }
     }
 
-    if (retry) {
+    if (!pull && !inspected) {
       inspected = await this.getImage(runtime, architecture, false);
     }
 
