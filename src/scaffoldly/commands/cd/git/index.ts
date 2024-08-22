@@ -24,15 +24,27 @@ export class GitService {
 
   _cwd?: string;
 
-  constructor(cwd?: string, private config?: ScaffoldlyConfig) {
+  _config?: ScaffoldlyConfig;
+
+  constructor(cwd?: string, config?: ScaffoldlyConfig) {
     this._cwd = cwd;
     if (cwd) {
       this._git = simpleGit({ baseDir: cwd });
     }
+    if (config) {
+      this._config = config;
+    }
   }
 
-  withConfig(config: ScaffoldlyConfig): GitService {
-    return new GitService(this._cwd, config);
+  get config(): ScaffoldlyConfig {
+    if (!this._config) {
+      throw new Error('No Scaffoldly Config Found');
+    }
+    return this._config;
+  }
+
+  setConfig(config: ScaffoldlyConfig): void {
+    this._config = config;
   }
 
   get git(): SimpleGit {

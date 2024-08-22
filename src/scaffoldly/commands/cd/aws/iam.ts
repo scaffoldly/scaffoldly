@@ -1,4 +1,3 @@
-import { ScaffoldlyConfig } from '../../../../config';
 import {
   CreateRoleCommand,
   GetRoleCommand,
@@ -13,6 +12,7 @@ import {
 } from '@aws-sdk/client-iam';
 import { CloudResource, ResourceOptions } from '..';
 import { SecretDeployStatus } from './secret';
+import { GitService } from '../git';
 
 export type IamDeployStatus = {
   roleArn?: string;
@@ -67,7 +67,7 @@ export interface IamConsumer {
 export class IamService {
   iamClient: IAMClient;
 
-  constructor(private config: ScaffoldlyConfig) {
+  constructor(private gitService: GitService) {
     this.iamClient = new IAMClient();
   }
 
@@ -76,7 +76,7 @@ export class IamService {
     consumers: IamConsumer[],
     options: ResourceOptions,
   ): Promise<void> {
-    const { name } = this.config;
+    const { name } = this.gitService.config;
     const { uniqueId } = status;
 
     const roleName = `${name}-${uniqueId}`;

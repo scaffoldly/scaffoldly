@@ -8,11 +8,11 @@ import {
   // eslint-disable-next-line import/named
   DescribeRepositoriesCommandOutput,
 } from '@aws-sdk/client-ecr';
-import { ScaffoldlyConfig } from '../../../../config';
 import { AuthConfig } from 'dockerode';
 import { CloudResource, ResourceOptions } from '..';
 import {} from '@smithy/types';
 import { NotFoundException } from '../errors';
+import { GitService } from '../git';
 
 export type EcrDeployStatus = {
   repositoryUri?: string;
@@ -25,12 +25,12 @@ export interface RegistryAuthConsumer {
 export class EcrService implements RegistryAuthConsumer {
   ecrClient: ECRClient;
 
-  constructor(private config: ScaffoldlyConfig) {
+  constructor(private gitService: GitService) {
     this.ecrClient = new ECRClient();
   }
 
   public async predeploy(status: EcrDeployStatus, options: ResourceOptions): Promise<void> {
-    const { name } = this.config;
+    const { name } = this.gitService.config;
 
     const repository = await new CloudResource<Repository, DescribeRepositoriesCommandOutput>(
       {

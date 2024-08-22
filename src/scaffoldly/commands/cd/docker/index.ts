@@ -5,10 +5,10 @@ import {
   PushInfo,
 } from '../../ci/docker';
 import { CloudResource, ResourceOptions } from '..';
-import { ScaffoldlyConfig } from '../../../../config';
 import { EcrDeployStatus, RegistryAuthConsumer } from '../aws/ecr';
 import { LambdaDeployStatus } from '../aws/lambda';
 import { EnvDeployStatus } from '../env';
+import { GitService } from '../git';
 
 export type Platform = 'linux/amd64' | 'linux/arm64';
 
@@ -20,14 +20,10 @@ export type DockerDeployStatus = {
 };
 
 export class DockerService {
-  config: ScaffoldlyConfig;
-
-  constructor(config: ScaffoldlyConfig, private dockerCiService: DockerCiService) {
-    this.config = config;
-  }
+  constructor(private gitService: GitService, private dockerCiService: DockerCiService) {}
 
   public async getPlatform(architecture: Architecture): Promise<Platform> {
-    return this.dockerCiService.getPlatform(this.config.runtimes, architecture);
+    return this.dockerCiService.getPlatform(this.gitService.config.runtimes, architecture);
   }
 
   public async deploy(
@@ -50,7 +46,7 @@ export class DockerService {
         },
         update: () => {
           return this.dockerCiService.build(
-            this.config,
+            this.gitService.config,
             'build',
             architecture,
             status.repositoryUri,

@@ -25,10 +25,17 @@ export const run = async (version?: string): Promise<void> => {
   } catch (e) {
     if (e instanceof Error) {
       if (isDebug()) {
-        console.error(e.message);
+        console.error(e);
       } else {
-        console.error(`Error: ${e.message}\n\nRun with --debug for more information.`);
+        if (e.cause && e.cause instanceof Error) {
+          console.error(`Error: ${e.message}:\n  ${e.cause.message}`);
+        } else {
+          console.error(`Error: ${e.message}`);
+        }
+        console.error(`\nRun with --debug for more information.`);
       }
+    } else {
+      console.error(e);
     }
     if (e instanceof ErrorWithReturnCode) {
       process.exit(e.returnCode);

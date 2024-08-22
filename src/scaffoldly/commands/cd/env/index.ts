@@ -1,6 +1,5 @@
 import { DeployStatus } from '../aws';
 import { ResourceOptions } from '..';
-import { ScaffoldlyConfig } from '../../../../config';
 import { config as dotenv } from 'dotenv';
 import { expand as dotenvExpand } from 'dotenv-expand';
 import { join } from 'path';
@@ -17,11 +16,7 @@ const normalizeBranch = (branch: string) => branch.replaceAll('/', '-').replaceA
 export class EnvService {
   private lastStatus?: DeployStatus;
 
-  constructor(
-    private cwd: string,
-    private config: ScaffoldlyConfig,
-    private gitService: GitService,
-  ) {}
+  constructor(private gitService: GitService) {}
 
   public async predeploy(status: DeployStatus): Promise<void> {
     this.lastStatus = status;
@@ -55,7 +50,7 @@ export class EnvService {
     const processEnv = this.baseEnv;
 
     dotenv({
-      path: this.envFiles.map((f) => join(this.cwd, f)),
+      path: this.envFiles.map((f) => join(this.gitService.cwd, f)),
       debug: isDebug(),
       processEnv,
     });
@@ -81,8 +76,8 @@ export class EnvService {
 
   get runtimeEnv(): Record<string, string> {
     return {
-      SLY_ROUTES: JSON.stringify(this.config.routes), // TODO encode
-      SLY_SERVE: this.config.serveCommands.encode(),
+      SLY_ROUTES: JSON.stringify(this.gitService.config.routes), // TODO encode
+      SLY_SERVE: this.gitService.config.serveCommands.encode(),
       SLY_SECRET: this.lastStatus?.secretName || '',
       ...this.baseEnv,
       ...this.buildEnv,

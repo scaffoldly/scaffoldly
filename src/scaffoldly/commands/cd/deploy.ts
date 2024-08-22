@@ -9,7 +9,9 @@ import { EnvService } from './env';
 import { DockerService } from './docker';
 import { filesize } from 'filesize';
 
-export class DeployCommand extends CdCommand {
+export type Preset = 'nextjs' | 'docusaurus';
+
+export class DeployCommand extends CdCommand<DeployCommand> {
   envService: EnvService;
 
   awsService: AwsService;
@@ -18,16 +20,21 @@ export class DeployCommand extends CdCommand {
 
   constructor(private gitService: GitService) {
     super(gitService.cwd);
-    this.gitService = gitService.withConfig(this.config);
-    this.envService = new EnvService(this.cwd, this.config, this.gitService);
-    this.dockerService = new DockerService(this.config, new DockerCiService(this.cwd));
-    this.awsService = new AwsService(this.config, this.envService, this.dockerService);
+    this.envService = new EnvService(this.gitService);
+    this.dockerService = new DockerService(this.gitService, new DockerCiService(this.cwd));
+    this.awsService = new AwsService(this.gitService, this.envService, this.dockerService);
   }
 
-  async handle(status: DeployStatus, options?: ResourceOptions): Promise<void> {
+  async handle(): Promise<void> {
+    await this._handle({}, {});
+  }
+
+  async _handle(status: DeployStatus, options?: ResourceOptions): Promise<void> {
     event('deploy');
 
     options = options || {};
+
+    this.gitService.setConfig(this.config);
 
     await this.gitService.predeploy(status, options);
     await this.awsService.predeploy(status, options);

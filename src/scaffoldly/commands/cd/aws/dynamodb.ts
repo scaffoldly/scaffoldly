@@ -1,11 +1,13 @@
-import { ScaffoldlyConfig } from '../../../../config';
+import { GitService } from '../git';
 import { IamConsumer, PolicyDocument } from './iam';
 
 export class DynamoDbService implements IamConsumer {
-  constructor(private config: ScaffoldlyConfig) {}
+  constructor(private gitService: GitService) {}
 
   get tableArns(): string[] {
-    return this.config.resources.filter((resource) => resource.indexOf(':dynamodb:') !== -1);
+    return this.gitService.config.resources.filter(
+      (resource) => resource.indexOf(':dynamodb:') !== -1,
+    );
   }
 
   get trustRelationship(): undefined {

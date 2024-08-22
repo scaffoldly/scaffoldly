@@ -2,7 +2,7 @@ import { DockerService } from './docker';
 import { Command } from '../index';
 import { GitService } from '../cd/git';
 
-export class CiCommand extends Command {
+export abstract class CiCommand<T> extends Command<T> {
   dockerService: DockerService;
 
   constructor(gitService: GitService) {

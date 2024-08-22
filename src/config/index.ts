@@ -82,9 +82,10 @@ export class Commands {
 export type PackageJson = {
   name?: string;
   version?: string;
+  scripts?: { [key: string]: string };
   bin?: PackageJsonBin;
   files?: string[];
-  scaffoldly?: IScaffoldlyConfig;
+  scaffoldly?: Partial<IScaffoldlyConfig>;
 };
 
 export type Routes = { [key: string]: string | undefined };
@@ -131,7 +132,7 @@ export interface IServiceConfig {
 
 export type PackageJsonBin = { [key: string]: string };
 
-export type Script = 'prepare' | 'develop' | 'install' | 'build' | 'package' | 'start';
+export type Script = 'prepare' | 'dev' | 'install' | 'build' | 'package' | 'start';
 
 // DEVNOTE: Edit .github/release.yml if more '@-schedules` are added
 export type Schedule = '@immediately' | '@frequently' | '@hourly' | '@daily';

@@ -1,11 +1,10 @@
-import { ScaffoldlyConfig } from '../../../../config';
 import { LambdaDeployStatus, LambdaService } from './lambda';
 import { ResourceOptions } from '..';
 import { IamDeployStatus, IamService } from './iam';
 import { EcrDeployStatus, EcrService } from './ecr';
 import { DockerDeployStatus, DockerService } from '../docker';
 import { SecretDeployStatus, SecretService } from './secret';
-import { GitDeployStatus } from '../git';
+import { GitDeployStatus, GitService } from '../git';
 import { EnvDeployStatus, EnvService } from '../env';
 import { ScheduleService, ScheduleDeployStatus } from './schedule';
 import { DynamoDbService } from './dynamodb';
@@ -33,16 +32,16 @@ export class AwsService {
   scheduleService: ScheduleService;
 
   constructor(
-    private config: ScaffoldlyConfig,
+    private gitService: GitService,
     private envService: EnvService,
     private dockerService: DockerService,
   ) {
-    this.secretService = new SecretService(this.config);
-    this.iamService = new IamService(this.config);
-    this.ecrService = new EcrService(this.config);
-    this.lambdaService = new LambdaService(this.config, this.envService, this.dockerService);
-    this.dynamoDbService = new DynamoDbService(this.config);
-    this.scheduleService = new ScheduleService(this.config);
+    this.secretService = new SecretService(gitService);
+    this.iamService = new IamService(gitService);
+    this.ecrService = new EcrService(gitService);
+    this.lambdaService = new LambdaService(gitService, this.envService, this.dockerService);
+    this.dynamoDbService = new DynamoDbService(gitService);
+    this.scheduleService = new ScheduleService(gitService);
   }
 
   async predeploy(status: DeployStatus, options: ResourceOptions): Promise<void> {
@@ -52,7 +51,7 @@ export class AwsService {
     await this.ecrService.predeploy(status, options);
 
     // Deploy Secret
-    await this.secretService.predeploy(status, this.config, options);
+    await this.secretService.predeploy(status, this.gitService.config, options);
 
     // Deploy IAM
     await this.iamService.predeploy(
@@ -65,7 +64,7 @@ export class AwsService {
     await this.lambdaService.predeploy(status, options);
 
     // Set a Unique ID for the rest of the steps...
-    this.config.id = status.uniqueId || '';
+    this.gitService.config.id = status.uniqueId || '';
 
     // Pre-Deploy Schedules
     await this.scheduleService.predeploy(status, options);

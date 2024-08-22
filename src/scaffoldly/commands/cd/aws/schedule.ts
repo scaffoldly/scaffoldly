@@ -24,6 +24,7 @@ import {
 } from '@aws-sdk/client-lambda';
 import { NotFoundException, SkipAction } from '../errors';
 import { LambdaDeployStatus } from './lambda';
+import { GitService } from '../git';
 
 export type ScheduleDeployStatus = {
   scheduleGroup?: string;
@@ -121,7 +122,7 @@ export class ScheduleService implements IamConsumer {
 
   lambdaClient: LambdaClient;
 
-  constructor(private config: ScaffoldlyConfig) {
+  constructor(private gitService: GitService) {
     this.schedulerClient = new SchedulerClient();
     this.lambdaClient = new LambdaClient();
   }
@@ -136,13 +137,15 @@ export class ScheduleService implements IamConsumer {
           return { type: 'Schedule Group', label: resource.scheduleGroup };
         },
         read: () =>
-          this.schedulerClient.send(new GetScheduleGroupCommand({ Name: this.config.name })),
+          this.schedulerClient.send(
+            new GetScheduleGroupCommand({ Name: this.gitService.config.name }),
+          ),
         create: () => {
-          if (!this.config.schedules) {
+          if (!this.gitService.config.schedules) {
             throw new SkipAction('No schedules to create');
           }
           return this.schedulerClient.send(
-            new CreateScheduleGroupCommand({ Name: this.config.name }),
+            new CreateScheduleGroupCommand({ Name: this.gitService.config.name }),
           );
         },
       },
@@ -158,9 +161,9 @@ export class ScheduleService implements IamConsumer {
     status: ScheduleDeployStatus & LambdaDeployStatus & IamDeployStatus,
     options: ResourceOptions,
   ): Promise<void> {
-    const { name } = this.config;
+    const { name } = this.gitService.config;
 
-    const schedules = mapSchedules(this.config);
+    const schedules = mapSchedules(this.gitService.config);
 
     const desiredSchedules = Object.entries(schedules).filter(
       ([schedule, commands]) => schedule !== '@immediately' && !commands.isEmpty(),
@@ -346,7 +349,7 @@ export class ScheduleService implements IamConsumer {
         {
           Action: ['lambda:InvokeFunction'],
           Effect: 'Allow',
-          Resource: [`arn:*:lambda:*:*:function:${this.config.name}*`],
+          Resource: [`arn:*:lambda:*:*:function:${this.gitService.config.name}*`],
         },
       ],
     };

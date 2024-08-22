@@ -1,4 +1,3 @@
-import { ScaffoldlyConfig, SecretConsumer } from '../../../../config';
 import {
   SecretsManagerClient,
   CreateSecretCommand,
@@ -11,7 +10,8 @@ import { CloudResource, ResourceOptions } from '..';
 import { NotFoundException } from '../errors';
 import { createHash } from 'crypto';
 import { IamConsumer, PolicyDocument } from './iam';
-import { GitDeployStatus } from '../git';
+import { GitDeployStatus, GitService } from '../git';
+import { SecretConsumer } from '../../../../config';
 
 export type SecretName = string;
 export type SecretVersion = string;
@@ -27,7 +27,7 @@ export class SecretService implements IamConsumer {
 
   lastDeployStatus?: SecretDeployStatus;
 
-  constructor(private config: ScaffoldlyConfig) {
+  constructor(private gitService: GitService) {
     this.secretsManagerClient = new SecretsManagerClient();
   }
 
@@ -36,7 +36,7 @@ export class SecretService implements IamConsumer {
     consumer: SecretConsumer,
     options: ResourceOptions,
   ): Promise<void> {
-    const { name } = this.config;
+    const { name } = this.gitService.config;
     const { alias } = status;
 
     const secretName = `${name}@${alias}`;

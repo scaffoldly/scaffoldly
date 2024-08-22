@@ -278,7 +278,7 @@ export class DockerService {
     mode: Script,
     env?: Record<string, string>,
   ): Promise<DockerStages> {
-    if (mode === 'develop') {
+    if (mode === 'dev') {
       // TODO
       return { runtime: { from: 'todo', as: 'todo' }, bases: {}, builds: {}, packages: {} };
     }

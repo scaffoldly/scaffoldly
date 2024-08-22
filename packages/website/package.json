@@ -3,17 +3,17 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "scaffoldly": "scaffoldly",
     "docusaurus": "docusaurus",
     "start": "docusaurus start",
     "build": "docusaurus build",
     "swizzle": "docusaurus swizzle",
-    "deploy": "scaffoldly deploy",
     "clear": "docusaurus clear",
     "serve": "docusaurus serve",
     "write-translations": "docusaurus write-translations",
     "write-heading-ids": "docusaurus write-heading-ids",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "scaffoldly": "scaffoldly",
+    "deploy": "scaffoldly deploy"
   },
   "dependencies": {
     "@docusaurus/core": "^3.5.1",

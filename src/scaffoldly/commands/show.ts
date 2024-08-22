@@ -22,7 +22,7 @@ export type IdentityResponse = {
   };
 };
 
-export class ShowCommand extends Command {
+export class ShowCommand extends Command<ShowCommand> {
   scms: Scms;
 
   awsHelper: AwsHelper;
@@ -30,6 +30,8 @@ export class ShowCommand extends Command {
   dockerService: DockerService;
 
   envService: EnvService;
+
+  subcommand?: ShowSubcommands;
 
   constructor(
     private apiHelper: ApiHelper,
@@ -40,24 +42,33 @@ export class ShowCommand extends Command {
     this.scms = new Scms(this.apiHelper, this.messagesHelper, this.gitService);
     this.awsHelper = new AwsHelper(this.apiHelper);
     this.dockerService = new DockerService(this.gitService.cwd);
-    this.envService = new EnvService(this.gitService.cwd, this.config, this.gitService);
+    this.envService = new EnvService(this.gitService);
   }
 
-  public async handle(subcommand: ShowSubcommands, withToken?: string): Promise<void> {
-    switch (subcommand) {
+  withSubcommand(subcommand: ShowSubcommands): ShowCommand {
+    this.subcommand = subcommand;
+    return this;
+  }
+
+  async handle(): Promise<void> {
+    event('show');
+    throw new Error('Method not implemented.');
+  }
+
+  public async _handle(withToken?: string): Promise<void> {
+    event('show', this.subcommand);
+    switch (this.subcommand) {
       case 'identity': {
-        event('show', subcommand);
         return this.showIdentity(withToken);
       }
       case 'dockerfile': {
-        event('show', subcommand);
         return this.showDockerfile();
       }
       default:
         break;
     }
 
-    throw new Error(`Unknown subcommand: ${subcommand}`);
+    throw new Error(`Unknown subcommand: ${this.subcommand}`);
   }
 
   public async fetchIdentity(withToken?: string): Promise<IdentityResponse> {

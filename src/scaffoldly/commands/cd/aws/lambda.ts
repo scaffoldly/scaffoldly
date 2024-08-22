@@ -27,7 +27,6 @@ import {
   CreateAliasCommand,
   UpdateAliasCommand,
 } from '@aws-sdk/client-lambda';
-import { ScaffoldlyConfig } from '../../../../config';
 import { IamConsumer, IamDeployStatus, PolicyDocument, TrustRelationship } from './iam';
 import { DeployStatus } from '.';
 import { CloudResource, ResourceOptions } from '..';
@@ -35,7 +34,7 @@ import { EnvService } from '../env';
 import { DockerDeployStatus, DockerService } from '../docker';
 import { Architecture } from '../../ci/docker';
 import { EcrDeployStatus } from './ecr';
-import { GitDeployStatus } from '../git';
+import { GitDeployStatus, GitService } from '../git';
 import { SkipAction } from '../errors';
 
 export type LambdaDeployStatus = {
@@ -51,7 +50,7 @@ export class LambdaService implements IamConsumer {
   lambdaClient: LambdaClient;
 
   constructor(
-    private config: ScaffoldlyConfig,
+    private gitService: GitService,
     private envService: EnvService,
     private dockerService: DockerService,
   ) {
@@ -81,7 +80,7 @@ export class LambdaService implements IamConsumer {
       DockerDeployStatus,
     options: ResourceOptions,
   ): Promise<void> {
-    const { name } = this.config;
+    const { name } = this.gitService.config;
 
     const desired: Partial<GetFunctionCommandOutput> = {
       Configuration: {
