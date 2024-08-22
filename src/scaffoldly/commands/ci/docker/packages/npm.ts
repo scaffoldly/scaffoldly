@@ -6,10 +6,25 @@ export class NpmPackageService {
   packages: string[];
 
   constructor(private config: ScaffoldlyConfig) {
-    this.packages = (config.packages || [])
+    const packages = (config.packages || [])
       .filter((p) => p.startsWith('npm:'))
-      .map((p) => p.split(':').slice(-1)[0])
-      .filter((p) => !!p);
+      .map((p) => {
+        const dependency = p.split(':')[1];
+
+        if (!dependency) {
+          return [undefined];
+        }
+
+        if (p.startsWith('npm:')) {
+          return [dependency];
+        }
+
+        return [undefined];
+      })
+      .flat()
+      .filter((p) => !!p) as string[];
+
+    this.packages = packages;
   }
 
   get paths(): Promise<string[]> {

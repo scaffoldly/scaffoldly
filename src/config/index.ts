@@ -85,6 +85,7 @@ export type PackageJson = {
   scripts?: { [key: string]: string };
   bin?: PackageJsonBin;
   files?: string[];
+  dependencies?: { [key: string]: string };
   scaffoldly?: Partial<IScaffoldlyConfig>;
 };
 

@@ -1,0 +1,47 @@
+FROM node:22.4.0-alpine AS install-base
+WORKDIR /var/task
+
+FROM node:22.4.0-alpine AS install-next
+WORKDIR /var/task
+COPY . /var/task/
+RUN npm ci
+
+FROM install-base AS build-base
+WORKDIR /var/task
+ENV PATH="/var/task:$PATH"
+ENV URL="https://pnlz4fiyiptwfpkqt5ugres6ra0ywfkt.lambda-url.us-east-1.on.aws"
+COPY . /var/task/
+
+FROM install-next AS build-next
+WORKDIR /var/task
+ENV PATH="/var/task:$PATH"
+ENV PATH="/var/task/node_modules/.bin:$PATH"
+ENV URL="https://pnlz4fiyiptwfpkqt5ugres6ra0ywfkt.lambda-url.us-east-1.on.aws"
+COPY . /var/task/
+RUN next build
+
+FROM install-base AS package-base
+WORKDIR /var/task
+ENV PATH="/var/task:$PATH"
+
+FROM install-next AS package-next
+WORKDIR /var/task
+ENV PATH="/var/task:$PATH"
+ENV PATH="/var/task/node_modules/.bin:$PATH"
+COPY --from=build-next /var/task/package.json /var/task/package.json
+COPY --from=build-next /var/task/.next* /var/task/.next
+COPY --from=build-next /var/task/public /var/task/public
+COPY --from=build-next /var/task/node_modules /var/task/node_modules
+COPY --from=build-next /var/task/package-lock.json /var/task/package-lock.json
+
+FROM install-base AS runtime
+WORKDIR /var/task
+ENV PATH="/var/task:$PATH"
+ENV PATH="/var/task/node_modules/.bin:$PATH"
+COPY --from=package-next /var/task/package.json /var/task/package.json
+COPY --from=package-next /var/task/.next /var/task/.next
+COPY --from=package-next /var/task/public /var/task/public
+COPY --from=package-next /var/task/node_modules /var/task/node_modules
+COPY --from=package-next /var/task/package-lock.json /var/task/package-lock.json
+COPY --from=scaffoldly/scaffoldly:1 /linux/arm64/awslambda-entrypoint /var/task/.entrypoint
+CMD [ "( next start )" ]

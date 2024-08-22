@@ -9,7 +9,7 @@ import { EnvService } from './env';
 import { DockerService } from './docker';
 import { filesize } from 'filesize';
 
-export type Preset = 'nextjs' | 'docusaurus';
+export type Preset = 'nextjs';
 
 export class DeployCommand extends CdCommand<DeployCommand> {
   envService: EnvService;

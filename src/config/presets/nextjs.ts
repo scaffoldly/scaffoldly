@@ -1,26 +1,39 @@
 import { join } from 'path';
 import { PackageJson, ScaffoldlyConfig } from '..';
-import { readFileSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 
 export class NextJsPreset {
   constructor(private cwd: string) {}
 
   get config(): Promise<ScaffoldlyConfig> {
-    return Promise.all([this.packageJson, this.runtime, this.handler, this.files]).then(
-      ([packageJson, runtime, handler, files]) => {
-        packageJson.scaffoldly = {
-          runtime,
-          handler,
-          files,
-          scripts: {
-            dev: packageJson.scripts?.dev,
-            build: packageJson.scripts?.build,
-            start: packageJson.scripts?.start,
+    return Promise.all([
+      this.packageJson,
+      this.packages,
+      this.files,
+      this.install,
+      this.start,
+    ]).then(([packageJson, packages, files, install, start]) => {
+      packageJson.scaffoldly = {
+        runtime: `node:${process.version.split('v')[1]}-alpine`,
+        handler: 'localhost:3000',
+        buildFiles: ['!node_modules'],
+        packages,
+        services: [
+          {
+            name: 'next',
+            files,
+            scripts: {
+              install,
+              dev: packageJson.scripts?.dev,
+              build: packageJson.scripts?.build,
+              start,
+            },
           },
-        };
-        return new ScaffoldlyConfig({ packageJson });
-      },
-    );
+        ],
+      };
+      console.log('!!! scaffoldly config', JSON.stringify(packageJson.scaffoldly, null, 2));
+      return new ScaffoldlyConfig({ packageJson });
+    });
   }
 
   get packageJson(): Promise<PackageJson> {
@@ -43,8 +56,71 @@ export class NextJsPreset {
     return Promise.resolve('localhost:3000');
   }
 
+  get nextOutput(): Promise<'export' | 'standalone' | undefined> {
+    return import(join(this.cwd, 'next.config.mjs')).then((config) => {
+      return config.default.output;
+    });
+  }
+
+  get packages(): Promise<string[] | undefined> {
+    return this.nextOutput.then((output) => {
+      if (output === 'export') {
+        return ['npm:serve'];
+      }
+      return undefined;
+    });
+  }
+
   get files(): Promise<string[]> {
-    // TODO infer files from output type
-    return Promise.resolve(['.next', 'out', 'public', 'node_modules']);
+    const files = ['package.json', '.next', 'public'];
+    return Promise.all([this.nextOutput, this.lockfile]).then(([output, lockfile]) => {
+      if (!output) {
+        files.push('node_modules');
+      }
+      if (output === 'export') {
+        files.push('out');
+      }
+      if (lockfile) {
+        files.push(lockfile);
+      }
+      return files;
+    });
+  }
+
+  get lockfile(): Promise<string | undefined> {
+    if (existsSync(join(this.cwd, 'yarn.lock'))) {
+      return Promise.resolve('yarn.lock');
+    }
+    if (existsSync(join(this.cwd, 'pnpm-lock.yaml'))) {
+      return Promise.resolve('pnpm-lock.yaml');
+    }
+    if (existsSync(join(this.cwd, 'package-lock.json'))) {
+      return Promise.resolve('package-lock.json');
+    }
+    return Promise.resolve(undefined);
+  }
+
+  get install(): Promise<string> {
+    return this.lockfile.then((lockfile) => {
+      if (lockfile === 'yarn.lock') {
+        return 'yarn install --frozen-lockfile';
+      }
+      if (lockfile === 'pnpm-lock.yaml') {
+        return 'pnpm install --frozen-lockfile';
+      }
+      return 'npm ci';
+    });
+  }
+
+  get start(): Promise<string | undefined> {
+    return Promise.all([this.packageJson, this.nextOutput]).then(([packageJson, output]) => {
+      if (output === 'export') {
+        return 'serve out';
+      }
+      if (output === 'standalone') {
+        return 'cd .next/standalone && node server.js';
+      }
+      return packageJson.scripts?.start;
+    });
   }
 }

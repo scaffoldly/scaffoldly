@@ -3,7 +3,6 @@ import { PackageJson, ScaffoldlyConfig } from '../../config';
 import { readFileSync } from 'fs';
 import { Preset } from './cd/deploy';
 import { NextJsPreset } from '../../config/presets/nextjs';
-import { DocusaurusPreset } from '../../config/presets/docusaurus';
 
 export type Cwd = string;
 
@@ -28,10 +27,6 @@ export abstract class Command<T> {
     if (preset === 'nextjs') {
       const nextJsPreset = new NextJsPreset(this.cwd);
       this._config = await nextJsPreset.config;
-    }
-    if (preset === 'docusaurus') {
-      const docusaurusPreset = new DocusaurusPreset(this.cwd);
-      this._config = await docusaurusPreset.config;
     }
     return this;
   }

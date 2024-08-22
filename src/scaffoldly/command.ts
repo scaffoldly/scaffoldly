@@ -152,7 +152,7 @@ export class Command {
           preset: {
             demand: false,
             type: 'string',
-            choices: ['nextjs', 'docusaurus'],
+            choices: ['nextjs'],
             description: 'Use a preset configuration',
           },
         },
