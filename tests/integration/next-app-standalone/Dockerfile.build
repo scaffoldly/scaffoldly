@@ -1,19 +1,32 @@
-FROM node:20-alpine as install-base
+FROM node:20-alpine AS install-base
 WORKDIR /var/task
-ENV SLY_DEBUG="true"
 
-FROM install-base as build-base
+FROM install-base AS build-base
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
-ENV SLY_DEBUG="true"
+ENV URL="https://p4hpbznt2lpw3memkhxf5nlhmi0wvzgv.lambda-url.us-east-1.on.aws"
 COPY . /var/task/
 RUN next build
 
-FROM install-base as runtime
+FROM install-base AS package-base
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
-ENV SLY_DEBUG="true"
-COPY .entrypoint* /var/task/.entrypoint
-CMD ( node server.js )
+ENV PATH="/var/task/.next/standalone:$PATH"
+COPY --from=build-base /var/task/.next* /var/task/.next
+COPY --from=build-base /var/task/node_modules /var/task/node_modules
+COPY --from=build-base /var/task/public /var/task/public
+COPY --from=build-base /var/task/.next/standalone* /var/task/.next/standalone
+
+FROM install-base AS runtime
+WORKDIR /var/task
+ENV PATH="/var/task:$PATH"
+ENV PATH="/var/task/node_modules/.bin:$PATH"
+ENV PATH="/var/task/.next/standalone:$PATH"
+COPY --from=package-base /var/task/.next /var/task/.next
+COPY --from=package-base /var/task/node_modules /var/task/node_modules
+COPY --from=package-base /var/task/public /var/task/public
+COPY --from=package-base /var/task/.next/standalone/* /var/task/
+COPY --from=scaffoldly/scaffoldly:1 /linux/arm64/awslambda-entrypoint /var/task/.entrypoint
+CMD [ "( node server.js )" ]

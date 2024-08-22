@@ -1,29 +1,26 @@
-FROM node:20-alpine as install-base
+FROM node:20-alpine AS install-base
 WORKDIR /var/task
-ENV SLY_DEBUG="true"
 
-FROM install-base as build-base
+FROM install-base AS build-base
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
-ENV SLY_DEBUG="true"
+ENV URL="https://fu7fltkpm6uyis5kx3ei2or5ty0zjves.lambda-url.us-east-1.on.aws"
 COPY . /var/task/
 RUN next build
 
-FROM install-base as package-base
+FROM install-base AS package-base
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
-ENV SLY_DEBUG="true"
 COPY --from=build-base /var/task/out* /var/task/out
 COPY --from=build-base /var/task/node_modules /var/task/node_modules
 
-FROM install-base as runtime
+FROM install-base AS runtime
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
-ENV SLY_DEBUG="true"
-COPY .entrypoint* /var/task/.entrypoint
 COPY --from=package-base /var/task/out /var/task/out
 COPY --from=package-base /var/task/node_modules /var/task/node_modules
-CMD ( serve out )
+COPY --from=scaffoldly/scaffoldly:1 /linux/arm64/awslambda-entrypoint /var/task/.entrypoint
+CMD [ "( serve out )" ]
