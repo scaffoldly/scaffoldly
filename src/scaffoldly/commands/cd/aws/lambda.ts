@@ -116,26 +116,24 @@ export class LambdaService implements IamConsumer {
             }),
           ),
         create: () =>
-          this.dockerService.getPlatform('match-host').then((platform) =>
-            this.lambdaClient.send(
-              new CreateFunctionCommand({
-                Code: {
-                  ImageUri: `${repositoryUri}@${imageDigest}`,
-                },
-                FunctionName: status.functionArn || name,
-                Publish: false,
-                PackageType: 'Image',
-                Architectures: platform === 'linux/arm64' ? ['arm64'] : ['x86_64'],
-                ImageConfig: {
-                  EntryPoint: ['.entrypoint'],
-                  Command: [],
-                },
-                Role: desired.Configuration?.Role,
-                Timeout: desired.Configuration?.Timeout,
-                MemorySize: desired.Configuration?.MemorySize,
-                Environment: desired.Configuration?.Environment,
-              }),
-            ),
+          this.lambdaClient.send(
+            new CreateFunctionCommand({
+              Code: {
+                ImageUri: `${repositoryUri}@${imageDigest}`,
+              },
+              FunctionName: status.functionArn || name,
+              Publish: false,
+              PackageType: 'Image',
+              Architectures: this.dockerService.platform === 'linux/arm64' ? ['arm64'] : ['x86_64'],
+              ImageConfig: {
+                EntryPoint: ['.entrypoint'],
+                Command: [],
+              },
+              Role: desired.Configuration?.Role,
+              Timeout: desired.Configuration?.Timeout,
+              MemorySize: desired.Configuration?.MemorySize,
+              Environment: desired.Configuration?.Environment,
+            }),
           ),
         update: (existing) =>
           this.lambdaClient.send(
@@ -344,21 +342,20 @@ export class LambdaService implements IamConsumer {
             }),
           ),
         update: () =>
-          this.dockerService.getPlatform('match-host').then((platform) =>
-            this.lambdaClient
-              .send(
-                new UpdateFunctionCodeCommand({
-                  FunctionName: status.functionArn,
-                  ImageUri: desired.Code?.ImageUri,
-                  Architectures: platform === 'linux/arm64' ? ['arm64'] : ['x86_64'],
-                  Publish: true,
-                }),
-              )
-              .then((response) => {
-                status.functionVersion = response.Version;
-                return response;
+          this.lambdaClient
+            .send(
+              new UpdateFunctionCodeCommand({
+                FunctionName: status.functionArn,
+                ImageUri: desired.Code?.ImageUri,
+                Architectures:
+                  this.dockerService.platform === 'linux/arm64' ? ['arm64'] : ['x86_64'],
+                Publish: true,
               }),
-          ),
+            )
+            .then((response) => {
+              status.functionVersion = response.Version;
+              return response;
+            }),
       },
       (output) => {
         return {

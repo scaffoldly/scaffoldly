@@ -22,19 +22,15 @@ export class OsPackageService {
     }
 
     return this.dockerService
-      .getPlatform(this.config.runtimes, 'match-host')
-      .then((platform) =>
-        this.dockerService
-          .checkBin(this.config.runtime, ['yum', 'dnf', 'apk', 'apt'], platform)
-          .catch((e) => {
-            if (!(e instanceof Error)) {
-              throw e;
-            }
-            throw new Error(
-              `Unable to determine package manager for ${this.config.runtime} on platform ${platform}: ${e.message}`,
-            );
-          }),
-      )
+      .checkBin(this.config.runtime, ['yum', 'dnf', 'apk', 'apt'], this.dockerService.platform)
+      .catch((e) => {
+        if (!(e instanceof Error)) {
+          throw e;
+        }
+        throw new Error(
+          `Unable to determine package manager for ${this.config.runtime} on platform ${this.dockerService.platform}: ${e.message}`,
+        );
+      })
       .then((bin) => {
         switch (bin) {
           case 'apk':

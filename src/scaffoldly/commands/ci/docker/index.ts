@@ -124,8 +124,17 @@ export class DockerService {
 
   private imageInfo?: Docker.ImageInspectInfo;
 
+  private _platform?: Platform;
+
   constructor(private cwd: string) {
-    this.docker = new Docker({ version: 'v1.45', socketPath: '/var/run/docker.sock' });
+    this.docker = new Docker({ version: 'v1.45' });
+  }
+
+  get platform(): Platform {
+    if (!this._platform) {
+      throw new Error('Platform not set');
+    }
+    return this._platform;
   }
 
   private handleDockerEvent(type: 'Pull' | 'Build' | 'Push', event: DockerEvent) {
@@ -160,7 +169,8 @@ export class DockerService {
     }
   }
 
-  async describeBuild(): Promise<BuildInfo> {
+  async describeBuild(config: ScaffoldlyConfig, architecture: Architecture): Promise<BuildInfo> {
+    this._platform = await this.getPlatform(config.runtimes, architecture);
     // TODO: Dynamic entrypoint
     // DEVNOTE: Entrypoint is set during prebuild so it must be known before deploy
     return {
@@ -190,10 +200,9 @@ export class DockerService {
   async build(
     config: ScaffoldlyConfig,
     mode: Script,
-    architecture: Architecture,
     repositoryUri?: string,
     env?: Record<string, string>,
-  ): Promise<{ imageName: string; imageTag: string }> {
+  ): Promise<void> {
     const tag = config.id ? `${config.version}-${config.id}` : config.version;
 
     const imageTag = `${config.name}:${tag}`;
@@ -238,12 +247,10 @@ export class DockerService {
         );
       });
 
-    const { runtime, runtimes } = config;
+    const { runtime } = config;
     if (!runtime) {
       throw new Error('Missing runtime');
     }
-
-    const platform = await this.getPlatform(runtimes, architecture);
 
     // TODO: Multi-platform
     ui.updateBottomBarSubtext('Building Image');
@@ -253,7 +260,7 @@ export class DockerService {
       q: true,
       rm: true,
       forcerm: true,
-      platform,
+      platform: this.platform,
       version: '2', // FYI: Not in the type
     } as ImageBuildOptions);
 
@@ -276,8 +283,6 @@ export class DockerService {
 
     this.imageName = imageName;
     this.imageTag = imageTag;
-
-    return { imageName, imageTag };
 
     // TODO: Return SHA
   }
@@ -518,10 +523,9 @@ export class DockerService {
         });
       } else {
         // Copy awslambda-entrypoint from the scaffoldly image
-        const platform = await this.getPlatform(config.runtimes, 'match-host');
         copy.push({
           from: CONFIG_SIGNATURE, // Created in CI/CD
-          src: `/${platform}/awslambda-entrypoint`, // Set in in scripts/Dockerfile
+          src: `/${this.platform}/awslambda-entrypoint`, // Set in in scripts/Dockerfile
           dest: `.entrypoint`,
           noGlob: true,
           absolute: true,
@@ -824,7 +828,7 @@ export class DockerService {
     return;
   }
 
-  public async getPlatform(runtimes: string[], architecture: Architecture): Promise<Platform> {
+  private async getPlatform(runtimes: string[], architecture: Architecture): Promise<Platform> {
     const images = await this.getImages(runtimes, architecture);
 
     if (!images || !images.length) {

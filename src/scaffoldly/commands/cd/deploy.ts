@@ -60,6 +60,7 @@ export class DeployCommand extends CdCommand<DeployCommand> {
     }
     console.log('');
     console.log('🚀 Deployment Complete!');
+    console.log(`   🧠 Architecture: ${status.architecture}`);
     console.log(`   📄 Env Files: ${status.envFiles?.join(', ')}`);
     console.log(`   📦 Image Size: ${filesize(status.imageSize || 0)}`);
     console.log(`   🌎 Function URL: ${status.url}`);

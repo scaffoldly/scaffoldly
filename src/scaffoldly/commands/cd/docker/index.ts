@@ -1,9 +1,4 @@
-import {
-  Architecture,
-  BuildInfo,
-  DockerService as DockerCiService,
-  PushInfo,
-} from '../../ci/docker';
+import { BuildInfo, DockerService as DockerCiService, PushInfo } from '../../ci/docker';
 import { CloudResource, ResourceOptions } from '..';
 import { EcrDeployStatus, RegistryAuthConsumer } from '../aws/ecr';
 import { LambdaDeployStatus } from '../aws/lambda';
@@ -22,8 +17,8 @@ export type DockerDeployStatus = {
 export class DockerService {
   constructor(private gitService: GitService, private dockerCiService: DockerCiService) {}
 
-  public async getPlatform(architecture: Architecture): Promise<Platform> {
-    return this.dockerCiService.getPlatform(this.gitService.config.runtimes, architecture);
+  get platform(): Platform {
+    return this.dockerCiService.platform;
   }
 
   public async deploy(
@@ -42,13 +37,12 @@ export class DockerService {
           return { type: 'Image', label: resource.imageName };
         },
         read: () => {
-          return this.dockerCiService.describeBuild();
+          return this.dockerCiService.describeBuild(this.gitService.config, architecture);
         },
         update: () => {
           return this.dockerCiService.build(
             this.gitService.config,
             'build',
-            architecture,
             status.repositoryUri,
             status.buildEnv,
           );
