@@ -26,18 +26,13 @@ export class DockerService {
     consumer: RegistryAuthConsumer,
     options: ResourceOptions,
   ): Promise<void> {
-    const { architecture } = status;
-    if (!architecture) {
-      throw new Error('Missing architecture');
-    }
-
     const { imageName, imageTag, imageSize } = await new CloudResource<BuildInfo, BuildInfo>(
       {
         describe: (resource) => {
           return { type: 'Image', label: resource.imageName };
         },
         read: () => {
-          return this.dockerCiService.describeBuild(this.gitService.config, architecture);
+          return this.dockerCiService.describeBuild(this.gitService.config);
         },
         update: () => {
           return this.dockerCiService.build(

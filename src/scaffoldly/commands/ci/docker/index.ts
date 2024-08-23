@@ -169,8 +169,8 @@ export class DockerService {
     }
   }
 
-  async describeBuild(config: ScaffoldlyConfig, architecture: Architecture): Promise<BuildInfo> {
-    this._platform = await this.getPlatform(config.runtimes, architecture);
+  async describeBuild(config: ScaffoldlyConfig): Promise<BuildInfo> {
+    this._platform = await this.getPlatform(config.runtimes, 'match-host');
     // TODO: Dynamic entrypoint
     // DEVNOTE: Entrypoint is set during prebuild so it must be known before deploy
     return {
