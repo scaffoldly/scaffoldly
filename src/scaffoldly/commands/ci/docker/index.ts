@@ -16,6 +16,7 @@ import { isDebug } from '../../../ui';
 import { Platform } from '../../cd/docker';
 import { PackageService } from './packages';
 import micromatch from 'micromatch';
+import { decodeTrace } from './protobuf/moby';
 
 export type BuildInfo = {
   imageName?: string;
@@ -124,11 +125,23 @@ export class DockerService {
   private imageInfo?: Docker.ImageInspectInfo;
 
   constructor(private cwd: string) {
-    this.docker = new Docker({ version: 'v1.45' });
+    this.docker = new Docker({ version: 'v1.45', socketPath: '/var/run/docker.sock' });
   }
 
   private handleDockerEvent(type: 'Pull' | 'Build' | 'Push', event: DockerEvent) {
     // console.log('!!! event', event);
+    if (
+      'id' in event &&
+      event.id === 'moby.buildkit.trace' &&
+      'aux' in event &&
+      typeof event.aux === 'string'
+    ) {
+      const trace = decodeTrace(event.aux);
+      if (trace?.code === 2) {
+        ui.updateBottomBar('');
+        console.warn(`\n${trace.message}`);
+      }
+    }
     if ('stream' in event && typeof event.stream === 'string') {
       if (isDebug()) {
         ui.updateBottomBarSubtext(event.stream);

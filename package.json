@@ -100,6 +100,7 @@
     "pinst": "^3.0.0",
     "prettier": "^2.4.1",
     "promise-retry": "^2.0.1",
+    "protobufjs": "^7.4.0",
     "semver": "^7.6.3",
     "shell-quote": "^1.8.1",
     "simple-git": "^3.25.0",
