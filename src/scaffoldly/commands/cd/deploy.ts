@@ -18,6 +18,10 @@ export class DeployCommand extends CdCommand<DeployCommand> {
 
   dockerService: DockerService;
 
+  status: DeployStatus = {};
+
+  options: ResourceOptions = {};
+
   constructor(private gitService: GitService) {
     super(gitService.cwd);
     this.envService = new EnvService(this.gitService);
@@ -25,11 +29,21 @@ export class DeployCommand extends CdCommand<DeployCommand> {
     this.awsService = new AwsService(this.gitService, this.envService, this.dockerService);
   }
 
-  async handle(): Promise<void> {
-    await this._handle({}, {});
+  withStatus(status: DeployStatus): DeployCommand {
+    this.status = status;
+    return this;
   }
 
-  async _handle(status: DeployStatus, options?: ResourceOptions): Promise<void> {
+  withOptions(options: ResourceOptions): DeployCommand {
+    this.options = options;
+    return this;
+  }
+
+  async handle(): Promise<void> {
+    await this._handle(this.status, this.options);
+  }
+
+  private async _handle(status: DeployStatus, options?: ResourceOptions): Promise<void> {
     event('deploy');
 
     options = options || {};

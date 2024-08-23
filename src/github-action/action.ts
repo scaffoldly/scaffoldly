@@ -134,18 +134,18 @@ export class Action {
       return state;
     }
 
-    const deployCommand = new DeployCommand(this.gitService);
+    const deployCommand = new DeployCommand(this.gitService).withStatus(state.status).withOptions({
+      notify: (message, level) => {
+        if (level === 'error') {
+          error(message);
+        } else {
+          notice(message);
+        }
+      },
+    });
 
     try {
-      await deployCommand.handle(state.status, {
-        notify: (message, level) => {
-          if (level === 'error') {
-            error(message);
-          } else {
-            notice(message);
-          }
-        },
-      });
+      await deployCommand.handle();
     } catch (e) {
       if (!(e instanceof Error)) {
         throw e;
