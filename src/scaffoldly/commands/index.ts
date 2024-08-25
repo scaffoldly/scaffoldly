@@ -1,7 +1,7 @@
 import { join } from 'path';
 import { PackageJson, ScaffoldlyConfig } from '../../config';
 import { readFileSync } from 'fs';
-import { Preset } from './cd/deploy';
+import { Preset } from './deploy';
 import { NextJsPreset } from '../../config/presets/nextjs';
 
 export type Cwd = string;

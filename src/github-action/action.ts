@@ -9,7 +9,7 @@ import {
 import { deployedMarkdown, failedMarkdown, roleSetupMoreInfo } from './messages';
 import { State } from './state';
 import { GitService } from '../scaffoldly/commands/cd/git';
-import { DeployCommand } from '../scaffoldly/commands/cd/deploy';
+import { DeployCommand } from '../scaffoldly/commands/deploy';
 import path from 'path';
 import { ApiHelper } from '../scaffoldly/helpers/apiHelper';
 import { MessagesHelper } from '../scaffoldly/helpers/messagesHelper';

@@ -11,8 +11,8 @@ import { ErrorWithReturnCode, RETURN_CODE_NOT_LOGGED_IN } from './errors';
 import { outputStream } from '../scaffoldly';
 import { BottomBar, isHeadless } from './ui';
 import Prompt from 'inquirer/lib/ui/prompt';
-import { DevCommand } from './commands/ci/dev';
-import { DeployCommand, Preset } from './commands/cd/deploy';
+import { DevCommand } from './commands/dev';
+import { DeployCommand, Preset } from './commands/deploy';
 import { GitService } from './commands/cd/git';
 
 process.addListener('SIGINT', () => {

@@ -1,12 +1,11 @@
-import { CdCommand, ResourceOptions } from '.';
-import { event } from '../../helpers/events';
-import { DockerService as DockerCiService } from '../ci/docker';
-import { GitService } from './git';
-import { AwsService, DeployStatus } from './aws';
-import { ui } from '../../command';
-import { isDebug } from '../../ui';
-import { EnvService } from './env';
-import { DockerService } from './docker';
+import { CdCommand, ResourceOptions } from './cd';
+import { DockerService as DockerCiService } from './ci/docker';
+import { GitService } from './cd/git';
+import { AwsService, DeployStatus } from './cd/aws';
+import { ui } from '../command';
+import { isDebug } from '../ui';
+import { EnvService } from './cd/env';
+import { DockerService } from './cd/docker';
 import { filesize } from 'filesize';
 
 export type Preset = 'nextjs';
@@ -44,8 +43,6 @@ export class DeployCommand extends CdCommand<DeployCommand> {
   }
 
   private async _handle(status: DeployStatus, options?: ResourceOptions): Promise<void> {
-    event('deploy');
-
     options = options || {};
 
     this.gitService.setConfig(this.config);

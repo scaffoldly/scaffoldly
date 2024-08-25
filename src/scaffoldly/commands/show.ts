@@ -1,4 +1,3 @@
-import { event } from '../helpers/events';
 import { ApiHelper } from '../helpers/apiHelper';
 import { Scms } from '../stores/scms';
 import { AwsHelper } from '../helpers/awsHelper';
@@ -51,12 +50,10 @@ export class ShowCommand extends Command<ShowCommand> {
   }
 
   async handle(): Promise<void> {
-    event('show');
     throw new Error('Method not implemented.');
   }
 
   public async _handle(withToken?: string): Promise<void> {
-    event('show', this.subcommand);
     switch (this.subcommand) {
       case 'identity': {
         return this.showIdentity(withToken);
