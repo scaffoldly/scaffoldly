@@ -6,7 +6,7 @@ import { GitService } from './cd/git';
 import { DockerService } from './ci/docker';
 import { Command } from '.';
 import { ui } from '../command';
-import { EnvService } from './cd/env';
+import { EnvService } from './ci/env';
 
 export type ShowSubcommands = 'identity' | 'dockerfile';
 

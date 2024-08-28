@@ -76,6 +76,10 @@ export class IamService {
     consumers: IamConsumer[],
     options: ResourceOptions,
   ): Promise<void> {
+    if (options.dev) {
+      return;
+    }
+
     const { name } = this.gitService.config;
     const { uniqueId } = status;
 

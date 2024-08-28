@@ -113,6 +113,8 @@ export interface IScaffoldlyConfig extends IServiceConfig {
   get routes(): Routes;
   get secrets(): string[];
   get resources(): string[];
+  get timeout(): number;
+  get memorySize(): number;
 }
 
 export type ServiceName = string;
@@ -428,5 +430,15 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
       ...this.services.map((service) => service.runtime),
     ];
     return [...new Set(runtimes)];
+  }
+
+  get timeout(): number {
+    const { timeout = 900 } = this.scaffoldly;
+    return timeout;
+  }
+
+  get memorySize(): number {
+    const { memorySize = 1024 } = this.scaffoldly;
+    return memorySize;
   }
 }

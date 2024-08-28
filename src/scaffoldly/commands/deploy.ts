@@ -4,7 +4,7 @@ import { GitService } from './cd/git';
 import { AwsService, DeployStatus } from './cd/aws';
 import { ui } from '../command';
 import { isDebug } from '../ui';
-import { EnvService } from './cd/env';
+import { EnvService } from './ci/env';
 import { DockerService } from './cd/docker';
 import { filesize } from 'filesize';
 
@@ -57,7 +57,6 @@ export class DeployCommand extends CdCommand<DeployCommand> {
     }
     console.log('');
     console.log('🚀 Deployment Complete!');
-    console.log(`   🧠 Architecture: ${status.architecture}`);
     console.log(`   📄 Env Files: ${status.envFiles?.join(', ')}`);
     console.log(`   📦 Image Size: ${filesize(status.imageSize || 0)}`);
     console.log(`   🌎 Function URL: ${status.url}`);

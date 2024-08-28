@@ -1,0 +1,139 @@
+import { json } from 'express';
+import { HttpServer, HttpServerOptions } from '../../http/http-server';
+import { AsyncSubject, BehaviorSubject, Observable, switchMap, of, filter, take } from 'rxjs';
+import { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda';
+import { ContainerPool } from '../../docker/container-pool';
+
+export const RUNTIME_SERVER_PORT = 9001;
+
+type ResonseSubject = AsyncSubject<APIGatewayProxyStructuredResultV2 | undefined>;
+
+interface Invocation {
+  requestId: string;
+  event: APIGatewayProxyEventV2;
+  response$: ResonseSubject;
+}
+
+class Invocations {
+  private invocations: Invocation[] = [];
+
+  private invocationMap: Map<string, Invocation> = new Map();
+
+  private count$ = new BehaviorSubject<number>(0);
+
+  private size$ = new BehaviorSubject<number>(0);
+
+  get size(): Observable<number> {
+    return this.size$.asObservable();
+  }
+
+  get(requestId: string): Invocation | undefined {
+    return this.invocationMap.get(requestId);
+  }
+
+  enqueue(invocation: Invocation): void {
+    console.log('!!! enqueue');
+    this.invocations.push(invocation);
+    this.invocationMap.set(invocation.requestId, invocation);
+    this.size$.next(this.invocations.length);
+    this.count$.next(this.count$.value + 1);
+    invocation.response$.subscribe({
+      complete: () => {
+        this.invocationMap.delete(invocation.requestId);
+      },
+    });
+  }
+
+  dequeue(): Observable<Invocation> {
+    console.log('!!! dequeue');
+    return this.count$
+      .pipe(
+        switchMap(() => {
+          const invocation = this.invocations.shift();
+          this.size$.next(this.invocations.length);
+          return of(invocation);
+        }),
+      )
+      .pipe(filter((i) => !!i));
+  }
+}
+
+export class LambdaRuntimeServer extends HttpServer {
+  private invocations: Invocations = new Invocations();
+
+  constructor(
+    private containerPool: ContainerPool,
+    protected options: HttpServerOptions & { maxConcurrency: number } = {
+      maxConcurrency: 5,
+      timeout: 0,
+    },
+  ) {
+    super('Lambda Runtime', RUNTIME_SERVER_PORT, containerPool.abortController);
+
+    this.invocations.size.subscribe((size) => {
+      console.log('!!! invocations size:', size);
+      this.containerPool.setConcurrency(size, this.options.maxConcurrency);
+    });
+  }
+
+  async registerHandlers(): Promise<void> {
+    this.app.use(json({ limit: '6MB' }));
+
+    this.app.get('/2018-06-01/runtime/invocation/next', (req, res) => {
+      console.log('!!! next');
+      req.setTimeout(0);
+      this.invocations
+        .dequeue()
+        .pipe(take(1))
+        .subscribe((invocation) => {
+          console.log('!!! invocation', invocation.requestId);
+          const deadline = new Date().getTime() + 3000;
+          res.header('lambda-runtime-aws-request-id', invocation.requestId);
+          res.header('lambda-runtime-deadline-ms', `${deadline}`);
+          res.json(invocation.event);
+        });
+    });
+
+    this.app.post('/2018-06-01/runtime/invocation/:requestId/response', (req, res) => {
+      const { requestId } = req.params;
+      console.log('!!! response', requestId);
+      const invocation = this.invocations.get(requestId);
+      if (!invocation) {
+        res.status(404).send('Invocation not found');
+        return;
+      }
+      invocation.response$.next(req.body);
+      invocation.response$.complete();
+      res.status(202).send('');
+    });
+
+    this.app.get('/', (_req, res) => {
+      res.status(204).send('');
+    });
+  }
+
+  emit(event: APIGatewayProxyEventV2): ResonseSubject {
+    console.log('!!! emit');
+    const requestId = event.requestContext.requestId;
+    const response$ = new AsyncSubject<APIGatewayProxyStructuredResultV2 | undefined>();
+
+    const invocation: Invocation = {
+      requestId,
+      event,
+      response$,
+    };
+
+    this.invocations.enqueue(invocation);
+
+    return invocation.response$;
+  }
+
+  // handle(invocation: Invocation): void {
+  //   invocation.handlers.subscribe((h) => {
+  //     console.log('!!! adding next path', h.next.path);
+  //     this.app.use(h.next.path, h.next.handler);
+  //     console.log('!!! adding response path', h.response.path);
+  //     this.app.use(h.response.path, h.response.handler);
+  //   });
+  // }
+}

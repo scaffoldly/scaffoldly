@@ -12,16 +12,16 @@ FROM install-base AS build-base
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
-ENV URL="https://s7wcwsanfngscgkeaipiqh3lka0gnucv.lambda-url.us-east-1.on.aws"
-ENV PUBLIC_URL="https://s7wcwsanfngscgkeaipiqh3lka0gnucv.lambda-url.us-east-1.on.aws"
+ENV URL="http://localhost:3000"
+ENV PUBLIC_URL="http://localhost:3000"
 COPY . /var/task/
 
 FROM install-docusaurus AS build-docusaurus
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
-ENV URL="https://s7wcwsanfngscgkeaipiqh3lka0gnucv.lambda-url.us-east-1.on.aws"
-ENV PUBLIC_URL="https://s7wcwsanfngscgkeaipiqh3lka0gnucv.lambda-url.us-east-1.on.aws"
+ENV URL="http://localhost:3000"
+ENV PUBLIC_URL="http://localhost:3000"
 COPY . /var/task/
 RUN docusaurus build
 

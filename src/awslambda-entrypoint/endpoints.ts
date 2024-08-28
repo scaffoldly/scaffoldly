@@ -226,6 +226,8 @@ export const endpointProxy = async ({
 
   let response: AxiosResponse<unknown, unknown> | undefined = undefined;
 
+  // TODO: set timeout to 30 seconds
+
   response = await axios.request({
     method: method.toLowerCase(),
     url: url.toString(),

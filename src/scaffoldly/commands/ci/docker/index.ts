@@ -183,10 +183,9 @@ export class DockerService {
 
   async generateDockerfile(
     config: ScaffoldlyConfig,
-    mode: Script,
     env?: Record<string, string>,
   ): Promise<{ dockerfile: string; stages: DockerStages }> {
-    const stages = await this.createStages(config, mode, env);
+    const stages = await this.createStages(config, env);
 
     if (isDebug()) {
       ui.updateBottomBarSubtext(`Stages: ${JSON.stringify(stages)}`);
@@ -210,7 +209,7 @@ export class DockerService {
 
     // todo add dockerfile to tar instead of writing it to cwd
     // const dockerfile = this.renderSpec(spec);
-    const { dockerfile, stages } = await this.generateDockerfile(config, mode, env);
+    const { dockerfile, stages } = await this.generateDockerfile(config, env);
 
     const dockerfilePath = join(this.cwd, `Dockerfile.${mode}`) as Path;
     writeFileSync(dockerfilePath, Buffer.from(dockerfile, 'utf-8'));
@@ -289,14 +288,8 @@ export class DockerService {
 
   async createStages(
     config: ScaffoldlyConfig,
-    mode: Script,
     env?: Record<string, string>,
   ): Promise<DockerStages> {
-    if (mode === 'dev') {
-      // TODO
-      return { runtime: { from: 'todo', as: 'todo' }, bases: {}, builds: {}, packages: {} };
-    }
-
     ui.updateBottomBarSubtext('Creating Install Stages');
     const bases: DockerStage = await this.createStage(config, 'install', {});
     ui.updateBottomBarSubtext('Creating Build Stages');

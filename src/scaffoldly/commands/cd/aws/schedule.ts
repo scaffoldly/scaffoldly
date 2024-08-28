@@ -128,6 +128,10 @@ export class ScheduleService implements IamConsumer {
   }
 
   public async predeploy(status: ScheduleDeployStatus, options: ResourceOptions): Promise<void> {
+    if (options.dev) {
+      return;
+    }
+
     const { scheduleGroup } = await new CloudResource<
       { scheduleGroup: string },
       GetScheduleGroupCommandOutput
@@ -161,6 +165,10 @@ export class ScheduleService implements IamConsumer {
     status: ScheduleDeployStatus & LambdaDeployStatus & IamDeployStatus,
     options: ResourceOptions,
   ): Promise<void> {
+    if (options.dev) {
+      return;
+    }
+
     const { name } = this.gitService.config;
 
     const schedules = mapSchedules(this.gitService.config);

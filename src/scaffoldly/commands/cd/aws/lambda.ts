@@ -30,7 +30,7 @@ import {
 import { IamConsumer, IamDeployStatus, PolicyDocument, TrustRelationship } from './iam';
 import { DeployStatus } from '.';
 import { CloudResource, ResourceOptions } from '..';
-import { EnvService } from '../env';
+import { EnvService } from '../../ci/env';
 import { DockerDeployStatus, DockerService } from '../docker';
 import { Architecture } from '../../ci/docker';
 import { EcrDeployStatus } from './ecr';
@@ -80,6 +80,10 @@ export class LambdaService implements IamConsumer {
       DockerDeployStatus,
     options: ResourceOptions,
   ): Promise<void> {
+    if (options.dev) {
+      return;
+    }
+
     const { name } = this.gitService.config;
 
     const desired: Partial<GetFunctionCommandOutput> = {
@@ -167,6 +171,10 @@ export class LambdaService implements IamConsumer {
     status: LambdaDeployStatus & GitDeployStatus,
     options: ResourceOptions,
   ): Promise<void> {
+    if (options.dev) {
+      return;
+    }
+
     const { alias } = status;
 
     const configuration = await new CloudResource<AliasConfiguration, GetAliasCommandOutput>(
@@ -212,6 +220,10 @@ export class LambdaService implements IamConsumer {
   }
 
   private async configureUrl(status: LambdaDeployStatus, options: ResourceOptions): Promise<void> {
+    if (options.dev) {
+      return;
+    }
+
     const { functionUrl } = await new CloudResource<
       { functionUrl: string },
       GetFunctionUrlConfigCommandOutput
@@ -258,6 +270,10 @@ export class LambdaService implements IamConsumer {
     status: DeployStatus,
     options: ResourceOptions,
   ): Promise<void> {
+    if (options.dev) {
+      return;
+    }
+
     const requests: AddPermissionRequest[] = [
       {
         FunctionName: status.functionArn,
@@ -312,6 +328,10 @@ export class LambdaService implements IamConsumer {
     status: LambdaDeployStatus & EcrDeployStatus & DockerDeployStatus,
     options: ResourceOptions,
   ): Promise<void> {
+    if (options.dev) {
+      return;
+    }
+
     const { imageDigest } = status;
     if (!imageDigest) {
       throw new Error('Missing image digest');

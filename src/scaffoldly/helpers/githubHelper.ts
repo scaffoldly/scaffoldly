@@ -1,5 +1,4 @@
 import { Scms } from '../stores/scms';
-import { event } from './events';
 import { ApiHelper } from './apiHelper';
 import { MessagesHelper } from './messagesHelper';
 import { NOT_LOGGED_IN } from '../messages';
@@ -17,8 +16,6 @@ export class GithubHelper {
   }
 
   async promptLogin(withToken?: string): Promise<void> {
-    event('fn:promptLogin');
-
     const login = await this.scms.getLogin(withToken);
 
     if (!login) {

@@ -30,6 +30,10 @@ export class EcrService implements RegistryAuthConsumer {
   }
 
   public async predeploy(status: EcrDeployStatus, options: ResourceOptions): Promise<void> {
+    if (options.dev) {
+      return;
+    }
+
     const { name } = this.gitService.config;
 
     const repository = await new CloudResource<Repository, DescribeRepositoriesCommandOutput>(

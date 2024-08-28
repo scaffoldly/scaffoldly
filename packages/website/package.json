@@ -13,6 +13,7 @@
     "write-heading-ids": "docusaurus write-heading-ids",
     "typecheck": "tsc",
     "scaffoldly": "scaffoldly",
+    "dev": "scaffoldly dev",
     "deploy": "scaffoldly deploy"
   },
   "dependencies": {
@@ -73,6 +74,7 @@
         ],
         "scripts": {
           "install": "npm install",
+          "dev": "docusaurus start",
           "build": "docusaurus build",
           "start": "serve build"
         }

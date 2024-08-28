@@ -2,7 +2,7 @@ import { BuildInfo, DockerService as DockerCiService, PushInfo } from '../../ci/
 import { CloudResource, ResourceOptions } from '..';
 import { EcrDeployStatus, RegistryAuthConsumer } from '../aws/ecr';
 import { LambdaDeployStatus } from '../aws/lambda';
-import { EnvDeployStatus } from '../env';
+import { EnvDeployStatus } from '../../ci/env';
 import { GitService } from '../git';
 
 export type Platform = 'linux/amd64' | 'linux/arm64';
@@ -24,6 +24,14 @@ export class DockerService {
   public async deploy(
     status: DockerDeployStatus & EcrDeployStatus & EnvDeployStatus & LambdaDeployStatus,
     consumer: RegistryAuthConsumer,
+    options: ResourceOptions,
+  ): Promise<void> {
+    await this.build(status, options);
+    await this.push(status, consumer, options);
+  }
+
+  async build(
+    status: DockerDeployStatus & EcrDeployStatus & EnvDeployStatus,
     options: ResourceOptions,
   ): Promise<void> {
     const { imageName, imageTag, imageSize } = await new CloudResource<BuildInfo, BuildInfo>(
@@ -52,6 +60,16 @@ export class DockerService {
 
     if (!imageName) {
       throw new Error('Missing image name');
+    }
+  }
+
+  async push(
+    status: DockerDeployStatus,
+    consumer: RegistryAuthConsumer,
+    options: ResourceOptions,
+  ): Promise<void> {
+    if (options.dev) {
+      return;
     }
 
     const authConfig = await consumer.authConfig;

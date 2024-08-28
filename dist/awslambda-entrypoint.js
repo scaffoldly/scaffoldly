@@ -9534,7 +9534,7 @@ var require_ms = __commonJS({
       options = options || {};
       var type = typeof val2;
       if (type === "string" && val2.length > 0) {
-        return parse2(val2);
+        return parse3(val2);
       } else if (type === "number" && isFinite(val2)) {
         return options.long ? fmtLong(val2) : fmtShort(val2);
       }
@@ -9542,7 +9542,7 @@ var require_ms = __commonJS({
         "val is not a non-empty string or a valid number. val=" + JSON.stringify(val2)
       );
     };
-    function parse2(str) {
+    function parse3(str) {
       str = String(str);
       if (str.length > 100) {
         return;
@@ -10053,10 +10053,10 @@ var require_supports_color = __commonJS({
         return 3;
       }
       if ("TERM_PROGRAM" in env) {
-        const version2 = parseInt((env.TERM_PROGRAM_VERSION || "").split(".")[0], 10);
+        const version3 = parseInt((env.TERM_PROGRAM_VERSION || "").split(".")[0], 10);
         switch (env.TERM_PROGRAM) {
           case "iTerm.app":
-            return version2 >= 3 ? 3 : 2;
+            return version3 >= 3 ? 3 : 2;
           case "Apple_Terminal":
             return 2;
         }
@@ -10293,7 +10293,7 @@ var require_debug = __commonJS({
 var require_follow_redirects = __commonJS({
   "node_modules/follow-redirects/index.js"(exports2, module2) {
     var url2 = require("url");
-    var URL3 = url2.URL;
+    var URL4 = url2.URL;
     var http2 = require("http");
     var https2 = require("https");
     var Writable = require("stream").Writable;
@@ -10301,7 +10301,7 @@ var require_follow_redirects = __commonJS({
     var debug = require_debug();
     var useNativeURL = false;
     try {
-      assert(new URL3());
+      assert(new URL4());
     } catch (error) {
       useNativeURL = error.code === "ERR_INVALID_URL";
     }
@@ -10681,7 +10681,7 @@ var require_follow_redirects = __commonJS({
     function parseUrl(input) {
       var parsed;
       if (useNativeURL) {
-        parsed = new URL3(input);
+        parsed = new URL4(input);
       } else {
         parsed = validateUrl(url2.parse(input));
         if (!isString2(parsed.protocol)) {
@@ -10691,7 +10691,7 @@ var require_follow_redirects = __commonJS({
       return parsed;
     }
     function resolveUrl(relative, base) {
-      return useNativeURL ? new URL3(relative, base) : parseUrl(url2.resolve(base, relative));
+      return useNativeURL ? new URL4(relative, base) : parseUrl(url2.resolve(base, relative));
     }
     function validateUrl(input) {
       if (/^\[/.test(input.hostname) && !/^\[[:0-9a-f]+\]$/i.test(input.hostname)) {
@@ -10768,7 +10768,7 @@ var require_follow_redirects = __commonJS({
       return typeof value === "object" && "length" in value;
     }
     function isURL(value) {
-      return URL3 && value instanceof URL3;
+      return URL4 && value instanceof URL4;
     }
     module2.exports = wrap({ http: http2, https: https2 });
     module2.exports.wrap = wrap;
@@ -10781,7 +10781,7 @@ var require_dist = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.TokenData = void 0;
-    exports2.parse = parse2;
+    exports2.parse = parse3;
     exports2.compile = compile;
     exports2.match = match;
     exports2.pathToRegexp = pathToRegexp2;
@@ -10905,7 +10905,7 @@ var require_dist = __commonJS({
       }
     };
     exports2.TokenData = TokenData;
-    function parse2(str, options = {}) {
+    function parse3(str, options = {}) {
       const { encodePath = NOOP_VALUE, delimiter = encodePath(DEFAULT_DELIMITER) } = options;
       const tokens = [];
       const it = lexer(str);
@@ -10962,7 +10962,7 @@ var require_dist = __commonJS({
       return new TokenData(tokens, delimiter);
     }
     function compile(path3, options = {}) {
-      const data = path3 instanceof TokenData ? path3 : parse2(path3, options);
+      const data = path3 instanceof TokenData ? path3 : parse3(path3, options);
       return compileTokens(data, options);
     }
     function tokenToFunction(token, encode4) {
@@ -10974,7 +10974,7 @@ var require_dist = __commonJS({
       const optional = token.modifier === "?" || token.modifier === "*";
       const { prefix = "", suffix = "", separator = suffix + prefix } = token;
       if (encode4 && repeated) {
-        const stringify3 = (value, index) => {
+        const stringify4 = (value, index) => {
           if (typeof value !== "string") {
             throw new TypeError(`Expected "${token.name}/${index}" to be a string`);
           }
@@ -10986,7 +10986,7 @@ var require_dist = __commonJS({
           }
           if (value.length === 0)
             return "";
-          return prefix + value.map(stringify3).join(separator) + suffix;
+          return prefix + value.map(stringify4).join(separator) + suffix;
         };
         if (optional) {
           return (data) => {
@@ -11001,7 +11001,7 @@ var require_dist = __commonJS({
           return compile2(value);
         };
       }
-      const stringify2 = (value) => {
+      const stringify3 = (value) => {
         if (typeof value !== "string") {
           throw new TypeError(`Expected "${token.name}" to be a string`);
         }
@@ -11012,22 +11012,22 @@ var require_dist = __commonJS({
           const value = data[token.name];
           if (value == null)
             return "";
-          return stringify2(value);
+          return stringify3(value);
         };
       }
       return (data) => {
         const value = data[token.name];
-        return stringify2(value);
+        return stringify3(value);
       };
     }
     function compileTokens(data, options) {
-      const { encode: encode4 = encodeURIComponent, loose = true, validate: validate2 = true, strict = false } = options;
+      const { encode: encode4 = encodeURIComponent, loose = true, validate: validate3 = true, strict = false } = options;
       const flags = toFlags(options);
-      const stringify2 = toStringify(loose, data.delimiter);
-      const sources = toRegExpSource(data, stringify2, [], flags, strict);
+      const stringify3 = toStringify(loose, data.delimiter);
+      const sources = toRegExpSource(data, stringify3, [], flags, strict);
       const encoders = data.tokens.map((token, index) => {
         const fn = tokenToFunction(token, encode4);
-        if (!validate2 || typeof token === "string")
+        if (!validate3 || typeof token === "string")
           return fn;
         const validRe = new RegExp(`^${sources[index]}$`, flags);
         return (data2) => {
@@ -11047,14 +11047,14 @@ var require_dist = __commonJS({
     }
     function match(path3, options = {}) {
       const { decode: decode2 = decodeURIComponent, loose = true } = options;
-      const data = path3 instanceof TokenData ? path3 : parse2(path3, options);
-      const stringify2 = toStringify(loose, data.delimiter);
+      const data = path3 instanceof TokenData ? path3 : parse3(path3, options);
+      const stringify3 = toStringify(loose, data.delimiter);
       const keys = [];
       const re = tokensToRegexp(data, keys, options);
       const decoders = keys.map((key) => {
         if (decode2 && (key.modifier === "+" || key.modifier === "*")) {
           const { prefix = "", suffix = "", separator = suffix + prefix } = key;
-          const re2 = new RegExp(stringify2(separator), "g");
+          const re2 = new RegExp(stringify3(separator), "g");
           return (value) => value.split(re2).map(decode2);
         }
         return decode2 || NOOP_VALUE;
@@ -11094,27 +11094,27 @@ var require_dist = __commonJS({
     function tokensToRegexp(data, keys, options) {
       const { trailing = true, loose = true, start = true, end = true, strict = false } = options;
       const flags = toFlags(options);
-      const stringify2 = toStringify(loose, data.delimiter);
-      const sources = toRegExpSource(data, stringify2, keys, flags, strict);
+      const stringify3 = toStringify(loose, data.delimiter);
+      const sources = toRegExpSource(data, stringify3, keys, flags, strict);
       let pattern = start ? "^" : "";
       pattern += sources.join("");
       if (trailing)
-        pattern += `(?:${stringify2(data.delimiter)})?`;
+        pattern += `(?:${stringify3(data.delimiter)})?`;
       pattern += end ? "$" : `(?=${escape(data.delimiter)}|$)`;
       return new RegExp(pattern, flags);
     }
-    function toRegExpSource(data, stringify2, keys, flags, strict) {
+    function toRegExpSource(data, stringify3, keys, flags, strict) {
       const defaultPattern = `(?:(?!${escape(data.delimiter)}).)+?`;
       let backtrack = "";
       let safe = true;
       return data.tokens.map((token, index) => {
         if (typeof token === "string") {
           backtrack = token;
-          return stringify2(token);
+          return stringify3(token);
         }
         const { prefix = "", suffix = "", separator = suffix + prefix, modifier = "" } = token;
-        const pre = stringify2(prefix);
-        const post = stringify2(suffix);
+        const pre = stringify3(prefix);
+        const post = stringify3(suffix);
         if (token.name) {
           const pattern = token.pattern ? `(?:${token.pattern})` : defaultPattern;
           const re = checkPattern(pattern, token.name, flags);
@@ -11127,7 +11127,7 @@ var require_dist = __commonJS({
           keys.push(token);
           if (modifier === "+" || modifier === "*") {
             const mod = modifier === "*" ? "?" : "";
-            const sep = stringify2(separator);
+            const sep = stringify3(separator);
             if (!sep) {
               throw new TypeError(`Missing separator for "${token.name}": ${DEBUG_URL}`);
             }
@@ -11154,7 +11154,7 @@ var require_dist = __commonJS({
       return value ? !re.test(value) : false;
     }
     function pathToRegexp2(path3, options = {}) {
-      const data = path3 instanceof TokenData ? path3 : parse2(path3, options);
+      const data = path3 instanceof TokenData ? path3 : parse3(path3, options);
       const keys = [];
       const regexp = tokensToRegexp(data, keys, options);
       return Object.assign(regexp, { keys });
@@ -11559,7 +11559,7 @@ var require_parse = __commonJS({
       }
       return parsed;
     }
-    function parse2(command, args, options) {
+    function parse3(command, args, options) {
       if (args && !Array.isArray(args)) {
         options = args;
         args = null;
@@ -11578,7 +11578,7 @@ var require_parse = __commonJS({
       };
       return options.shell ? parsed : parseNonShell(parsed);
     }
-    module2.exports = parse2;
+    module2.exports = parse3;
   }
 });
 
@@ -11637,16 +11637,16 @@ var require_cross_spawn = __commonJS({
   "node_modules/cross-spawn/index.js"(exports2, module2) {
     "use strict";
     var cp = require("child_process");
-    var parse2 = require_parse();
+    var parse3 = require_parse();
     var enoent = require_enoent();
     function spawn(command, args, options) {
-      const parsed = parse2(command, args, options);
+      const parsed = parse3(command, args, options);
       const spawned = cp.spawn(parsed.command, parsed.args, parsed.options);
       enoent.hookChildProcess(spawned, parsed);
       return spawned;
     }
     function spawnSync(command, args, options) {
-      const parsed = parse2(command, args, options);
+      const parsed = parse3(command, args, options);
       const result = cp.spawnSync(parsed.command, parsed.args, parsed.options);
       result.error = result.error || enoent.verifyENOENTSync(result.status, parsed);
       return result;
@@ -11654,7 +11654,7 @@ var require_cross_spawn = __commonJS({
     module2.exports = spawn;
     module2.exports.spawn = spawn;
     module2.exports.sync = spawnSync;
-    module2.exports._parse = parse2;
+    module2.exports._parse = parse3;
     module2.exports._enoent = enoent;
   }
 });
@@ -13117,14 +13117,14 @@ var require_dist_cjs8 = __commonJS({
     var escapeUserAgent = /* @__PURE__ */ __name((userAgentPair) => {
       var _a;
       const name = userAgentPair[0].split(UA_NAME_SEPARATOR).map((part) => part.replace(UA_NAME_ESCAPE_REGEX, UA_ESCAPE_CHAR)).join(UA_NAME_SEPARATOR);
-      const version2 = (_a = userAgentPair[1]) == null ? void 0 : _a.replace(UA_VALUE_ESCAPE_REGEX, UA_ESCAPE_CHAR);
+      const version3 = (_a = userAgentPair[1]) == null ? void 0 : _a.replace(UA_VALUE_ESCAPE_REGEX, UA_ESCAPE_CHAR);
       const prefixSeparatorIndex = name.indexOf(UA_NAME_SEPARATOR);
       const prefix = name.substring(0, prefixSeparatorIndex);
       let uaName = name.substring(prefixSeparatorIndex + 1);
       if (prefix === "api") {
         uaName = uaName.toLowerCase();
       }
-      return [prefix, uaName, version2].filter((item) => item && item.length > 0).reduce((acc, item, index) => {
+      return [prefix, uaName, version3].filter((item) => item && item.length > 0).reduce((acc, item, index) => {
         switch (index) {
           case 0:
             return item;
@@ -14531,7 +14531,7 @@ var init_httpSigningMiddleware = __esm({
   }
 });
 
-// node_modules/uuid/dist/esm-node/rng.js
+// node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/rng.js
 function rng() {
   if (poolPtr > rnds8Pool.length - 16) {
     import_crypto.default.randomFillSync(rnds8Pool);
@@ -14541,34 +14541,34 @@ function rng() {
 }
 var import_crypto, rnds8Pool, poolPtr;
 var init_rng = __esm({
-  "node_modules/uuid/dist/esm-node/rng.js"() {
+  "node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/rng.js"() {
     import_crypto = __toESM(require("crypto"));
     rnds8Pool = new Uint8Array(256);
     poolPtr = rnds8Pool.length;
   }
 });
 
-// node_modules/uuid/dist/esm-node/regex.js
+// node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/regex.js
 var regex_default;
 var init_regex = __esm({
-  "node_modules/uuid/dist/esm-node/regex.js"() {
+  "node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/regex.js"() {
     regex_default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000)$/i;
   }
 });
 
-// node_modules/uuid/dist/esm-node/validate.js
+// node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/validate.js
 function validate(uuid) {
   return typeof uuid === "string" && regex_default.test(uuid);
 }
 var validate_default;
 var init_validate = __esm({
-  "node_modules/uuid/dist/esm-node/validate.js"() {
+  "node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/validate.js"() {
     init_regex();
     validate_default = validate;
   }
 });
 
-// node_modules/uuid/dist/esm-node/stringify.js
+// node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/stringify.js
 function unsafeStringify(arr, offset = 0) {
   return byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]];
 }
@@ -14581,7 +14581,7 @@ function stringify(arr, offset = 0) {
 }
 var byteToHex, stringify_default;
 var init_stringify = __esm({
-  "node_modules/uuid/dist/esm-node/stringify.js"() {
+  "node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/stringify.js"() {
     init_validate();
     byteToHex = [];
     for (let i = 0; i < 256; ++i) {
@@ -14591,7 +14591,7 @@ var init_stringify = __esm({
   }
 });
 
-// node_modules/uuid/dist/esm-node/v1.js
+// node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/v1.js
 function v1(options, buf, offset) {
   let i = buf && offset || 0;
   const b = buf || new Array(16);
@@ -14642,7 +14642,7 @@ function v1(options, buf, offset) {
 }
 var _nodeId, _clockseq, _lastMSecs, _lastNSecs, v1_default;
 var init_v1 = __esm({
-  "node_modules/uuid/dist/esm-node/v1.js"() {
+  "node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/v1.js"() {
     init_rng();
     init_stringify();
     _lastMSecs = 0;
@@ -14651,7 +14651,7 @@ var init_v1 = __esm({
   }
 });
 
-// node_modules/uuid/dist/esm-node/parse.js
+// node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/parse.js
 function parse(uuid) {
   if (!validate_default(uuid)) {
     throw TypeError("Invalid UUID");
@@ -14678,13 +14678,13 @@ function parse(uuid) {
 }
 var parse_default;
 var init_parse = __esm({
-  "node_modules/uuid/dist/esm-node/parse.js"() {
+  "node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/parse.js"() {
     init_validate();
     parse_default = parse;
   }
 });
 
-// node_modules/uuid/dist/esm-node/v35.js
+// node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/v35.js
 function stringToBytes(str) {
   str = unescape(encodeURIComponent(str));
   const bytes = [];
@@ -14693,7 +14693,7 @@ function stringToBytes(str) {
   }
   return bytes;
 }
-function v35(name, version2, hashfunc) {
+function v35(name, version3, hashfunc) {
   function generateUUID(value, namespace, buf, offset) {
     var _namespace;
     if (typeof value === "string") {
@@ -14709,7 +14709,7 @@ function v35(name, version2, hashfunc) {
     bytes.set(namespace);
     bytes.set(value, namespace.length);
     bytes = hashfunc(bytes);
-    bytes[6] = bytes[6] & 15 | version2;
+    bytes[6] = bytes[6] & 15 | version3;
     bytes[8] = bytes[8] & 63 | 128;
     if (buf) {
       offset = offset || 0;
@@ -14730,7 +14730,7 @@ function v35(name, version2, hashfunc) {
 }
 var DNS, URL2;
 var init_v35 = __esm({
-  "node_modules/uuid/dist/esm-node/v35.js"() {
+  "node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/v35.js"() {
     init_stringify();
     init_parse();
     DNS = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
@@ -14738,7 +14738,7 @@ var init_v35 = __esm({
   }
 });
 
-// node_modules/uuid/dist/esm-node/md5.js
+// node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/md5.js
 function md5(bytes) {
   if (Array.isArray(bytes)) {
     bytes = Buffer.from(bytes);
@@ -14749,16 +14749,16 @@ function md5(bytes) {
 }
 var import_crypto2, md5_default;
 var init_md5 = __esm({
-  "node_modules/uuid/dist/esm-node/md5.js"() {
+  "node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/md5.js"() {
     import_crypto2 = __toESM(require("crypto"));
     md5_default = md5;
   }
 });
 
-// node_modules/uuid/dist/esm-node/v3.js
+// node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/v3.js
 var v3, v3_default;
 var init_v3 = __esm({
-  "node_modules/uuid/dist/esm-node/v3.js"() {
+  "node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/v3.js"() {
     init_v35();
     init_md5();
     v3 = v35("v3", 48, md5_default);
@@ -14766,10 +14766,10 @@ var init_v3 = __esm({
   }
 });
 
-// node_modules/uuid/dist/esm-node/native.js
+// node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/native.js
 var import_crypto3, native_default;
 var init_native = __esm({
-  "node_modules/uuid/dist/esm-node/native.js"() {
+  "node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/native.js"() {
     import_crypto3 = __toESM(require("crypto"));
     native_default = {
       randomUUID: import_crypto3.default.randomUUID
@@ -14777,7 +14777,7 @@ var init_native = __esm({
   }
 });
 
-// node_modules/uuid/dist/esm-node/v4.js
+// node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/v4.js
 function v4(options, buf, offset) {
   if (native_default.randomUUID && !buf && !options) {
     return native_default.randomUUID();
@@ -14797,7 +14797,7 @@ function v4(options, buf, offset) {
 }
 var v4_default;
 var init_v4 = __esm({
-  "node_modules/uuid/dist/esm-node/v4.js"() {
+  "node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/v4.js"() {
     init_native();
     init_rng();
     init_stringify();
@@ -14805,7 +14805,7 @@ var init_v4 = __esm({
   }
 });
 
-// node_modules/uuid/dist/esm-node/sha1.js
+// node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/sha1.js
 function sha1(bytes) {
   if (Array.isArray(bytes)) {
     bytes = Buffer.from(bytes);
@@ -14816,16 +14816,16 @@ function sha1(bytes) {
 }
 var import_crypto4, sha1_default;
 var init_sha1 = __esm({
-  "node_modules/uuid/dist/esm-node/sha1.js"() {
+  "node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/sha1.js"() {
     import_crypto4 = __toESM(require("crypto"));
     sha1_default = sha1;
   }
 });
 
-// node_modules/uuid/dist/esm-node/v5.js
+// node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/v5.js
 var v5, v5_default;
 var init_v5 = __esm({
-  "node_modules/uuid/dist/esm-node/v5.js"() {
+  "node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/v5.js"() {
     init_v35();
     init_sha1();
     v5 = v35("v5", 80, sha1_default);
@@ -14833,15 +14833,15 @@ var init_v5 = __esm({
   }
 });
 
-// node_modules/uuid/dist/esm-node/nil.js
+// node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/nil.js
 var nil_default;
 var init_nil = __esm({
-  "node_modules/uuid/dist/esm-node/nil.js"() {
+  "node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/nil.js"() {
     nil_default = "00000000-0000-0000-0000-000000000000";
   }
 });
 
-// node_modules/uuid/dist/esm-node/version.js
+// node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/version.js
 function version(uuid) {
   if (!validate_default(uuid)) {
     throw TypeError("Invalid UUID");
@@ -14850,13 +14850,13 @@ function version(uuid) {
 }
 var version_default;
 var init_version = __esm({
-  "node_modules/uuid/dist/esm-node/version.js"() {
+  "node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/version.js"() {
     init_validate();
     version_default = version;
   }
 });
 
-// node_modules/uuid/dist/esm-node/index.js
+// node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/index.js
 var esm_node_exports = {};
 __export(esm_node_exports, {
   NIL: () => nil_default,
@@ -14870,7 +14870,7 @@ __export(esm_node_exports, {
   version: () => version_default
 });
 var init_esm_node = __esm({
-  "node_modules/uuid/dist/esm-node/index.js"() {
+  "node_modules/@aws-sdk/client-secrets-manager/node_modules/uuid/dist/esm-node/index.js"() {
     init_v1();
     init_v3();
     init_v4();
@@ -18139,8 +18139,8 @@ var require_dist_cjs32 = __commonJS({
       }
     }, "loadConfigsForDefaultMode");
     var warningEmitted3 = false;
-    var emitWarningIfUnsupportedVersion3 = /* @__PURE__ */ __name((version2) => {
-      if (version2 && !warningEmitted3 && parseInt(version2.substring(1, version2.indexOf("."))) < 16) {
+    var emitWarningIfUnsupportedVersion3 = /* @__PURE__ */ __name((version3) => {
+      if (version3 && !warningEmitted3 && parseInt(version3.substring(1, version3.indexOf("."))) < 16) {
         warningEmitted3 = true;
       }
     }, "emitWarningIfUnsupportedVersion");
@@ -19252,8 +19252,8 @@ var warningEmitted, emitWarningIfUnsupportedVersion;
 var init_emitWarningIfUnsupportedVersion = __esm({
   "node_modules/@aws-sdk/client-secrets-manager/node_modules/@aws-sdk/core/dist-es/submodules/client/emitWarningIfUnsupportedVersion.js"() {
     warningEmitted = false;
-    emitWarningIfUnsupportedVersion = (version2) => {
-      if (version2 && !warningEmitted && parseInt(version2.substring(1, version2.indexOf("."))) < 18) {
+    emitWarningIfUnsupportedVersion = (version3) => {
+      if (version3 && !warningEmitted && parseInt(version3.substring(1, version3.indexOf("."))) < 18) {
         warningEmitted = true;
         process.emitWarning(`NodeDeprecationWarning: The AWS SDK for JavaScript (v3) will
 no longer support Node.js 16.x on January 6, 2025.
@@ -23505,7 +23505,7 @@ var require_dist_cjs40 = __commonJS({
     var import_util_buffer_from = require_dist_cjs23();
     var import_util_utf8 = require_dist_cjs24();
     var import_buffer2 = require("buffer");
-    var import_crypto5 = require("crypto");
+    var import_crypto9 = require("crypto");
     var _Hash = class _Hash {
       constructor(algorithmIdentifier, secret) {
         this.algorithmIdentifier = algorithmIdentifier;
@@ -23519,7 +23519,7 @@ var require_dist_cjs40 = __commonJS({
         return Promise.resolve(this.hash.digest());
       }
       reset() {
-        this.hash = this.secret ? (0, import_crypto5.createHmac)(this.algorithmIdentifier, castSourceData(this.secret)) : (0, import_crypto5.createHash)(this.algorithmIdentifier);
+        this.hash = this.secret ? (0, import_crypto9.createHmac)(this.algorithmIdentifier, castSourceData(this.secret)) : (0, import_crypto9.createHash)(this.algorithmIdentifier);
       }
     };
     __name(_Hash, "Hash");
@@ -24938,14 +24938,14 @@ var require_dist_cjs48 = __commonJS({
     var escapeUserAgent = /* @__PURE__ */ __name((userAgentPair) => {
       var _a;
       const name = userAgentPair[0].split(UA_NAME_SEPARATOR).map((part) => part.replace(UA_NAME_ESCAPE_REGEX, UA_ESCAPE_CHAR)).join(UA_NAME_SEPARATOR);
-      const version2 = (_a = userAgentPair[1]) == null ? void 0 : _a.replace(UA_VALUE_ESCAPE_REGEX, UA_ESCAPE_CHAR);
+      const version3 = (_a = userAgentPair[1]) == null ? void 0 : _a.replace(UA_VALUE_ESCAPE_REGEX, UA_ESCAPE_CHAR);
       const prefixSeparatorIndex = name.indexOf(UA_NAME_SEPARATOR);
       const prefix = name.substring(0, prefixSeparatorIndex);
       let uaName = name.substring(prefixSeparatorIndex + 1);
       if (prefix === "api") {
         uaName = uaName.toLowerCase();
       }
-      return [prefix, uaName, version2].filter((item) => item && item.length > 0).reduce((acc, item, index) => {
+      return [prefix, uaName, version3].filter((item) => item && item.length > 0).reduce((acc, item, index) => {
         switch (index) {
           case 0:
             return item;
@@ -25389,6 +25389,358 @@ var init_httpSigningMiddleware2 = __esm({
       (signer.successHandler || defaultSuccessHandler2)(output.response, signingProperties);
       return output;
     };
+  }
+});
+
+// node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/rng.js
+function rng2() {
+  if (poolPtr2 > rnds8Pool2.length - 16) {
+    import_crypto5.default.randomFillSync(rnds8Pool2);
+    poolPtr2 = 0;
+  }
+  return rnds8Pool2.slice(poolPtr2, poolPtr2 += 16);
+}
+var import_crypto5, rnds8Pool2, poolPtr2;
+var init_rng2 = __esm({
+  "node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/rng.js"() {
+    import_crypto5 = __toESM(require("crypto"));
+    rnds8Pool2 = new Uint8Array(256);
+    poolPtr2 = rnds8Pool2.length;
+  }
+});
+
+// node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/regex.js
+var regex_default2;
+var init_regex2 = __esm({
+  "node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/regex.js"() {
+    regex_default2 = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000)$/i;
+  }
+});
+
+// node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/validate.js
+function validate2(uuid) {
+  return typeof uuid === "string" && regex_default2.test(uuid);
+}
+var validate_default2;
+var init_validate2 = __esm({
+  "node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/validate.js"() {
+    init_regex2();
+    validate_default2 = validate2;
+  }
+});
+
+// node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/stringify.js
+function unsafeStringify2(arr, offset = 0) {
+  return byteToHex2[arr[offset + 0]] + byteToHex2[arr[offset + 1]] + byteToHex2[arr[offset + 2]] + byteToHex2[arr[offset + 3]] + "-" + byteToHex2[arr[offset + 4]] + byteToHex2[arr[offset + 5]] + "-" + byteToHex2[arr[offset + 6]] + byteToHex2[arr[offset + 7]] + "-" + byteToHex2[arr[offset + 8]] + byteToHex2[arr[offset + 9]] + "-" + byteToHex2[arr[offset + 10]] + byteToHex2[arr[offset + 11]] + byteToHex2[arr[offset + 12]] + byteToHex2[arr[offset + 13]] + byteToHex2[arr[offset + 14]] + byteToHex2[arr[offset + 15]];
+}
+function stringify2(arr, offset = 0) {
+  const uuid = unsafeStringify2(arr, offset);
+  if (!validate_default2(uuid)) {
+    throw TypeError("Stringified UUID is invalid");
+  }
+  return uuid;
+}
+var byteToHex2, stringify_default2;
+var init_stringify2 = __esm({
+  "node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/stringify.js"() {
+    init_validate2();
+    byteToHex2 = [];
+    for (let i = 0; i < 256; ++i) {
+      byteToHex2.push((i + 256).toString(16).slice(1));
+    }
+    stringify_default2 = stringify2;
+  }
+});
+
+// node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/v1.js
+function v12(options, buf, offset) {
+  let i = buf && offset || 0;
+  const b = buf || new Array(16);
+  options = options || {};
+  let node = options.node || _nodeId2;
+  let clockseq = options.clockseq !== void 0 ? options.clockseq : _clockseq2;
+  if (node == null || clockseq == null) {
+    const seedBytes = options.random || (options.rng || rng2)();
+    if (node == null) {
+      node = _nodeId2 = [seedBytes[0] | 1, seedBytes[1], seedBytes[2], seedBytes[3], seedBytes[4], seedBytes[5]];
+    }
+    if (clockseq == null) {
+      clockseq = _clockseq2 = (seedBytes[6] << 8 | seedBytes[7]) & 16383;
+    }
+  }
+  let msecs = options.msecs !== void 0 ? options.msecs : Date.now();
+  let nsecs = options.nsecs !== void 0 ? options.nsecs : _lastNSecs2 + 1;
+  const dt = msecs - _lastMSecs2 + (nsecs - _lastNSecs2) / 1e4;
+  if (dt < 0 && options.clockseq === void 0) {
+    clockseq = clockseq + 1 & 16383;
+  }
+  if ((dt < 0 || msecs > _lastMSecs2) && options.nsecs === void 0) {
+    nsecs = 0;
+  }
+  if (nsecs >= 1e4) {
+    throw new Error("uuid.v1(): Can't create more than 10M uuids/sec");
+  }
+  _lastMSecs2 = msecs;
+  _lastNSecs2 = nsecs;
+  _clockseq2 = clockseq;
+  msecs += 122192928e5;
+  const tl = ((msecs & 268435455) * 1e4 + nsecs) % 4294967296;
+  b[i++] = tl >>> 24 & 255;
+  b[i++] = tl >>> 16 & 255;
+  b[i++] = tl >>> 8 & 255;
+  b[i++] = tl & 255;
+  const tmh = msecs / 4294967296 * 1e4 & 268435455;
+  b[i++] = tmh >>> 8 & 255;
+  b[i++] = tmh & 255;
+  b[i++] = tmh >>> 24 & 15 | 16;
+  b[i++] = tmh >>> 16 & 255;
+  b[i++] = clockseq >>> 8 | 128;
+  b[i++] = clockseq & 255;
+  for (let n = 0; n < 6; ++n) {
+    b[i + n] = node[n];
+  }
+  return buf || unsafeStringify2(b);
+}
+var _nodeId2, _clockseq2, _lastMSecs2, _lastNSecs2, v1_default2;
+var init_v12 = __esm({
+  "node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/v1.js"() {
+    init_rng2();
+    init_stringify2();
+    _lastMSecs2 = 0;
+    _lastNSecs2 = 0;
+    v1_default2 = v12;
+  }
+});
+
+// node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/parse.js
+function parse2(uuid) {
+  if (!validate_default2(uuid)) {
+    throw TypeError("Invalid UUID");
+  }
+  let v;
+  const arr = new Uint8Array(16);
+  arr[0] = (v = parseInt(uuid.slice(0, 8), 16)) >>> 24;
+  arr[1] = v >>> 16 & 255;
+  arr[2] = v >>> 8 & 255;
+  arr[3] = v & 255;
+  arr[4] = (v = parseInt(uuid.slice(9, 13), 16)) >>> 8;
+  arr[5] = v & 255;
+  arr[6] = (v = parseInt(uuid.slice(14, 18), 16)) >>> 8;
+  arr[7] = v & 255;
+  arr[8] = (v = parseInt(uuid.slice(19, 23), 16)) >>> 8;
+  arr[9] = v & 255;
+  arr[10] = (v = parseInt(uuid.slice(24, 36), 16)) / 1099511627776 & 255;
+  arr[11] = v / 4294967296 & 255;
+  arr[12] = v >>> 24 & 255;
+  arr[13] = v >>> 16 & 255;
+  arr[14] = v >>> 8 & 255;
+  arr[15] = v & 255;
+  return arr;
+}
+var parse_default2;
+var init_parse2 = __esm({
+  "node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/parse.js"() {
+    init_validate2();
+    parse_default2 = parse2;
+  }
+});
+
+// node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/v35.js
+function stringToBytes2(str) {
+  str = unescape(encodeURIComponent(str));
+  const bytes = [];
+  for (let i = 0; i < str.length; ++i) {
+    bytes.push(str.charCodeAt(i));
+  }
+  return bytes;
+}
+function v352(name, version3, hashfunc) {
+  function generateUUID(value, namespace, buf, offset) {
+    var _namespace;
+    if (typeof value === "string") {
+      value = stringToBytes2(value);
+    }
+    if (typeof namespace === "string") {
+      namespace = parse_default2(namespace);
+    }
+    if (((_namespace = namespace) === null || _namespace === void 0 ? void 0 : _namespace.length) !== 16) {
+      throw TypeError("Namespace must be array-like (16 iterable integer values, 0-255)");
+    }
+    let bytes = new Uint8Array(16 + value.length);
+    bytes.set(namespace);
+    bytes.set(value, namespace.length);
+    bytes = hashfunc(bytes);
+    bytes[6] = bytes[6] & 15 | version3;
+    bytes[8] = bytes[8] & 63 | 128;
+    if (buf) {
+      offset = offset || 0;
+      for (let i = 0; i < 16; ++i) {
+        buf[offset + i] = bytes[i];
+      }
+      return buf;
+    }
+    return unsafeStringify2(bytes);
+  }
+  try {
+    generateUUID.name = name;
+  } catch (err) {
+  }
+  generateUUID.DNS = DNS2;
+  generateUUID.URL = URL3;
+  return generateUUID;
+}
+var DNS2, URL3;
+var init_v352 = __esm({
+  "node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/v35.js"() {
+    init_stringify2();
+    init_parse2();
+    DNS2 = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
+    URL3 = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
+  }
+});
+
+// node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/md5.js
+function md52(bytes) {
+  if (Array.isArray(bytes)) {
+    bytes = Buffer.from(bytes);
+  } else if (typeof bytes === "string") {
+    bytes = Buffer.from(bytes, "utf8");
+  }
+  return import_crypto6.default.createHash("md5").update(bytes).digest();
+}
+var import_crypto6, md5_default2;
+var init_md52 = __esm({
+  "node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/md5.js"() {
+    import_crypto6 = __toESM(require("crypto"));
+    md5_default2 = md52;
+  }
+});
+
+// node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/v3.js
+var v32, v3_default2;
+var init_v32 = __esm({
+  "node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/v3.js"() {
+    init_v352();
+    init_md52();
+    v32 = v352("v3", 48, md5_default2);
+    v3_default2 = v32;
+  }
+});
+
+// node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/native.js
+var import_crypto7, native_default2;
+var init_native2 = __esm({
+  "node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/native.js"() {
+    import_crypto7 = __toESM(require("crypto"));
+    native_default2 = {
+      randomUUID: import_crypto7.default.randomUUID
+    };
+  }
+});
+
+// node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/v4.js
+function v42(options, buf, offset) {
+  if (native_default2.randomUUID && !buf && !options) {
+    return native_default2.randomUUID();
+  }
+  options = options || {};
+  const rnds = options.random || (options.rng || rng2)();
+  rnds[6] = rnds[6] & 15 | 64;
+  rnds[8] = rnds[8] & 63 | 128;
+  if (buf) {
+    offset = offset || 0;
+    for (let i = 0; i < 16; ++i) {
+      buf[offset + i] = rnds[i];
+    }
+    return buf;
+  }
+  return unsafeStringify2(rnds);
+}
+var v4_default2;
+var init_v42 = __esm({
+  "node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/v4.js"() {
+    init_native2();
+    init_rng2();
+    init_stringify2();
+    v4_default2 = v42;
+  }
+});
+
+// node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/sha1.js
+function sha12(bytes) {
+  if (Array.isArray(bytes)) {
+    bytes = Buffer.from(bytes);
+  } else if (typeof bytes === "string") {
+    bytes = Buffer.from(bytes, "utf8");
+  }
+  return import_crypto8.default.createHash("sha1").update(bytes).digest();
+}
+var import_crypto8, sha1_default2;
+var init_sha12 = __esm({
+  "node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/sha1.js"() {
+    import_crypto8 = __toESM(require("crypto"));
+    sha1_default2 = sha12;
+  }
+});
+
+// node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/v5.js
+var v52, v5_default2;
+var init_v52 = __esm({
+  "node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/v5.js"() {
+    init_v352();
+    init_sha12();
+    v52 = v352("v5", 80, sha1_default2);
+    v5_default2 = v52;
+  }
+});
+
+// node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/nil.js
+var nil_default2;
+var init_nil2 = __esm({
+  "node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/nil.js"() {
+    nil_default2 = "00000000-0000-0000-0000-000000000000";
+  }
+});
+
+// node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/version.js
+function version2(uuid) {
+  if (!validate_default2(uuid)) {
+    throw TypeError("Invalid UUID");
+  }
+  return parseInt(uuid.slice(14, 15), 16);
+}
+var version_default2;
+var init_version2 = __esm({
+  "node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/version.js"() {
+    init_validate2();
+    version_default2 = version2;
+  }
+});
+
+// node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/index.js
+var esm_node_exports2 = {};
+__export(esm_node_exports2, {
+  NIL: () => nil_default2,
+  parse: () => parse_default2,
+  stringify: () => stringify_default2,
+  v1: () => v1_default2,
+  v3: () => v3_default2,
+  v4: () => v4_default2,
+  v5: () => v5_default2,
+  validate: () => validate_default2,
+  version: () => version_default2
+});
+var init_esm_node2 = __esm({
+  "node_modules/@smithy/middleware-retry/node_modules/uuid/dist/esm-node/index.js"() {
+    init_v12();
+    init_v32();
+    init_v42();
+    init_v52();
+    init_nil2();
+    init_version2();
+    init_validate2();
+    init_stringify2();
+    init_parse2();
   }
 });
 
@@ -27581,8 +27933,8 @@ var require_dist_cjs53 = __commonJS({
       }
     }, "loadConfigsForDefaultMode");
     var warningEmitted3 = false;
-    var emitWarningIfUnsupportedVersion3 = /* @__PURE__ */ __name((version2) => {
-      if (version2 && !warningEmitted3 && parseInt(version2.substring(1, version2.indexOf("."))) < 16) {
+    var emitWarningIfUnsupportedVersion3 = /* @__PURE__ */ __name((version3) => {
+      if (version3 && !warningEmitted3 && parseInt(version3.substring(1, version3.indexOf("."))) < 16) {
         warningEmitted3 = true;
       }
     }, "emitWarningIfUnsupportedVersion");
@@ -27923,7 +28275,7 @@ var require_dist_cjs54 = __commonJS({
     });
     module2.exports = __toCommonJS2(src_exports);
     var import_protocol_http11 = require_dist_cjs45();
-    var import_uuid = (init_esm_node(), __toCommonJS(esm_node_exports));
+    var import_uuid = (init_esm_node2(), __toCommonJS(esm_node_exports2));
     var import_util_retry = require_dist_cjs20();
     var getDefaultRetryQuota = /* @__PURE__ */ __name((initialRetryTokens, options) => {
       const MAX_CAPACITY = initialRetryTokens;
@@ -28692,8 +29044,8 @@ var warningEmitted2, emitWarningIfUnsupportedVersion2;
 var init_emitWarningIfUnsupportedVersion2 = __esm({
   "node_modules/@aws-sdk/core/dist-es/submodules/client/emitWarningIfUnsupportedVersion.js"() {
     warningEmitted2 = false;
-    emitWarningIfUnsupportedVersion2 = (version2) => {
-      if (version2 && !warningEmitted2 && parseInt(version2.substring(1, version2.indexOf("."))) < 18) {
+    emitWarningIfUnsupportedVersion2 = (version3) => {
+      if (version3 && !warningEmitted2 && parseInt(version3.substring(1, version3.indexOf("."))) < 18) {
         warningEmitted2 = true;
         process.emitWarning(`NodeDeprecationWarning: The AWS SDK for JavaScript (v3) will
 no longer support Node.js 16.x on January 6, 2025.
@@ -42507,23 +42859,23 @@ var validators = {};
   };
 });
 var deprecatedWarnings = {};
-validators.transitional = function transitional(validator, version2, message) {
+validators.transitional = function transitional(validator, version3, message) {
   function formatMessage(opt, desc) {
     return "[Axios v" + VERSION + "] Transitional option '" + opt + "'" + desc + (message ? ". " + message : "");
   }
   return (value, opt, opts) => {
     if (validator === false) {
       throw new AxiosError_default(
-        formatMessage(opt, " has been removed" + (version2 ? " in " + version2 : "")),
+        formatMessage(opt, " has been removed" + (version3 ? " in " + version3 : "")),
         AxiosError_default.ERR_DEPRECATED
       );
     }
-    if (version2 && !deprecatedWarnings[opt]) {
+    if (version3 && !deprecatedWarnings[opt]) {
       deprecatedWarnings[opt] = true;
       console.warn(
         formatMessage(
           opt,
-          " has been deprecated since v" + version2 + " and will be removed in the near future"
+          " has been deprecated since v" + version3 + " and will be removed in the near future"
         )
       );
     }

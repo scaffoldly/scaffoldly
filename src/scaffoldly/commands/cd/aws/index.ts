@@ -5,7 +5,7 @@ import { EcrDeployStatus, EcrService } from './ecr';
 import { DockerDeployStatus, DockerService } from '../docker';
 import { SecretDeployStatus, SecretService } from './secret';
 import { GitDeployStatus, GitService } from '../git';
-import { EnvDeployStatus, EnvService } from '../env';
+import { EnvDeployStatus, EnvService } from '../../ci/env';
 import { ScheduleService, ScheduleDeployStatus } from './schedule';
 import { DynamoDbService } from './dynamodb';
 

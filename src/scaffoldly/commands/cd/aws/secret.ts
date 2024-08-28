@@ -36,6 +36,10 @@ export class SecretService implements IamConsumer {
     consumer: SecretConsumer,
     options: ResourceOptions,
   ): Promise<void> {
+    if (options.dev) {
+      return;
+    }
+
     const { name } = this.gitService.config;
     const { alias } = status;
 

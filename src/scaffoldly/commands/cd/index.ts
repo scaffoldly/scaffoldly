@@ -31,9 +31,9 @@ function getDifferences(subset: any, superset: any): Differences {
 }
 
 export type ResourceOptions = {
-  destroy?: boolean;
   retries?: number;
   notify?: (message: string, level?: 'notice' | 'error') => void;
+  dev?: boolean;
 };
 
 export type ResourceExtractor<Resource, ReadCommandOutput> = (
@@ -80,10 +80,6 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
     options: ResourceOptions,
     desired?: Partial<ReadCommandOutput>,
   ): Promise<Partial<Resource>> {
-    if (options.destroy) {
-      throw new Error('Not implemented');
-    }
-
     this.logResource('Reading', {}, options);
     let existing = await this.read(options);
 
@@ -148,7 +144,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
         try {
           const readResponse = await read();
           if (isDebug() && readResponse) {
-            console.log(`   --> [READ] ${JSON.stringify(readResponse)}`);
+            console.log(`   --> [READ]`, readResponse);
           }
 
           const difference = getDifferences(desired || {}, readResponse);
@@ -165,7 +161,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
 
           const resource = this.resourceExtractor(readResponse);
           if (isDebug() && resource) {
-            console.log(`   ${JSON.stringify(resource)}`);
+            console.log(`   `, resource);
           }
 
           return resource;
@@ -216,7 +212,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
     });
 
     if (isDebug() && created) {
-      console.log(`   --> [CREATED] ${JSON.stringify(created)}`);
+      console.log(`   --> [CREATED]`, created);
     }
 
     const resource = await this.read(options, desired);
@@ -240,7 +236,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
     });
 
     if (isDebug() && updated) {
-      console.log(`   --> [UPDATED] ${JSON.stringify(updated)}`);
+      console.log(`   --> [UPDATED]`, updated);
     }
 
     const resource = await this.read(options, desired);
@@ -316,7 +312,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
 
     if (resource instanceof SkipAction) {
       if (isDebug()) {
-        console.log(`   --> [SKIPPED] ${messageOutput}`);
+        console.log(`   --> [SKIPPED]`, messageOutput);
       }
       return;
     }

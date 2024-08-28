@@ -15,11 +15,6 @@ import { DevCommand } from './commands/dev';
 import { DeployCommand, Preset } from './commands/deploy';
 import { GitService } from './commands/cd/git';
 
-process.addListener('SIGINT', () => {
-  console.log('Exiting!');
-  process.exit(0);
-});
-
 export const ui = new BottomBar(process.stderr);
 
 export const prompt = (
@@ -104,7 +99,7 @@ export class Command {
           preset: {
             demand: false,
             type: 'string',
-            choices: ['nextjs', 'docusaurus'],
+            choices: ['nextjs'],
             description: 'Use a preset configuration',
           },
         },
@@ -112,10 +107,12 @@ export class Command {
       .command({
         command: 'dev',
         describe: `Launch a development environment`,
-        handler: ({ withToken }) =>
+        handler: ({ withToken, preset }) =>
           this.loginWrapper(
-            () => {
-              const dev = new DevCommand(this.gitService);
+            async () => {
+              const dev = await new DevCommand(this.gitService).withPreset(
+                preset as Preset | undefined,
+              );
               return dev.handle();
             },
             isHeadless(),
@@ -126,6 +123,12 @@ export class Command {
             demand: false,
             type: 'string',
             description: 'Use a provided GitHub Token',
+          },
+          preset: {
+            demand: false,
+            type: 'string',
+            choices: ['nextjs'],
+            description: 'Use a preset configuration',
           },
         },
       })
