@@ -45355,7 +45355,8 @@ var run = async () => {
   const proc = execa(`${commands.toString({})} &`, {
     shell: true,
     detached: true,
-    stdio: ["inherit", "pipe", "pipe"],
+    stdout: process.stdout,
+    stderr: process.stderr,
     env: { ...process.env, ...env },
     verbose: isDebug
   });

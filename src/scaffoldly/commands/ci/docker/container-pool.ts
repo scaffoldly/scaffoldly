@@ -179,7 +179,7 @@ export class ContainerPool extends DevServer {
             if (!(err instanceof Error)) {
               throw err;
             }
-            this.warn(`Unable to attach to container: ${err.message}`);
+            console.warn(`Unable to attach to container: ${err.message}`);
             return;
           }
           container.modem.demuxStream(stream, this.stdout, this.stderr);
