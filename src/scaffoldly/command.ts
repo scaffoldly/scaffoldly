@@ -111,7 +111,7 @@ export class Command {
           this.loginWrapper(
             async () => {
               const dev = await new DevCommand(this.gitService)
-                .withMode(production ? 'production' : 'development')
+                .withMode(production ? 'production' : undefined)
                 .withPreset(preset as Preset | undefined);
               return dev.handle();
             },
@@ -146,7 +146,7 @@ export class Command {
           this.loginWrapper(
             async () => {
               const deploy = await new DeployCommand(this.gitService)
-                .withMode(development ? 'development' : 'production')
+                .withMode(development ? 'development' : undefined)
                 .withPreset(preset as Preset | undefined);
               return deploy.handle();
             },

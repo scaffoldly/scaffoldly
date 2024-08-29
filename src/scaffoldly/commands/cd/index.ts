@@ -4,6 +4,7 @@ import { ui } from '../../command';
 import promiseRetry from 'promise-retry';
 import _ from 'lodash';
 import { NotFoundException, SkipAction } from './errors';
+import { Mode } from '../../../config';
 
 type Differences = {
   [key: string]: unknown | Differences;
@@ -342,7 +343,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
 }
 
 export abstract class CdCommand<T> extends Command<T> {
-  constructor(public readonly cwd: string) {
-    super(cwd);
+  constructor(public readonly cwd: string, mode: Mode) {
+    super(cwd, mode);
   }
 }

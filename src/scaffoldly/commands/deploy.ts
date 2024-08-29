@@ -22,15 +22,14 @@ export class DeployCommand extends CdCommand<DeployCommand> {
 
   options: ResourceOptions = {};
 
-  constructor(private gitService: GitService) {
-    super(gitService.cwd);
+  constructor(private gitService: GitService, mode: Mode = 'production') {
+    super(gitService.cwd, mode);
     this.envService = new EnvService(this.gitService);
     this.dockerService = new DockerService(this.gitService, new DockerCiService(this.cwd));
     this.awsService = new AwsService(this.gitService, this.envService, this.dockerService);
   }
 
-  withMode(mode: Mode): DeployCommand {
-    console.log('!!! with mode', mode);
+  withMode(mode?: Mode): DeployCommand {
     super.withMode(mode);
     return this;
   }

@@ -9,9 +9,7 @@ export type Cwd = string;
 export abstract class Command<T> {
   private _config?: ScaffoldlyConfig;
 
-  private _mode?: Mode;
-
-  constructor(public readonly cwd: string) {}
+  constructor(public readonly cwd: string, private _mode: Mode) {}
 
   abstract handle(): Promise<void>;
 
@@ -34,7 +32,10 @@ export abstract class Command<T> {
   }
 
   withMode(mode?: Mode): Command<T> {
-    this._mode = mode;
+    if (mode && mode !== this._mode) {
+      console.warn(`🟠 Running in ${mode} mode`);
+    }
+    this._mode = mode || this._mode;
     return this;
   }
 
@@ -46,7 +47,6 @@ export abstract class Command<T> {
   }
 
   get config(): ScaffoldlyConfig {
-    console.log('!!! mode', this._mode);
     if (!this._config && this.packageJson) {
       try {
         this._config = new ScaffoldlyConfig({ packageJson: this.packageJson }, this._mode);
