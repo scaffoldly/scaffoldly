@@ -131,7 +131,7 @@ export class DevCommand extends CiCommand<DevCommand> {
   }
 
   private async waitForShutdown(): Promise<void> {
-    console.log("\nℹ️  Press 'Ctrl+C' to shutdown");
+    console.log("\nℹ️  Press 'Ctrl+C' to shutdown\n");
 
     await new Promise<void>((resolve) => {
       this.abortController.signal.addEventListener('abort', () => {

@@ -147,9 +147,8 @@ export class ContainerPool extends DevServer {
     try {
       const env = this.envService.dockerEnv;
       env.unshift(`AWS_LAMBDA_RUNTIME_API=${ref.runtimeApi}`);
-      env.unshift(`SLY_DEBUG=1`);
 
-      await this.docker.createContainer({
+      const container = await this.docker.createContainer({
         name: ref.name,
         Image: this.imageName,
         AttachStderr: false, // TODO: Capture output
@@ -167,6 +166,25 @@ export class ContainerPool extends DevServer {
         },
         abortSignal: this.abortController.signal,
       });
+
+      container.attach(
+        {
+          abortSignal: this.abortController.signal,
+          stream: true,
+          stdout: true,
+          stderr: true,
+        },
+        (err, stream) => {
+          if (err) {
+            if (!(err instanceof Error)) {
+              throw err;
+            }
+            this.warn(`Unable to attach to container: ${err.message}`);
+            return;
+          }
+          container.modem.demuxStream(stream, this.stdout, this.stderr);
+        },
+      );
 
       return ref;
     } catch (e) {

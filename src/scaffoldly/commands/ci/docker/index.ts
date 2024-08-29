@@ -8,7 +8,6 @@ import {
   Commands,
   Shell,
   ServiceName,
-  CONFIG_SIGNATURE,
 } from '../../../../config';
 import { join, relative, sep } from 'path';
 import { ui } from '../../../command';
@@ -31,7 +30,7 @@ type Path = string;
 
 export type Architecture = 'x86_64' | 'arm64' | 'match-host';
 
-type Copy = {
+export type Copy = {
   from?: string;
   src: string;
   dest: string;
@@ -359,10 +358,7 @@ export class DockerService {
       cmd: undefined,
       copy: [],
       paths: [],
-      env: {
-        ...(env || {}),
-        SLY_DEBUG: isDebug() ? 'true' : undefined,
-      },
+      env,
       run: [],
     };
 
@@ -504,27 +500,7 @@ export class DockerService {
         });
       });
 
-      if (isDebug()) {
-        // Debug mode, copy awslambda-entrypoint from this library
-        // DEVNOTE: node needs to be a package for this to work
-        copy.push({
-          src: join('node_modules', 'scaffoldly', 'dist', 'awslambda-entrypoint.js'),
-          dest: `.entrypoint`,
-          resolve: true,
-          mode: 0o755,
-          entrypoint: true,
-        });
-      } else {
-        // Copy awslambda-entrypoint from the scaffoldly image
-        copy.push({
-          from: CONFIG_SIGNATURE, // Created in CI/CD
-          src: `/${this.platform}/awslambda-entrypoint`, // Set in in scripts/Dockerfile
-          dest: `.entrypoint`,
-          noGlob: true,
-          absolute: true,
-          entrypoint: true,
-        });
-      }
+      copy.push(packageService.entrypoint);
 
       spec.copy = copy;
       spec.paths = [
@@ -872,9 +848,9 @@ export class DockerService {
 
     const container = await this.docker.createContainer({
       Image: image.RepoDigests[0],
-      Cmd: [`command -v ${bin}`],
+      Cmd: [`command -v ${bin}`], // TODO: check OS to determine command checker
       Tty: false,
-      Entrypoint: ['/bin/sh', '-c'], // TODO: check OS to determine shell
+      Entrypoint: ['/bin/sh', '-c'], // TODO: check OS to determine enterypoint
     });
 
     await container.start();

@@ -1,5 +1,5 @@
-import { ScaffoldlyConfig } from '../../../../../config';
-import { DockerService, RunCommand } from '..';
+import { CONFIG_SIGNATURE, ScaffoldlyConfig } from '../../../../../config';
+import { Copy, DockerService, RunCommand } from '..';
 import { NpmPackageService } from './npm';
 import { OsPackageService } from './os';
 import { join } from 'path';
@@ -12,6 +12,29 @@ export class PackageService {
   constructor(private dockerService: DockerService, private config: ScaffoldlyConfig) {
     this.osPackages = new OsPackageService(this.dockerService, config);
     this.npmPackages = new NpmPackageService(config);
+  }
+
+  get entrypoint(): Copy {
+    if (this.npmPackages.hasNode) {
+      // TODO: check that this file exists
+      return {
+        src: join('node_modules', 'scaffoldly', 'dist', 'awslambda-entrypoint.js'),
+        dest: `.entrypoint`,
+        resolve: true,
+        mode: 0o755,
+        entrypoint: true,
+      };
+    }
+
+    // Copy awslambda-entrypoint from the scaffoldly image
+    return {
+      from: CONFIG_SIGNATURE, // Created in CI/CD
+      src: `/${this.dockerService.platform}/awslambda-entrypoint`, // Set in in scripts/Dockerfile
+      dest: `.entrypoint`,
+      noGlob: true,
+      absolute: true,
+      entrypoint: true,
+    };
   }
 
   get paths(): Promise<string[]> {

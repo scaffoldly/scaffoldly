@@ -83,6 +83,7 @@ export class EnvService {
       SLY_ROUTES: JSON.stringify(this.gitService.config.routes), // TODO encode
       SLY_SERVE: this.gitService.config.serveCommands.encode(),
       SLY_SECRET: this.lastStatus?.secretName || '',
+      SLY_DEBUG: 'true', // TODO use flag
       ...this.baseEnv,
       ...this.buildEnv,
     };

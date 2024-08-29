@@ -5,6 +5,8 @@ import { ScaffoldlyConfig } from '../../../../../config';
 export class NpmPackageService {
   packages: string[];
 
+  _hasNode = false;
+
   constructor(private config: ScaffoldlyConfig) {
     const packages = (config.packages || [])
       .filter((p) => p.startsWith('npm:'))
@@ -27,6 +29,10 @@ export class NpmPackageService {
     this.packages = packages;
   }
 
+  get hasNode(): boolean {
+    return this._hasNode;
+  }
+
   get paths(): Promise<string[]> {
     const paths: string[] = [];
 
@@ -36,6 +42,10 @@ export class NpmPackageService {
       this.config.files.includes('package.json')
     ) {
       paths.push(join(this.config.workdir, this.config.src, 'node_modules', '.bin'));
+    }
+
+    if (paths.length > 0) {
+      this._hasNode = true;
     }
 
     return Promise.resolve(paths);

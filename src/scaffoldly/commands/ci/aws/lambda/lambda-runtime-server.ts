@@ -83,6 +83,7 @@ export class LambdaRuntimeServer extends HttpServer {
       req.setTimeout(0);
       // TODO: Socket timeouts need will drop an event
       this.invocations.dequeue().subscribe((invocation) => {
+        this.log(`START RequestId: ${invocation.requestId} Version: $LATEST`);
         const deadline = new Date().getTime() + 3000;
         res.header('lambda-runtime-aws-request-id', invocation.requestId);
         res.header('lambda-runtime-deadline-ms', `${deadline}`);
@@ -91,8 +92,8 @@ export class LambdaRuntimeServer extends HttpServer {
     });
 
     this.app.post('/2018-06-01/runtime/invocation/:requestId/response', (req, res) => {
-      const { requestId } = req.params;
-      const invocation = this.invocations.get(requestId);
+      this.log(`END RequestId: ${req.params.requestId}`);
+      const invocation = this.invocations.get(req.params.requestId);
       if (!invocation) {
         res.status(404).send('Invocation not found');
         return;
@@ -100,6 +101,10 @@ export class LambdaRuntimeServer extends HttpServer {
       invocation.response$.next(req.body);
       invocation.response$.complete();
       res.status(202).send('');
+      // TODO: Init Duration: 0.00 ms
+      this.log(
+        `REPORT RequestId: ${req.params.requestId} Duration: 0.00 ms Billed Duration: 0 ms Memory Size: 0 MB Max Memory Used: 0 MB`,
+      );
     });
 
     this.app.get('/', (_req, res) => {
