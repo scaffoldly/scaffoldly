@@ -8978,17 +8978,17 @@ var require_iterate = __commonJS({
     module2.exports = iterate;
     function iterate(list, iterator, state, callback) {
       var key = state["keyedList"] ? state["keyedList"][state.index] : state.index;
-      state.jobs[key] = runJob(iterator, key, list[key], function(error, output) {
+      state.jobs[key] = runJob(iterator, key, list[key], function(error2, output) {
         if (!(key in state.jobs)) {
           return;
         }
         delete state.jobs[key];
-        if (error) {
+        if (error2) {
           abort(state);
         } else {
           state.results[key] = output;
         }
-        callback(error, state.results);
+        callback(error2, state.results);
       });
     }
     function runJob(iterator, key, item, callback) {
@@ -9052,9 +9052,9 @@ var require_parallel = __commonJS({
     function parallel(list, iterator, callback) {
       var state = initState(list);
       while (state.index < (state["keyedList"] || list).length) {
-        iterate(list, iterator, state, function(error, result) {
-          if (error) {
-            callback(error, result);
+        iterate(list, iterator, state, function(error2, result) {
+          if (error2) {
+            callback(error2, result);
             return;
           }
           if (Object.keys(state.jobs).length === 0) {
@@ -9080,9 +9080,9 @@ var require_serialOrdered = __commonJS({
     module2.exports.descending = descending;
     function serialOrdered(list, iterator, sortMethod, callback) {
       var state = initState(list, sortMethod);
-      iterate(list, iterator, state, function iteratorHandler(error, result) {
-        if (error) {
-          callback(error, result);
+      iterate(list, iterator, state, function iteratorHandler(error2, result) {
+        if (error2) {
+          callback(error2, result);
           return;
         }
         state.index++;
@@ -9426,10 +9426,10 @@ var require_form_data = __commonJS({
         this.pipe(request);
         if (cb) {
           var onResponse;
-          var callback = function(error, responce) {
+          var callback = function(error2, responce) {
             request.removeListener("error", callback);
             request.removeListener("response", onResponse);
-            return cb.call(this, error, responce);
+            return cb.call(this, error2, responce);
           };
           onResponse = callback.bind(this, null);
           request.on("error", callback);
@@ -9937,14 +9937,14 @@ var require_browser = __commonJS({
         } else {
           exports2.storage.removeItem("debug");
         }
-      } catch (error) {
+      } catch (error2) {
       }
     }
     function load2() {
       let r;
       try {
         r = exports2.storage.getItem("debug");
-      } catch (error) {
+      } catch (error2) {
       }
       if (!r && typeof process !== "undefined" && "env" in process) {
         r = process.env.DEBUG;
@@ -9954,7 +9954,7 @@ var require_browser = __commonJS({
     function localstorage() {
       try {
         return localStorage;
-      } catch (error) {
+      } catch (error2) {
       }
     }
     module2.exports = require_common()(exports2);
@@ -9962,8 +9962,8 @@ var require_browser = __commonJS({
     formatters.j = function(v) {
       try {
         return JSON.stringify(v);
-      } catch (error) {
-        return "[UnexpectedJSONParseError]: " + error.message;
+      } catch (error2) {
+        return "[UnexpectedJSONParseError]: " + error2.message;
       }
     };
   }
@@ -10183,7 +10183,7 @@ var require_node = __commonJS({
           221
         ];
       }
-    } catch (error) {
+    } catch (error2) {
     }
     exports2.inspectOpts = Object.keys(process.env).filter((key) => {
       return /^debug_/i.test(key);
@@ -10277,7 +10277,7 @@ var require_debug = __commonJS({
       if (!debug) {
         try {
           debug = require_src()("follow-redirects");
-        } catch (error) {
+        } catch (error2) {
         }
         if (typeof debug !== "function") {
           debug = function() {
@@ -10302,8 +10302,8 @@ var require_follow_redirects = __commonJS({
     var useNativeURL = false;
     try {
       assert(new URL4());
-    } catch (error) {
-      useNativeURL = error.code === "ERR_INVALID_URL";
+    } catch (error2) {
+      useNativeURL = error2.code === "ERR_INVALID_URL";
     }
     var preservedUrlFields = [
       "auth",
@@ -10377,9 +10377,9 @@ var require_follow_redirects = __commonJS({
       this._currentRequest.abort();
       this.emit("abort");
     };
-    RedirectableRequest.prototype.destroy = function(error) {
-      destroyRequest(this._currentRequest, error);
-      destroy.call(this, error);
+    RedirectableRequest.prototype.destroy = function(error2) {
+      destroyRequest(this._currentRequest, error2);
+      destroy.call(this, error2);
       return this;
     };
     RedirectableRequest.prototype.write = function(data, encoding, callback) {
@@ -10546,10 +10546,10 @@ var require_follow_redirects = __commonJS({
         var i = 0;
         var self2 = this;
         var buffers = this._requestBodyBuffers;
-        (function writeNext(error) {
+        (function writeNext(error2) {
           if (request === self2._currentRequest) {
-            if (error) {
-              self2.emit("error", error);
+            if (error2) {
+              self2.emit("error", error2);
             } else if (i < buffers.length) {
               var buffer = buffers[i++];
               if (!request.finished) {
@@ -10746,12 +10746,12 @@ var require_follow_redirects = __commonJS({
       });
       return CustomError;
     }
-    function destroyRequest(request, error) {
+    function destroyRequest(request, error2) {
       for (var event of events) {
         request.removeListener(event, eventHandlers[event]);
       }
       request.on("error", noop3);
-      request.destroy(error);
+      request.destroy(error2);
     }
     function isSubdomain(subdomain, domain) {
       assert(isString2(subdomain) && isString2(domain));
@@ -12169,7 +12169,7 @@ var require_dist_cjs4 = __commonJS({
           metadata: $metadata
         });
         return response;
-      } catch (error) {
+      } catch (error2) {
         const { clientName, commandName, logger, dynamoDbDocumentClientOptions = {} } = context;
         const { overrideInputFilterSensitiveLog } = dynamoDbDocumentClientOptions;
         const inputFilterSensitiveLog = overrideInputFilterSensitiveLog ?? context.inputFilterSensitiveLog;
@@ -12177,10 +12177,10 @@ var require_dist_cjs4 = __commonJS({
           clientName,
           commandName,
           input: inputFilterSensitiveLog(args.input),
-          error,
-          metadata: error.$metadata
+          error: error2,
+          metadata: error2.$metadata
         });
-        throw error;
+        throw error2;
       }
     }, "loggerMiddleware");
     var loggerMiddlewareOptions = {
@@ -12383,7 +12383,7 @@ var require_dist_cjs6 = __commonJS({
             return url2;
           }
           return new URL(value);
-        } catch (error) {
+        } catch (error2) {
           return null;
         }
       })();
@@ -12570,9 +12570,9 @@ var require_dist_cjs6 = __commonJS({
       if (typeof expression === "string") {
         try {
           return new URL(expression);
-        } catch (error) {
-          console.error(`Failed to construct URL with ${expression}`, error);
-          throw error;
+        } catch (error2) {
+          console.error(`Failed to construct URL with ${expression}`, error2);
+          throw error2;
         }
       }
       throw new EndpointError2(`Endpoint URL must be a string, got ${typeof expression}`);
@@ -12601,13 +12601,13 @@ var require_dist_cjs6 = __commonJS({
       };
     }, "evaluateEndpointRule");
     var evaluateErrorRule = /* @__PURE__ */ __name((errorRule, options) => {
-      const { conditions, error } = errorRule;
+      const { conditions, error: error2 } = errorRule;
       const { result, referenceRecord } = evaluateConditions(conditions, options);
       if (!result) {
         return;
       }
       throw new EndpointError2(
-        evaluateExpression(error, "Error", {
+        evaluateExpression(error2, "Error", {
           ...options,
           referenceRecord: { ...options.referenceRecord, ...referenceRecord }
         })
@@ -13527,8 +13527,8 @@ var require_dist_cjs12 = __commonJS({
       /**
        * @deprecated use new operator.
        */
-      static from(error, options = true) {
-        return Object.assign(new this(error.message, options), error);
+      static from(error2, options = true) {
+        return Object.assign(new this(error2.message, options), error2);
       }
     };
     __name(_ProviderError, "ProviderError");
@@ -14152,20 +14152,20 @@ var require_dist_cjs17 = __commonJS({
           response,
           output: parsed
         };
-      } catch (error) {
-        Object.defineProperty(error, "$response", {
+      } catch (error2) {
+        Object.defineProperty(error2, "$response", {
           value: response
         });
-        if (!("$metadata" in error)) {
+        if (!("$metadata" in error2)) {
           const hint = `Deserialization error: to see the raw response, inspect the hidden field {error}.$response on this object.`;
-          error.message += "\n  " + hint;
-          if (typeof error.$responseBodyText !== "undefined") {
-            if (error.$response) {
-              error.$response.body = error.$responseBodyText;
+          error2.message += "\n  " + hint;
+          if (typeof error2.$responseBodyText !== "undefined") {
+            if (error2.$response) {
+              error2.$response.body = error2.$responseBodyText;
             }
           }
         }
-        throw error;
+        throw error2;
       }
     }, "deserializerMiddleware");
     var serializerMiddleware = /* @__PURE__ */ __name((options, serializer) => (next, context) => async (args) => {
@@ -14506,8 +14506,8 @@ var init_httpSigningMiddleware = __esm({
     import_protocol_http = __toESM(require_dist_cjs2());
     import_types2 = __toESM(require_dist_cjs());
     import_util_middleware2 = __toESM(require_dist_cjs10());
-    defaultErrorHandler = (signingProperties) => (error) => {
-      throw error;
+    defaultErrorHandler = (signingProperties) => (error2) => {
+      throw error2;
     };
     defaultSuccessHandler = (httpResponse, signingProperties) => {
     };
@@ -14942,25 +14942,25 @@ var require_dist_cjs19 = __commonJS({
     var TRANSIENT_ERROR_CODES = ["TimeoutError", "RequestTimeout", "RequestTimeoutException"];
     var TRANSIENT_ERROR_STATUS_CODES = [500, 502, 503, 504];
     var NODEJS_TIMEOUT_ERROR_CODES = ["ECONNRESET", "ECONNREFUSED", "EPIPE", "ETIMEDOUT"];
-    var isRetryableByTrait = /* @__PURE__ */ __name((error) => error.$retryable !== void 0, "isRetryableByTrait");
-    var isClockSkewError = /* @__PURE__ */ __name((error) => CLOCK_SKEW_ERROR_CODES.includes(error.name), "isClockSkewError");
-    var isClockSkewCorrectedError = /* @__PURE__ */ __name((error) => {
+    var isRetryableByTrait = /* @__PURE__ */ __name((error2) => error2.$retryable !== void 0, "isRetryableByTrait");
+    var isClockSkewError = /* @__PURE__ */ __name((error2) => CLOCK_SKEW_ERROR_CODES.includes(error2.name), "isClockSkewError");
+    var isClockSkewCorrectedError = /* @__PURE__ */ __name((error2) => {
       var _a;
-      return (_a = error.$metadata) == null ? void 0 : _a.clockSkewCorrected;
+      return (_a = error2.$metadata) == null ? void 0 : _a.clockSkewCorrected;
     }, "isClockSkewCorrectedError");
-    var isThrottlingError = /* @__PURE__ */ __name((error) => {
+    var isThrottlingError = /* @__PURE__ */ __name((error2) => {
       var _a, _b;
-      return ((_a = error.$metadata) == null ? void 0 : _a.httpStatusCode) === 429 || THROTTLING_ERROR_CODES.includes(error.name) || ((_b = error.$retryable) == null ? void 0 : _b.throttling) == true;
+      return ((_a = error2.$metadata) == null ? void 0 : _a.httpStatusCode) === 429 || THROTTLING_ERROR_CODES.includes(error2.name) || ((_b = error2.$retryable) == null ? void 0 : _b.throttling) == true;
     }, "isThrottlingError");
-    var isTransientError = /* @__PURE__ */ __name((error) => {
+    var isTransientError = /* @__PURE__ */ __name((error2) => {
       var _a;
-      return isClockSkewCorrectedError(error) || TRANSIENT_ERROR_CODES.includes(error.name) || NODEJS_TIMEOUT_ERROR_CODES.includes((error == null ? void 0 : error.code) || "") || TRANSIENT_ERROR_STATUS_CODES.includes(((_a = error.$metadata) == null ? void 0 : _a.httpStatusCode) || 0);
+      return isClockSkewCorrectedError(error2) || TRANSIENT_ERROR_CODES.includes(error2.name) || NODEJS_TIMEOUT_ERROR_CODES.includes((error2 == null ? void 0 : error2.code) || "") || TRANSIENT_ERROR_STATUS_CODES.includes(((_a = error2.$metadata) == null ? void 0 : _a.httpStatusCode) || 0);
     }, "isTransientError");
-    var isServerError = /* @__PURE__ */ __name((error) => {
+    var isServerError = /* @__PURE__ */ __name((error2) => {
       var _a;
-      if (((_a = error.$metadata) == null ? void 0 : _a.httpStatusCode) !== void 0) {
-        const statusCode = error.$metadata.httpStatusCode;
-        if (500 <= statusCode && statusCode <= 599 && !isTransientError(error)) {
+      if (((_a = error2.$metadata) == null ? void 0 : _a.httpStatusCode) !== void 0) {
+        const statusCode = error2.$metadata.httpStatusCode;
+        if (500 <= statusCode && statusCode <= 599 && !isTransientError(error2)) {
           return true;
         }
         return false;
@@ -15204,7 +15204,7 @@ var require_dist_cjs20 = __commonJS({
       async getMaxAttempts() {
         try {
           return await this.maxAttemptsProvider();
-        } catch (error) {
+        } catch (error2) {
           console.warn(`Max attempts provider could not resolve. Using default of ${DEFAULT_MAX_ATTEMPTS}`);
           return DEFAULT_MAX_ATTEMPTS;
         }
@@ -18489,13 +18489,13 @@ var require_dist_cjs33 = __commonJS({
       const retryCost = (options == null ? void 0 : options.retryCost) ?? import_util_retry.RETRY_COST;
       const timeoutRetryCost = (options == null ? void 0 : options.timeoutRetryCost) ?? import_util_retry.TIMEOUT_RETRY_COST;
       let availableCapacity = initialRetryTokens;
-      const getCapacityAmount = /* @__PURE__ */ __name((error) => error.name === "TimeoutError" ? timeoutRetryCost : retryCost, "getCapacityAmount");
-      const hasRetryTokens = /* @__PURE__ */ __name((error) => getCapacityAmount(error) <= availableCapacity, "hasRetryTokens");
-      const retrieveRetryTokens = /* @__PURE__ */ __name((error) => {
-        if (!hasRetryTokens(error)) {
+      const getCapacityAmount = /* @__PURE__ */ __name((error2) => error2.name === "TimeoutError" ? timeoutRetryCost : retryCost, "getCapacityAmount");
+      const hasRetryTokens = /* @__PURE__ */ __name((error2) => getCapacityAmount(error2) <= availableCapacity, "hasRetryTokens");
+      const retrieveRetryTokens = /* @__PURE__ */ __name((error2) => {
+        if (!hasRetryTokens(error2)) {
           throw new Error("No retry token available");
         }
-        const capacityAmount = getCapacityAmount(error);
+        const capacityAmount = getCapacityAmount(error2);
         availableCapacity -= capacityAmount;
         return capacityAmount;
       }, "retrieveRetryTokens");
@@ -18511,20 +18511,20 @@ var require_dist_cjs33 = __commonJS({
     }, "getDefaultRetryQuota");
     var defaultDelayDecider = /* @__PURE__ */ __name((delayBase, attempts) => Math.floor(Math.min(import_util_retry.MAXIMUM_RETRY_DELAY, Math.random() * 2 ** attempts * delayBase)), "defaultDelayDecider");
     var import_service_error_classification = require_dist_cjs19();
-    var defaultRetryDecider = /* @__PURE__ */ __name((error) => {
-      if (!error) {
+    var defaultRetryDecider = /* @__PURE__ */ __name((error2) => {
+      if (!error2) {
         return false;
       }
-      return (0, import_service_error_classification.isRetryableByTrait)(error) || (0, import_service_error_classification.isClockSkewError)(error) || (0, import_service_error_classification.isThrottlingError)(error) || (0, import_service_error_classification.isTransientError)(error);
+      return (0, import_service_error_classification.isRetryableByTrait)(error2) || (0, import_service_error_classification.isClockSkewError)(error2) || (0, import_service_error_classification.isThrottlingError)(error2) || (0, import_service_error_classification.isTransientError)(error2);
     }, "defaultRetryDecider");
-    var asSdkError = /* @__PURE__ */ __name((error) => {
-      if (error instanceof Error)
-        return error;
-      if (error instanceof Object)
-        return Object.assign(new Error(), error);
-      if (typeof error === "string")
-        return new Error(error);
-      return new Error(`AWS SDK error wrapper for ${error}`);
+    var asSdkError = /* @__PURE__ */ __name((error2) => {
+      if (error2 instanceof Error)
+        return error2;
+      if (error2 instanceof Object)
+        return Object.assign(new Error(), error2);
+      if (typeof error2 === "string")
+        return new Error(error2);
+      return new Error(`AWS SDK error wrapper for ${error2}`);
     }, "asSdkError");
     var _StandardRetryStrategy = class _StandardRetryStrategy {
       constructor(maxAttemptsProvider, options) {
@@ -18534,14 +18534,14 @@ var require_dist_cjs33 = __commonJS({
         this.delayDecider = (options == null ? void 0 : options.delayDecider) ?? defaultDelayDecider;
         this.retryQuota = (options == null ? void 0 : options.retryQuota) ?? getDefaultRetryQuota(import_util_retry.INITIAL_RETRY_TOKENS);
       }
-      shouldRetry(error, attempts, maxAttempts) {
-        return attempts < maxAttempts && this.retryDecider(error) && this.retryQuota.hasRetryTokens(error);
+      shouldRetry(error2, attempts, maxAttempts) {
+        return attempts < maxAttempts && this.retryDecider(error2) && this.retryQuota.hasRetryTokens(error2);
       }
       async getMaxAttempts() {
         let maxAttempts;
         try {
           maxAttempts = await this.maxAttemptsProvider();
-        } catch (error) {
+        } catch (error2) {
           maxAttempts = import_util_retry.DEFAULT_MAX_ATTEMPTS;
         }
         return maxAttempts;
@@ -18762,23 +18762,23 @@ var require_dist_cjs33 = __commonJS({
       }
     }, "retryMiddleware");
     var isRetryStrategyV2 = /* @__PURE__ */ __name((retryStrategy) => typeof retryStrategy.acquireInitialRetryToken !== "undefined" && typeof retryStrategy.refreshRetryTokenForRetry !== "undefined" && typeof retryStrategy.recordSuccess !== "undefined", "isRetryStrategyV2");
-    var getRetryErrorInfo = /* @__PURE__ */ __name((error) => {
+    var getRetryErrorInfo = /* @__PURE__ */ __name((error2) => {
       const errorInfo = {
-        error,
-        errorType: getRetryErrorType(error)
+        error: error2,
+        errorType: getRetryErrorType(error2)
       };
-      const retryAfterHint = getRetryAfterHint(error.$response);
+      const retryAfterHint = getRetryAfterHint(error2.$response);
       if (retryAfterHint) {
         errorInfo.retryAfterHint = retryAfterHint;
       }
       return errorInfo;
     }, "getRetryErrorInfo");
-    var getRetryErrorType = /* @__PURE__ */ __name((error) => {
-      if ((0, import_service_error_classification.isThrottlingError)(error))
+    var getRetryErrorType = /* @__PURE__ */ __name((error2) => {
+      if ((0, import_service_error_classification.isThrottlingError)(error2))
         return "THROTTLING";
-      if ((0, import_service_error_classification.isTransientError)(error))
+      if ((0, import_service_error_classification.isTransientError)(error2))
         return "TRANSIENT";
-      if ((0, import_service_error_classification.isServerError)(error))
+      if ((0, import_service_error_classification.isServerError)(error2))
         return "SERVER_ERROR";
       return "CLIENT_ERROR";
     }, "getRetryErrorType");
@@ -19222,7 +19222,7 @@ var require_dist_cjs34 = __commonJS({
                 ...request.headers,
                 [CONTENT_LENGTH_HEADER]: String(length)
               };
-            } catch (error) {
+            } catch (error2) {
             }
           }
         }
@@ -19365,18 +19365,18 @@ var init_AwsSdkSigV4Signer = __esm({
         return signedRequest;
       }
       errorHandler(signingProperties) {
-        return (error) => {
-          const serverTime = error.ServerTime ?? getDateHeader(error.$response);
+        return (error2) => {
+          const serverTime = error2.ServerTime ?? getDateHeader(error2.$response);
           if (serverTime) {
             const config = throwSigningPropertyError("config", signingProperties.config);
             const initialSystemClockOffset = config.systemClockOffset;
             config.systemClockOffset = getUpdatedSystemClockOffset(serverTime, config.systemClockOffset);
             const clockSkewCorrected = config.systemClockOffset !== initialSystemClockOffset;
-            if (clockSkewCorrected && error.$metadata) {
-              error.$metadata.clockSkewCorrected = true;
+            if (clockSkewCorrected && error2.$metadata) {
+              error2.$metadata.clockSkewCorrected = true;
             }
           }
-          throw error;
+          throw error2;
         };
       }
       successHandler(httpResponse, signingProperties) {
@@ -22181,8 +22181,8 @@ function __read(o, n) {
   var i = m.call(o), r, ar = [], e;
   try {
     while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
-  } catch (error) {
-    e = { error };
+  } catch (error2) {
+    e = { error: error2 };
   } finally {
     try {
       if (r && !r.done && (m = i["return"])) m.call(i);
@@ -22412,9 +22412,9 @@ var init_tslib_es6 = __esm({
     } : function(o, v) {
       o["default"] = v;
     };
-    _SuppressedError = typeof SuppressedError === "function" ? SuppressedError : function(error, suppressed, message) {
+    _SuppressedError = typeof SuppressedError === "function" ? SuppressedError : function(error2, suppressed, message) {
       var e = new Error(message);
-      return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
+      return e.name = "SuppressedError", e.error = error2, e.suppressed = suppressed, e;
     };
     tslib_es6_default = {
       __extends,
@@ -22967,12 +22967,12 @@ For more information, please visit: ` + STATIC_STABILITY_DOC_URL
           let token;
           try {
             token = (await getMetadataToken({ ...endpoint, timeout })).toString();
-          } catch (error) {
-            if ((error == null ? void 0 : error.statusCode) === 400) {
-              throw Object.assign(error, {
+          } catch (error2) {
+            if ((error2 == null ? void 0 : error2.statusCode) === 400) {
+              throw Object.assign(error2, {
                 message: "EC2 Metadata token request returned error"
               });
-            } else if (error.message === "TimeoutError" || [403, 404, 405].includes(error.statusCode)) {
+            } else if (error2.message === "TimeoutError" || [403, 404, 405].includes(error2.statusCode)) {
               disableFetchToken = true;
             }
             logger == null ? void 0 : logger.debug("AWS SDK Instance Metadata", "using v1 fallback (initial)");
@@ -25367,8 +25367,8 @@ var init_httpSigningMiddleware2 = __esm({
     import_protocol_http7 = __toESM(require_dist_cjs45());
     import_types6 = __toESM(require_dist_cjs());
     import_util_middleware4 = __toESM(require_dist_cjs10());
-    defaultErrorHandler2 = (signingProperties) => (error) => {
-      throw error;
+    defaultErrorHandler2 = (signingProperties) => (error2) => {
+      throw error2;
     };
     defaultSuccessHandler2 = (httpResponse, signingProperties) => {
     };
@@ -28283,13 +28283,13 @@ var require_dist_cjs54 = __commonJS({
       const retryCost = (options == null ? void 0 : options.retryCost) ?? import_util_retry.RETRY_COST;
       const timeoutRetryCost = (options == null ? void 0 : options.timeoutRetryCost) ?? import_util_retry.TIMEOUT_RETRY_COST;
       let availableCapacity = initialRetryTokens;
-      const getCapacityAmount = /* @__PURE__ */ __name((error) => error.name === "TimeoutError" ? timeoutRetryCost : retryCost, "getCapacityAmount");
-      const hasRetryTokens = /* @__PURE__ */ __name((error) => getCapacityAmount(error) <= availableCapacity, "hasRetryTokens");
-      const retrieveRetryTokens = /* @__PURE__ */ __name((error) => {
-        if (!hasRetryTokens(error)) {
+      const getCapacityAmount = /* @__PURE__ */ __name((error2) => error2.name === "TimeoutError" ? timeoutRetryCost : retryCost, "getCapacityAmount");
+      const hasRetryTokens = /* @__PURE__ */ __name((error2) => getCapacityAmount(error2) <= availableCapacity, "hasRetryTokens");
+      const retrieveRetryTokens = /* @__PURE__ */ __name((error2) => {
+        if (!hasRetryTokens(error2)) {
           throw new Error("No retry token available");
         }
-        const capacityAmount = getCapacityAmount(error);
+        const capacityAmount = getCapacityAmount(error2);
         availableCapacity -= capacityAmount;
         return capacityAmount;
       }, "retrieveRetryTokens");
@@ -28305,20 +28305,20 @@ var require_dist_cjs54 = __commonJS({
     }, "getDefaultRetryQuota");
     var defaultDelayDecider = /* @__PURE__ */ __name((delayBase, attempts) => Math.floor(Math.min(import_util_retry.MAXIMUM_RETRY_DELAY, Math.random() * 2 ** attempts * delayBase)), "defaultDelayDecider");
     var import_service_error_classification = require_dist_cjs19();
-    var defaultRetryDecider = /* @__PURE__ */ __name((error) => {
-      if (!error) {
+    var defaultRetryDecider = /* @__PURE__ */ __name((error2) => {
+      if (!error2) {
         return false;
       }
-      return (0, import_service_error_classification.isRetryableByTrait)(error) || (0, import_service_error_classification.isClockSkewError)(error) || (0, import_service_error_classification.isThrottlingError)(error) || (0, import_service_error_classification.isTransientError)(error);
+      return (0, import_service_error_classification.isRetryableByTrait)(error2) || (0, import_service_error_classification.isClockSkewError)(error2) || (0, import_service_error_classification.isThrottlingError)(error2) || (0, import_service_error_classification.isTransientError)(error2);
     }, "defaultRetryDecider");
-    var asSdkError = /* @__PURE__ */ __name((error) => {
-      if (error instanceof Error)
-        return error;
-      if (error instanceof Object)
-        return Object.assign(new Error(), error);
-      if (typeof error === "string")
-        return new Error(error);
-      return new Error(`AWS SDK error wrapper for ${error}`);
+    var asSdkError = /* @__PURE__ */ __name((error2) => {
+      if (error2 instanceof Error)
+        return error2;
+      if (error2 instanceof Object)
+        return Object.assign(new Error(), error2);
+      if (typeof error2 === "string")
+        return new Error(error2);
+      return new Error(`AWS SDK error wrapper for ${error2}`);
     }, "asSdkError");
     var _StandardRetryStrategy = class _StandardRetryStrategy {
       constructor(maxAttemptsProvider, options) {
@@ -28328,14 +28328,14 @@ var require_dist_cjs54 = __commonJS({
         this.delayDecider = (options == null ? void 0 : options.delayDecider) ?? defaultDelayDecider;
         this.retryQuota = (options == null ? void 0 : options.retryQuota) ?? getDefaultRetryQuota(import_util_retry.INITIAL_RETRY_TOKENS);
       }
-      shouldRetry(error, attempts, maxAttempts) {
-        return attempts < maxAttempts && this.retryDecider(error) && this.retryQuota.hasRetryTokens(error);
+      shouldRetry(error2, attempts, maxAttempts) {
+        return attempts < maxAttempts && this.retryDecider(error2) && this.retryQuota.hasRetryTokens(error2);
       }
       async getMaxAttempts() {
         let maxAttempts;
         try {
           maxAttempts = await this.maxAttemptsProvider();
-        } catch (error) {
+        } catch (error2) {
           maxAttempts = import_util_retry.DEFAULT_MAX_ATTEMPTS;
         }
         return maxAttempts;
@@ -28556,23 +28556,23 @@ var require_dist_cjs54 = __commonJS({
       }
     }, "retryMiddleware");
     var isRetryStrategyV2 = /* @__PURE__ */ __name((retryStrategy) => typeof retryStrategy.acquireInitialRetryToken !== "undefined" && typeof retryStrategy.refreshRetryTokenForRetry !== "undefined" && typeof retryStrategy.recordSuccess !== "undefined", "isRetryStrategyV2");
-    var getRetryErrorInfo = /* @__PURE__ */ __name((error) => {
+    var getRetryErrorInfo = /* @__PURE__ */ __name((error2) => {
       const errorInfo = {
-        error,
-        errorType: getRetryErrorType(error)
+        error: error2,
+        errorType: getRetryErrorType(error2)
       };
-      const retryAfterHint = getRetryAfterHint(error.$response);
+      const retryAfterHint = getRetryAfterHint(error2.$response);
       if (retryAfterHint) {
         errorInfo.retryAfterHint = retryAfterHint;
       }
       return errorInfo;
     }, "getRetryErrorInfo");
-    var getRetryErrorType = /* @__PURE__ */ __name((error) => {
-      if ((0, import_service_error_classification.isThrottlingError)(error))
+    var getRetryErrorType = /* @__PURE__ */ __name((error2) => {
+      if ((0, import_service_error_classification.isThrottlingError)(error2))
         return "THROTTLING";
-      if ((0, import_service_error_classification.isTransientError)(error))
+      if ((0, import_service_error_classification.isTransientError)(error2))
         return "TRANSIENT";
-      if ((0, import_service_error_classification.isServerError)(error))
+      if ((0, import_service_error_classification.isServerError)(error2))
         return "SERVER_ERROR";
       return "CLIENT_ERROR";
     }, "getRetryErrorType");
@@ -29014,7 +29014,7 @@ var require_dist_cjs55 = __commonJS({
                 ...request.headers,
                 [CONTENT_LENGTH_HEADER]: String(length)
               };
-            } catch (error) {
+            } catch (error2) {
             }
           }
         }
@@ -29157,18 +29157,18 @@ var init_AwsSdkSigV4Signer2 = __esm({
         return signedRequest;
       }
       errorHandler(signingProperties) {
-        return (error) => {
-          const serverTime = error.ServerTime ?? getDateHeader2(error.$response);
+        return (error2) => {
+          const serverTime = error2.ServerTime ?? getDateHeader2(error2.$response);
           if (serverTime) {
             const config = throwSigningPropertyError2("config", signingProperties.config);
             const initialSystemClockOffset = config.systemClockOffset;
             config.systemClockOffset = getUpdatedSystemClockOffset2(serverTime, config.systemClockOffset);
             const clockSkewCorrected = config.systemClockOffset !== initialSystemClockOffset;
-            if (clockSkewCorrected && error.$metadata) {
-              error.$metadata.clockSkewCorrected = true;
+            if (clockSkewCorrected && error2.$metadata) {
+              error2.$metadata.clockSkewCorrected = true;
             }
           }
-          throw error;
+          throw error2;
         };
       }
       successHandler(httpResponse, signingProperties) {
@@ -30619,12 +30619,12 @@ For more information, please visit: ` + STATIC_STABILITY_DOC_URL
           let token;
           try {
             token = (await getMetadataToken({ ...endpoint, timeout })).toString();
-          } catch (error) {
-            if ((error == null ? void 0 : error.statusCode) === 400) {
-              throw Object.assign(error, {
+          } catch (error2) {
+            if ((error2 == null ? void 0 : error2.statusCode) === 400) {
+              throw Object.assign(error2, {
                 message: "EC2 Metadata token request returned error"
               });
-            } else if (error.message === "TimeoutError" || [403, 404, 405].includes(error.statusCode)) {
+            } else if (error2.message === "TimeoutError" || [403, 404, 405].includes(error2.statusCode)) {
               disableFetchToken = true;
             }
             logger == null ? void 0 : logger.debug("AWS SDK Instance Metadata", "using v1 fallback (initial)");
@@ -34005,8 +34005,8 @@ var require_dist_cjs63 = __commonJS({
               throw Error(`Profile ${profileName} credential_process returned invalid JSON.`);
             }
             return getValidatedProcessCredentials(profileName, data);
-          } catch (error) {
-            throw new import_property_provider.CredentialsProviderError(error.message, { logger });
+          } catch (error2) {
+            throw new import_property_provider.CredentialsProviderError(error2.message, { logger });
           }
         } else {
           throw new import_property_provider.CredentialsProviderError(`Profile ${profileName} did not contain credential_process.`, { logger });
@@ -35795,13 +35795,13 @@ var require_dist_cjs68 = __commonJS({
             expiresAt: newTokenExpiration.toISOString(),
             refreshToken: newSsoOidcToken.refreshToken
           });
-        } catch (error) {
+        } catch (error2) {
         }
         return {
           token: newSsoOidcToken.accessToken,
           expiration: newTokenExpiration
         };
-      } catch (error) {
+      } catch (error2) {
         validateTokenExpiry(existingToken);
         return existingToken;
       }
@@ -40036,6 +40036,14 @@ module.exports = __toCommonJS(awslambda_entrypoint_exports);
 
 // src/awslambda-entrypoint/log.ts
 var isDebug = !!process.env.SLY_DEBUG;
+var error = (message, obj) => {
+  const msg = `[awslambda-bootstrap] ${message}`;
+  if (!obj) {
+    console.error(msg);
+    return;
+  }
+  console.error(msg, JSON.stringify(obj));
+};
 var info = (message, obj) => {
   const msg = `[awslambda-bootstrap] ${message}`;
   if (!obj) {
@@ -40470,16 +40478,16 @@ var descriptors = {};
 });
 Object.defineProperties(AxiosError, descriptors);
 Object.defineProperty(prototype, "isAxiosError", { value: true });
-AxiosError.from = (error, code, config, request, response, customProps) => {
+AxiosError.from = (error2, code, config, request, response, customProps) => {
   const axiosError = Object.create(prototype);
-  utils_default.toFlatObject(error, axiosError, function filter2(obj) {
+  utils_default.toFlatObject(error2, axiosError, function filter2(obj) {
     return obj !== Error.prototype;
   }, (prop) => {
     return prop !== "isAxiosError";
   });
-  AxiosError.call(axiosError, error.message, code, config, request, response);
-  axiosError.cause = error;
-  axiosError.name = error.name;
+  AxiosError.call(axiosError, error2.message, code, config, request, response);
+  axiosError.cause = error2;
+  axiosError.name = error2.name;
   customProps && Object.assign(axiosError, customProps);
   return axiosError;
 };
@@ -43022,15 +43030,15 @@ var Axios = class {
       const onRejected = requestInterceptorChain[i++];
       try {
         newConfig = onFulfilled(newConfig);
-      } catch (error) {
-        onRejected.call(this, error);
+      } catch (error2) {
+        onRejected.call(this, error2);
         break;
       }
     }
     try {
       promise = dispatchRequest.call(this, newConfig);
-    } catch (error) {
-      return Promise.reject(error);
+    } catch (error2) {
+      return Promise.reject(error2);
     }
     i = 0;
     len = responseInterceptorChain.length;
@@ -44023,7 +44031,7 @@ var makeError = ({
   stdout,
   stderr,
   all: all3,
-  error,
+  error: error2,
   signal,
   exitCode,
   command,
@@ -44036,39 +44044,39 @@ var makeError = ({
   exitCode = exitCode === null ? void 0 : exitCode;
   signal = signal === null ? void 0 : signal;
   const signalDescription = signal === void 0 ? void 0 : signalsByName[signal].description;
-  const errorCode = error && error.code;
+  const errorCode = error2 && error2.code;
   const prefix = getErrorPrefix({ timedOut, timeout, errorCode, signal, signalDescription, exitCode, isCanceled });
   const execaMessage = `Command ${prefix}: ${command}`;
-  const isError = Object.prototype.toString.call(error) === "[object Error]";
+  const isError = Object.prototype.toString.call(error2) === "[object Error]";
   const shortMessage = isError ? `${execaMessage}
-${error.message}` : execaMessage;
+${error2.message}` : execaMessage;
   const message = [shortMessage, stderr, stdout].filter(Boolean).join("\n");
   if (isError) {
-    error.originalMessage = error.message;
-    error.message = message;
+    error2.originalMessage = error2.message;
+    error2.message = message;
   } else {
-    error = new Error(message);
+    error2 = new Error(message);
   }
-  error.shortMessage = shortMessage;
-  error.command = command;
-  error.escapedCommand = escapedCommand;
-  error.exitCode = exitCode;
-  error.signal = signal;
-  error.signalDescription = signalDescription;
-  error.stdout = stdout;
-  error.stderr = stderr;
-  error.cwd = cwd;
+  error2.shortMessage = shortMessage;
+  error2.command = command;
+  error2.escapedCommand = escapedCommand;
+  error2.exitCode = exitCode;
+  error2.signal = signal;
+  error2.signalDescription = signalDescription;
+  error2.stdout = stdout;
+  error2.stderr = stderr;
+  error2.cwd = cwd;
   if (all3 !== void 0) {
-    error.all = all3;
+    error2.all = all3;
   }
-  if ("bufferedData" in error) {
-    delete error.bufferedData;
+  if ("bufferedData" in error2) {
+    delete error2.bufferedData;
   }
-  error.failed = true;
-  error.timedOut = Boolean(timedOut);
-  error.isCanceled = isCanceled;
-  error.killed = killed && !timedOut;
-  return error;
+  error2.failed = true;
+  error2.timedOut = Boolean(timedOut);
+  error2.isCanceled = isCanceled;
+  error2.killed = killed && !timedOut;
+  return error2;
 };
 
 // node_modules/execa/lib/stdio.js
@@ -44484,9 +44492,9 @@ var getStreamContents = async (stream4, { init, convertChunk, getSize, truncateC
     }
     appendFinalChunk({ state, convertChunk, getSize, truncateChunk, addChunk, getFinalChunk, maxBuffer });
     return finalize(state);
-  } catch (error) {
-    error.bufferedData = finalize(state);
-    throw error;
+  } catch (error2) {
+    error2.bufferedData = finalize(state);
+    throw error2;
   }
 };
 var appendFinalChunk = ({ state, getSize, truncateChunk, addChunk, getFinalChunk, maxBuffer }) => {
@@ -44613,11 +44621,11 @@ async function getStreamAsBuffer(stream4, options) {
   }
   try {
     return arrayBufferToNodeBuffer(await getStreamAsArrayBuffer(stream4, options));
-  } catch (error) {
-    if (error.bufferedData !== void 0) {
-      error.bufferedData = arrayBufferToNodeBuffer(error.bufferedData);
+  } catch (error2) {
+    if (error2.bufferedData !== void 0) {
+      error2.bufferedData = arrayBufferToNodeBuffer(error2.bufferedData);
     }
-    throw error;
+    throw error2;
   }
 }
 var arrayBufferToNodeBuffer = (arrayBuffer) => globalThis.Buffer.from(arrayBuffer);
@@ -44711,8 +44719,8 @@ var getBufferedData = async (stream4, streamPromise) => {
   stream4.destroy();
   try {
     return await streamPromise;
-  } catch (error) {
-    return error.bufferedData;
+  } catch (error2) {
+    return error2.bufferedData;
   }
 };
 var getStreamPromise = (stream4, { encoding, buffer, maxBuffer }) => {
@@ -44737,9 +44745,9 @@ var getSpawnedResult = async ({ stdout, stderr, all: all3 }, { encoding, buffer,
   const allPromise = getStreamPromise(all3, { encoding, buffer, maxBuffer: maxBuffer * 2 });
   try {
     return await Promise.all([processDone, stdoutPromise, stderrPromise, allPromise]);
-  } catch (error) {
+  } catch (error2) {
     return Promise.all([
-      { error, signal: error.signal, timedOut: error.timedOut },
+      { error: error2, signal: error2.signal, timedOut: error2.timedOut },
       getBufferedData(stdout, stdoutPromise),
       getBufferedData(stderr, stderrPromise),
       getBufferedData(all3, allPromise)
@@ -44764,12 +44772,12 @@ var getSpawnedPromise = (spawned) => new Promise((resolve, reject) => {
   spawned.on("exit", (exitCode, signal) => {
     resolve({ exitCode, signal });
   });
-  spawned.on("error", (error) => {
-    reject(error);
+  spawned.on("error", (error2) => {
+    reject(error2);
   });
   if (spawned.stdin) {
-    spawned.stdin.on("error", (error) => {
-      reject(error);
+    spawned.stdin.on("error", (error2) => {
+      reject(error2);
     });
   }
 });
@@ -44899,9 +44907,9 @@ var handleArguments = (file, args, options = {}) => {
   }
   return { file, args, options, parsed };
 };
-var handleOutput = (options, value, error) => {
+var handleOutput = (options, value, error2) => {
   if (typeof value !== "string" && !import_node_buffer2.Buffer.isBuffer(value)) {
-    return error === void 0 ? void 0 : "";
+    return error2 === void 0 ? void 0 : "";
   }
   if (options.stripFinalNewline) {
     return stripFinalNewline(value);
@@ -44917,10 +44925,10 @@ function execa(file, args, options) {
   let spawned;
   try {
     spawned = import_node_child_process3.default.spawn(parsed.file, parsed.args, parsed.options);
-  } catch (error) {
+  } catch (error2) {
     const dummySpawned = new import_node_child_process3.default.ChildProcess();
     const errorPromise = Promise.reject(makeError({
-      error,
+      error: error2,
       stdout: "",
       stderr: "",
       all: "",
@@ -44941,13 +44949,13 @@ function execa(file, args, options) {
   spawned.kill = spawnedKill.bind(null, spawned.kill.bind(spawned));
   spawned.cancel = spawnedCancel.bind(null, spawned, context);
   const handlePromise = async () => {
-    const [{ error, exitCode, signal, timedOut }, stdoutResult, stderrResult, allResult] = await getSpawnedResult(spawned, parsed.options, processDone);
+    const [{ error: error2, exitCode, signal, timedOut }, stdoutResult, stderrResult, allResult] = await getSpawnedResult(spawned, parsed.options, processDone);
     const stdout = handleOutput(parsed.options, stdoutResult);
     const stderr = handleOutput(parsed.options, stderrResult);
     const all3 = handleOutput(parsed.options, allResult);
-    if (error || exitCode !== 0 || signal !== null) {
+    if (error2 || exitCode !== 0 || signal !== null) {
       const returnedError = makeError({
-        error,
+        error: error2,
         exitCode,
         signal,
         stdout,
@@ -44994,9 +45002,9 @@ function execaSync(file, args, options) {
   let result;
   try {
     result = import_node_child_process3.default.spawnSync(parsed.file, parsed.args, { ...parsed.options, input });
-  } catch (error) {
+  } catch (error2) {
     throw makeError({
-      error,
+      error: error2,
       stdout: "",
       stderr: "",
       all: "",
@@ -45011,7 +45019,7 @@ function execaSync(file, args, options) {
   const stdout = handleOutput(parsed.options, result.stdout, result.error);
   const stderr = handleOutput(parsed.options, result.stderr, result.error);
   if (result.error || result.status !== 0 || result.signal !== null) {
-    const error = makeError({
+    const error2 = makeError({
       stdout,
       stderr,
       error: result.error,
@@ -45025,9 +45033,9 @@ function execaSync(file, args, options) {
       killed: result.signal !== null
     });
     if (!parsed.options.reject) {
-      return error;
+      return error2;
     }
-    throw error;
+    throw error2;
   }
   return {
     command,
@@ -45094,26 +45102,25 @@ function convertToURLSearchParams(params) {
   return searchParams;
 }
 var waitForEndpoint = async (handler, deadline) => {
-  const start = Date.now();
-  const timeout = deadline - start;
-  const endpoint = new URL(`http://${handler}`);
-  if (timeout < 0) {
-    return { endpoint, timeout: 0 };
+  const now = Date.now();
+  if (now > deadline) {
+    return { endpoint: void 0 };
   }
+  const endpoint = new URL(`http://${handler}`);
   const hostname = endpoint.hostname;
   const port = parseInt(endpoint.port, 10) || (endpoint.protocol === "https:" ? 443 : 80);
   return new Promise((resolve) => {
     const socket = new import_net.default.Socket();
     const onError = () => {
       socket.destroy();
-      return waitForEndpoint(handler, deadline - (Date.now() - start)).then(resolve);
+      return waitForEndpoint(handler, deadline).then(resolve);
     };
-    socket.setTimeout(deadline - start);
+    socket.setTimeout(deadline - now);
     socket.once("error", onError);
     socket.once("timeout", onError);
     socket.connect(port, hostname, () => {
       socket.end();
-      resolve({ endpoint, timeout: deadline - Date.now() });
+      resolve({ endpoint });
     });
   });
 };
@@ -45144,6 +45151,7 @@ var endpointProxy = async ({
   deadline
 }) => {
   const rawEvent = JSON.parse(event);
+  deadline = deadline - 1e3;
   log("Received event", { rawEvent });
   if (typeof rawEvent === "string" && rawEvent.startsWith(`${CONFIG_SIGNATURE}@`)) {
     const commands = Commands.decode(rawEvent);
@@ -45165,14 +45173,14 @@ var endpointProxy = async ({
           isBase64Encoded: false
         }
       };
-    } catch (error) {
-      log("Error executing command", { error });
+    } catch (error2) {
+      log("Error executing command", { error: error2 });
       return {
         requestId,
         payload: {
           statusCode: 500,
           headers: {},
-          body: JSON.stringify(error.all),
+          body: JSON.stringify(error2.all),
           isBase64Encoded: false
         }
       };
@@ -45217,15 +45225,16 @@ var endpointProxy = async ({
     throw new Error(`No handler found for ${rawPath} in routes ${JSON.stringify(routes)}`);
   }
   log("Waiting for endpoint", { handler, routes, deadline });
-  const { endpoint, timeout } = await waitForEndpoint(handler, deadline);
-  if (!timeout) {
-    throw new Error(`${handler} took longer than ${timeout} milliseconds to start.`);
+  const { endpoint } = await waitForEndpoint(handler, deadline);
+  if (!endpoint) {
+    throw new Error(`${handler} did not start before ${new Date(deadline).toISOString()}.`);
   }
   const url2 = new URL(rawPath, endpoint);
   if (urlSearchParams) {
     url2.search = urlSearchParams.toString();
   }
   const decodedBody = isBase64Encoded && rawBody ? Buffer.from(rawBody, "base64") : rawBody;
+  const timeout = deadline - Date.now();
   log("Proxying request", { url: url2, method, rawHeaders, timeout });
   let response = void 0;
   response = await axios_default.request({
@@ -45298,7 +45307,26 @@ var pollForEvents = async (runtimeApi, routes, commands, env) => {
     event,
     deadline
   };
-  const payload = (await endpointProxy(request)).payload;
+  let payload = void 0;
+  try {
+    payload = (await endpointProxy(request)).payload;
+  } catch (e) {
+    if (!(e instanceof Error)) {
+      throw new Error("Unknown error", { cause: e });
+    }
+    error(`Error processing request: ${e.message}`);
+    payload = {
+      statusCode: 502,
+      headers: {
+        // TODO: infer content type from request
+        // TODO: create a custom error type to do this
+        // TODO: CORS?
+        "Content-Type": "application/json"
+      },
+      body: "Internal Server Error",
+      isBase64Encoded: false
+    };
+  }
   await postRuntimeEventResponse(runtimeApi, requestId, payload);
   log("Response sent to Lambda Runtime API", { runtimeApi, requestId });
   return pollForEvents(runtimeApi, routes, commands, env);

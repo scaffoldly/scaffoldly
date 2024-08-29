@@ -3,6 +3,7 @@ import { HttpServer, HttpServerOptions } from '../../http/http-server';
 import { AsyncSubject, BehaviorSubject, Observable, switchMap, of, filter, take } from 'rxjs';
 import { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda';
 import { ContainerPool } from '../../docker/container-pool';
+import { GitService } from '../../../cd/git';
 
 export const RUNTIME_SERVER_PORT = 9001;
 
@@ -63,6 +64,7 @@ export class LambdaRuntimeServer extends HttpServer {
   private invocations: Invocations = new Invocations();
 
   constructor(
+    private gitService: GitService,
     private containerPool: ContainerPool,
     protected options: HttpServerOptions & { maxConcurrency: number } = {
       maxConcurrency: 5,
@@ -84,7 +86,7 @@ export class LambdaRuntimeServer extends HttpServer {
       // TODO: Socket timeouts need will drop an event
       this.invocations.dequeue().subscribe((invocation) => {
         this.log(`START RequestId: ${invocation.requestId} Version: $LATEST`);
-        const deadline = new Date().getTime() + 3000;
+        const deadline = new Date().getTime() + this.gitService.config.timeout * 1000;
         res.header('lambda-runtime-aws-request-id', invocation.requestId);
         res.header('lambda-runtime-deadline-ms', `${deadline}`);
         res.json(invocation.event);

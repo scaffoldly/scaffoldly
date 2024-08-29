@@ -39,8 +39,8 @@ export class DevCommand extends CiCommand<DevCommand> {
       this.dockerService,
       this.deployCommand.envService,
     );
-    this.lambdaRuntimeServer = new LambdaRuntimeServer(this.containerPool);
-    this.functionUrlServer = new FunctionUrlServer(this.lambdaRuntimeServer);
+    this.lambdaRuntimeServer = new LambdaRuntimeServer(gitService, this.containerPool);
+    this.functionUrlServer = new FunctionUrlServer(gitService, this.lambdaRuntimeServer);
 
     this.registerShutdownHooks();
   }
@@ -57,7 +57,7 @@ export class DevCommand extends CiCommand<DevCommand> {
     await this.configureLambdaRuntimeServer(status, options);
     await this.configureFunctionUrlServer(status, options);
 
-    this.deployCommand.withStatus(status).withOptions(options);
+    this.deployCommand.withMode(this.mode).withStatus(status).withOptions(options);
     await this.deployCommand.handle();
 
     if (!status.imageName) {

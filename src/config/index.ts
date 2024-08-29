@@ -137,6 +137,8 @@ export type PackageJsonBin = { [key: string]: string };
 
 export type Script = 'prepare' | 'dev' | 'install' | 'build' | 'package' | 'start';
 
+export type Mode = 'development' | 'debug' | 'production';
+
 // DEVNOTE: Edit .github/release.yml if more '@-schedules` are added
 export type Schedule = '@immediately' | '@frequently' | '@hourly' | '@daily';
 
@@ -150,6 +152,8 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
   scaffoldly: Partial<IScaffoldlyConfig>;
 
   serviceConfig?: IServiceConfig;
+
+  private mode: Mode;
 
   private _id = '';
 
@@ -170,7 +174,10 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
       packageJson?: PackageJson;
       serviceConfig?: IServiceConfig;
     } = {},
+    mode: Mode = 'production',
   ) {
+    this.mode = mode;
+
     // TODO Support Devcontainer JSON and scaffoldly.json
     const { packageJson, serviceConfig } = configs;
     this.packageJson = packageJson;
@@ -306,22 +313,25 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
   get services(): ScaffoldlyConfig[] {
     const { services = [] } = this.scaffoldly;
     return services.map((service, ix) => {
-      return new ScaffoldlyConfig({
-        packageJson: this.packageJson,
-        serviceConfig: {
-          id: service.id || '',
-          name: service.name || `${ix + 1}`,
-          runtime: service.runtime || this.runtime,
-          handler: service.handler || this.handler,
-          src: service.src || this.src,
-          files: service.files || [],
-          bin: service.bin || {},
-          packages: service.packages || [],
-          shell: service.shell,
-          scripts: service.scripts || {},
-          schedules: service.schedules || {},
+      return new ScaffoldlyConfig(
+        {
+          packageJson: this.packageJson,
+          serviceConfig: {
+            id: service.id || '',
+            name: service.name || `${ix + 1}`,
+            runtime: service.runtime || this.runtime,
+            handler: service.handler || this.handler,
+            src: service.src || this.src,
+            files: service.files || [],
+            bin: service.bin || {},
+            packages: service.packages || [],
+            shell: service.shell,
+            scripts: service.scripts || {},
+            schedules: service.schedules || {},
+          },
         },
-      });
+        this.mode,
+      );
     });
   }
 
@@ -337,12 +347,14 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
   }
 
   get serveCommands(): Commands {
+    const script: Script = this.mode === 'development' ? 'dev' : 'start';
+
     const cmds = new Commands();
     let workdir = this.src !== DEFAULT_SRC_ROOT ? this.src : undefined;
 
-    if (this.scripts.start) {
+    if (this.scripts[script]) {
       cmds.add({
-        cmd: this.scripts.start,
+        cmd: this.scripts[script],
         workdir,
       });
     }
@@ -358,9 +370,9 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
     this.services.forEach((service) => {
       workdir = service.src !== DEFAULT_SRC_ROOT ? service.src : undefined;
 
-      if (service.scripts.start) {
+      if (service.scripts[script]) {
         cmds.add({
-          cmd: service.scripts.start,
+          cmd: service.scripts[script],
           workdir,
         });
       }

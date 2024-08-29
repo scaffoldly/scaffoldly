@@ -7,6 +7,7 @@ import { isDebug } from '../ui';
 import { EnvService } from './ci/env';
 import { DockerService } from './cd/docker';
 import { filesize } from 'filesize';
+import { Mode } from '../../config';
 
 export type Preset = 'nextjs';
 
@@ -26,6 +27,12 @@ export class DeployCommand extends CdCommand<DeployCommand> {
     this.envService = new EnvService(this.gitService);
     this.dockerService = new DockerService(this.gitService, new DockerCiService(this.cwd));
     this.awsService = new AwsService(this.gitService, this.envService, this.dockerService);
+  }
+
+  withMode(mode: Mode): DeployCommand {
+    console.log('!!! with mode', mode);
+    super.withMode(mode);
+    return this;
   }
 
   withStatus(status: DeployStatus): DeployCommand {

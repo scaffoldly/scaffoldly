@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { Request } from 'express';
 import { first } from 'rxjs';
 import qs from 'qs';
+import { GitService } from '../../../cd/git';
 
 export const convertHeaders = (request: Request): APIGatewayProxyEventHeaders => {
   return Object.keys(request.headers).reduce((acc, key) => {
@@ -90,13 +91,13 @@ export class FunctionUrlServer extends HttpServer {
   // TODO: do better
   apiId = 'abcdefghijklmnopqrstuvwxyz0123456789';
 
-  constructor(private lambdaRuntimeServer: LambdaRuntimeServer) {
-    super('Function URL', 3000, lambdaRuntimeServer.abortController, { timeout: 30 });
+  constructor(private gitService: GitService, private lambdaRuntimeServer: LambdaRuntimeServer) {
+    super('Function URL', 3000, lambdaRuntimeServer.abortController);
   }
 
   async registerHandlers(): Promise<void> {
-    // TODO: Simulate Timeout
     this.app.use((req, res) => {
+      req.setTimeout(this.gitService.config.timeout * 1000);
       const now = new Date();
       const event: APIGatewayProxyEventV2 = {
         version: '2.0',
@@ -128,6 +129,12 @@ export class FunctionUrlServer extends HttpServer {
         body: convertBody(req),
         isBase64Encoded: true,
       };
+
+      // TODO: Timeouts
+      //       - It appears that Function URLs allow "timeout / 2" for the Buffered requests?
+      // TODO: Switch to streaming Function URLs?
+      // TODO: Print "Internal Server Error"
+      // TODO: Cookies: https://docs.aws.amazon.com/lambda/latest/dg/urls-invocation.html#urls-payloads
 
       this.lambdaRuntimeServer
         .emit(event)

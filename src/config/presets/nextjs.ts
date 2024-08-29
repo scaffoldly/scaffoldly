@@ -1,10 +1,10 @@
 import { join } from 'path';
-import { PackageJson, PackageJsonBin, ScaffoldlyConfig } from '..';
+import { Mode, PackageJson, PackageJsonBin, ScaffoldlyConfig } from '..';
 import { existsSync, readFileSync } from 'fs';
 import { isDebug } from '../../scaffoldly/ui';
 
 export class NextJsPreset {
-  constructor(private cwd: string) {}
+  constructor(private cwd: string, private mode?: Mode) {}
 
   get config(): Promise<ScaffoldlyConfig> {
     return Promise.all([
@@ -37,7 +37,7 @@ export class NextJsPreset {
       if (isDebug()) {
         console.log(`Using NextJS preset config:`, JSON.stringify(packageJson.scaffoldly, null, 2));
       }
-      return new ScaffoldlyConfig({ packageJson });
+      return new ScaffoldlyConfig({ packageJson }, this.mode);
     });
   }
 

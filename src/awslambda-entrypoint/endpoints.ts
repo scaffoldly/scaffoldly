@@ -53,19 +53,15 @@ function convertToURLSearchParams(
   return searchParams;
 }
 
-const waitForEndpoint = async (
-  handler: string,
-  deadline: number,
-): Promise<{ endpoint: URL; timeout: number }> => {
-  const start = Date.now();
-  const timeout = deadline - start;
+const waitForEndpoint = async (handler: string, deadline: number): Promise<{ endpoint?: URL }> => {
+  const now = Date.now();
+  if (now > deadline) {
+    // Stop recursing if the deadline has passed
+    return { endpoint: undefined };
+  }
+
   // TODO: support different protocols
   const endpoint = new URL(`http://${handler}`);
-
-  // Stop recursing if the deadline has passed
-  if (timeout < 0) {
-    return { endpoint, timeout: 0 };
-  }
 
   const hostname = endpoint.hostname;
   const port = parseInt(endpoint.port, 10) || (endpoint.protocol === 'https:' ? 443 : 80);
@@ -75,16 +71,16 @@ const waitForEndpoint = async (
 
     const onError = () => {
       socket.destroy();
-      return waitForEndpoint(handler, deadline - (Date.now() - start)).then(resolve);
+      return waitForEndpoint(handler, deadline).then(resolve);
     };
 
-    socket.setTimeout(deadline - start);
+    socket.setTimeout(deadline - now);
     socket.once('error', onError);
     socket.once('timeout', onError);
 
     socket.connect(port, hostname, () => {
       socket.end();
-      resolve({ endpoint, timeout: deadline - Date.now() });
+      resolve({ endpoint });
     });
   });
 };
@@ -122,6 +118,7 @@ export const endpointProxy = async ({
 }: EndpointProxyRequest): Promise<EndpointResponse> => {
   // TDOO: fix event type for Function URL type
   const rawEvent = JSON.parse(event) as Partial<APIGatewayProxyEventV2 | ALBEvent | string>;
+  deadline = deadline - 1000; // Subtract 1 second to allow errors to propagate
 
   log('Received event', { rawEvent });
 
@@ -209,10 +206,10 @@ export const endpointProxy = async ({
   }
 
   log('Waiting for endpoint', { handler, routes, deadline });
-  const { endpoint, timeout } = await waitForEndpoint(handler, deadline);
+  const { endpoint } = await waitForEndpoint(handler, deadline);
 
-  if (!timeout) {
-    throw new Error(`${handler} took longer than ${timeout} milliseconds to start.`);
+  if (!endpoint) {
+    throw new Error(`${handler} did not start before ${new Date(deadline).toISOString()}.`);
   }
 
   const url = new URL(rawPath, endpoint);
@@ -221,12 +218,11 @@ export const endpointProxy = async ({
   }
 
   const decodedBody = isBase64Encoded && rawBody ? Buffer.from(rawBody, 'base64') : rawBody;
+  const timeout = deadline - Date.now();
 
   log('Proxying request', { url, method, rawHeaders, timeout });
 
   let response: AxiosResponse<unknown, unknown> | undefined = undefined;
-
-  // TODO: set timeout to 30 seconds
 
   response = await axios.request({
     method: method.toLowerCase(),

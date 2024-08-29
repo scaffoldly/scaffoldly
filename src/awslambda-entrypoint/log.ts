@@ -1,5 +1,14 @@
 export const isDebug = !!process.env.SLY_DEBUG;
 
+export const error = (message: unknown, obj?: Record<string, unknown>): void => {
+  const msg = `[awslambda-bootstrap] ${message}`;
+  if (!obj) {
+    console.error(msg);
+    return;
+  }
+  console.error(msg, JSON.stringify(obj));
+};
+
 export const info = (message: unknown, obj?: Record<string, unknown>): void => {
   const msg = `[awslambda-bootstrap] ${message}`;
   if (!obj) {

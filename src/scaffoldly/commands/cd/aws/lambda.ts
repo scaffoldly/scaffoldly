@@ -89,7 +89,7 @@ export class LambdaService implements IamConsumer {
     const desired: Partial<GetFunctionCommandOutput> = {
       Configuration: {
         Role: status.roleArn,
-        Timeout: 900,
+        Timeout: this.gitService.config.timeout,
         MemorySize: 1024,
         Environment: {
           Variables: this.envService.runtimeEnv,

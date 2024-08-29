@@ -107,12 +107,12 @@ export class Command {
       .command({
         command: 'dev',
         describe: `Launch a development environment`,
-        handler: ({ withToken, preset }) =>
+        handler: ({ withToken, production, preset }) =>
           this.loginWrapper(
             async () => {
-              const dev = await new DevCommand(this.gitService).withPreset(
-                preset as Preset | undefined,
-              );
+              const dev = await new DevCommand(this.gitService)
+                .withMode(production ? 'production' : 'development')
+                .withPreset(preset as Preset | undefined);
               return dev.handle();
             },
             isHeadless(),
@@ -123,6 +123,13 @@ export class Command {
             demand: false,
             type: 'string',
             description: 'Use a provided GitHub Token',
+          },
+          production: {
+            demand: false,
+            type: 'boolean',
+            default: false,
+            requiresArg: false,
+            description: "Run in production mode. The 'start' scripts will be used.",
           },
           preset: {
             demand: false,
@@ -135,12 +142,12 @@ export class Command {
       .command({
         command: 'deploy',
         describe: `Deploy an environment`,
-        handler: ({ withToken, preset }) =>
+        handler: ({ withToken, development, preset }) =>
           this.loginWrapper(
             async () => {
-              const deploy = await new DeployCommand(this.gitService).withPreset(
-                preset as Preset | undefined,
-              );
+              const deploy = await new DeployCommand(this.gitService)
+                .withMode(development ? 'development' : 'production')
+                .withPreset(preset as Preset | undefined);
               return deploy.handle();
             },
             isHeadless(),
@@ -151,6 +158,13 @@ export class Command {
             demand: false,
             type: 'string',
             description: 'Use a provided GitHub token',
+          },
+          development: {
+            demand: false,
+            type: 'boolean',
+            default: false,
+            requiresArg: false,
+            description: "Deploy in development mode. The 'dev' scripts will be used.",
           },
           preset: {
             demand: false,
