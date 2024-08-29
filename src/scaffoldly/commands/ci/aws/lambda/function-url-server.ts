@@ -133,7 +133,6 @@ export class FunctionUrlServer extends HttpServer {
         .emit(event)
         .pipe(first())
         .subscribe((response) => {
-          console.log('!!! got response in FunctionUrlServer');
           if (response && response.statusCode) {
             res.status(response.statusCode);
           }

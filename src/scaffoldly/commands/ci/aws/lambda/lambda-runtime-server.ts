@@ -32,7 +32,6 @@ class Invocations {
   }
 
   enqueue(invocation: Invocation): void {
-    console.log('!!! enqueue');
     this.invocations.push(invocation);
     this.invocationMap.set(invocation.requestId, invocation);
     this.size$.next(this.invocations.length);
@@ -45,7 +44,6 @@ class Invocations {
   }
 
   dequeue(): Observable<Invocation> {
-    console.log('!!! dequeue');
     return this.count$
       .pipe(
         switchMap(() => {
@@ -54,7 +52,10 @@ class Invocations {
           return of(invocation);
         }),
       )
-      .pipe(filter((i) => !!i));
+      .pipe(
+        filter((i) => !!i),
+        take(1),
+      );
   }
 }
 
@@ -71,7 +72,6 @@ export class LambdaRuntimeServer extends HttpServer {
     super('Lambda Runtime', RUNTIME_SERVER_PORT, containerPool.abortController);
 
     this.invocations.size.subscribe((size) => {
-      console.log('!!! invocations size:', size);
       this.containerPool.setConcurrency(size, this.options.maxConcurrency);
     });
   }
@@ -80,23 +80,18 @@ export class LambdaRuntimeServer extends HttpServer {
     this.app.use(json({ limit: '6MB' }));
 
     this.app.get('/2018-06-01/runtime/invocation/next', (req, res) => {
-      console.log('!!! next');
       req.setTimeout(0);
-      this.invocations
-        .dequeue()
-        .pipe(take(1))
-        .subscribe((invocation) => {
-          console.log('!!! invocation', invocation.requestId);
-          const deadline = new Date().getTime() + 3000;
-          res.header('lambda-runtime-aws-request-id', invocation.requestId);
-          res.header('lambda-runtime-deadline-ms', `${deadline}`);
-          res.json(invocation.event);
-        });
+      // TODO: Socket timeouts need will drop an event
+      this.invocations.dequeue().subscribe((invocation) => {
+        const deadline = new Date().getTime() + 3000;
+        res.header('lambda-runtime-aws-request-id', invocation.requestId);
+        res.header('lambda-runtime-deadline-ms', `${deadline}`);
+        res.json(invocation.event);
+      });
     });
 
     this.app.post('/2018-06-01/runtime/invocation/:requestId/response', (req, res) => {
       const { requestId } = req.params;
-      console.log('!!! response', requestId);
       const invocation = this.invocations.get(requestId);
       if (!invocation) {
         res.status(404).send('Invocation not found');
@@ -113,7 +108,6 @@ export class LambdaRuntimeServer extends HttpServer {
   }
 
   emit(event: APIGatewayProxyEventV2): ResonseSubject {
-    console.log('!!! emit');
     const requestId = event.requestContext.requestId;
     const response$ = new AsyncSubject<APIGatewayProxyStructuredResultV2 | undefined>();
 
@@ -127,13 +121,4 @@ export class LambdaRuntimeServer extends HttpServer {
 
     return invocation.response$;
   }
-
-  // handle(invocation: Invocation): void {
-  //   invocation.handlers.subscribe((h) => {
-  //     console.log('!!! adding next path', h.next.path);
-  //     this.app.use(h.next.path, h.next.handler);
-  //     console.log('!!! adding response path', h.response.path);
-  //     this.app.use(h.response.path, h.response.handler);
-  //   });
-  // }
 }

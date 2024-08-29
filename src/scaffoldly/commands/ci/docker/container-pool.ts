@@ -1,5 +1,5 @@
 import Dockerode from 'dockerode';
-import { BehaviorSubject, delay, of, Subject, Subscription, switchMap } from 'rxjs';
+import { BehaviorSubject, concatMap, Subject, Subscription, timer } from 'rxjs';
 import { DockerService } from '.';
 import { GitService } from '../../cd/git';
 import { EnvService } from '../env';
@@ -13,26 +13,18 @@ export type ContainerRef = {
   lifecycle$: BehaviorSubject<Lifecycle>;
 };
 
-class ContainerRefSubject extends Subject<ContainerRef> {
-  constructor(private delayTime: number) {
+class DelayedSubject<T> extends Subject<T> {
+  private delayTime: number;
+
+  constructor(delayTime: number) {
     super();
+    this.delayTime = delayTime;
   }
 
-  next(containerRef: ContainerRef): void {
-    console.log('!!! next', containerRef);
-    containerRef.lifecycle$
-      .pipe(
-        switchMap((status) => {
-          if (status === 'stopped') {
-            return of(containerRef); // Emit immediately if stopped
-          } else {
-            console.log('!!! Delaying', containerRef);
-            return of(containerRef).pipe(delay(this.delayTime)); // Apply delay if started
-          }
-        }),
-      )
-      .subscribe((ref) => super.next(ref))
-      .unsubscribe();
+  next(value: T): void {
+    timer(this.delayTime)
+      .pipe(concatMap(async () => super.next(value)))
+      .subscribe();
   }
 }
 
@@ -45,15 +37,15 @@ export class ContainerPool extends DevServer {
 
   private pool: ContainerPoolMap = new Map();
 
-  private pending$: ContainerRefSubject;
+  private pending$: Subject<ContainerRef>;
 
-  private started$: ContainerRefSubject;
+  private started$: Subject<ContainerRef>;
 
-  private starting$: ContainerRefSubject;
+  private starting$: Subject<ContainerRef>;
 
-  private garbage$: ContainerRefSubject;
+  private garbage$: Subject<ContainerRef>;
 
-  private deleted$: ContainerRefSubject;
+  private deleted$: Subject<ContainerRef>;
 
   private subscriptions: Subscription[] = [];
 
@@ -67,19 +59,18 @@ export class ContainerPool extends DevServer {
     private gitService: GitService,
     dockerService: DockerService,
     private envService: EnvService,
-    protected readonly options = { lifetime: 300 },
+    protected readonly options = { lifetime: 30 },
   ) {
     super('Container Pool', abortController);
     this.docker = dockerService.docker;
-    this.pending$ = new ContainerRefSubject(1000);
-    this.starting$ = new ContainerRefSubject(1000);
-    this.started$ = new ContainerRefSubject(1000);
-    this.garbage$ = new ContainerRefSubject(options.lifetime * 1000);
-    this.deleted$ = new ContainerRefSubject(1000);
+    this.pending$ = new Subject<ContainerRef>();
+    this.starting$ = new Subject<ContainerRef>();
+    this.started$ = new Subject<ContainerRef>();
+    this.garbage$ = new DelayedSubject<ContainerRef>(this.options.lifetime * 1000);
+    this.deleted$ = new Subject<ContainerRef>();
 
     this.subscriptions.push(
-      this.concurrency$.subscribe(({ current, desired, max }) => {
-        console.log('!!! Concurrency:', { current, desired, max });
+      this.concurrency$.subscribe(({ current, desired }) => {
         if (current < desired) {
           const containerRef: ContainerRef = {
             name: uniqueId(this.gitService.config.name),
@@ -91,11 +82,6 @@ export class ContainerPool extends DevServer {
 
           // Start one at a time
           this.pending$.next(containerRef);
-
-          // containerRef.lifecycle$.subscribe(() => {
-          //   const count = this.pool.size;
-          //   this.concurrency$.next({ current: count, desired, max });
-          // });
         }
       }),
     );
@@ -124,32 +110,30 @@ export class ContainerPool extends DevServer {
   }
 
   async start(): Promise<void> {
-    console.log('!!! Starting container pool');
     this.subscriptions.push(
       this.pending$.subscribe(async (containerRef) => {
-        console.log('!!! Pending container', containerRef);
         await this.createContainer(containerRef)
           .then(() => this.starting$.next(containerRef))
           .catch(() => this.garbage$.next(containerRef));
       }),
       this.starting$.subscribe(async (containerRef) => {
-        console.log('!!! Starting container', containerRef);
         await this.startContainer(containerRef)
           .then(() => this.started$.next(containerRef))
           .catch(() => this.garbage$.next(containerRef));
       }),
       this.started$.subscribe(async (containerRef) => {
-        console.log('!!! Started container', containerRef);
         containerRef.lifecycle$.next('started');
+        this.garbage$.next(containerRef);
+        this.setConcurrency();
       }),
       this.garbage$.subscribe(async (containerRef) => {
-        console.log('!!! Garbage collecting container', containerRef);
-        await this.removeContainer(containerRef)
+        // TODO: Removing containers drops events
+        // await this.removeContainer(containerRef)
+        await Promise.resolve(containerRef)
           .then(() => this.deleted$.next(containerRef))
           .catch(() => this.deleted$.next(containerRef));
       }),
       this.deleted$.subscribe(async (containerRef) => {
-        console.log('!!! Deleting container', containerRef);
         this.pool.delete(containerRef.name);
       }),
     );
@@ -186,7 +170,6 @@ export class ContainerPool extends DevServer {
 
       return ref;
     } catch (e) {
-      console.log("!!! Couldn't create container", e);
       throw new Error('Unable to create container', { cause: e });
     }
   }
@@ -202,17 +185,17 @@ export class ContainerPool extends DevServer {
     return ref;
   }
 
-  private async removeContainer(ref: ContainerRef): Promise<ContainerRef> {
-    try {
-      const container = this.docker.getContainer(ref.name);
-      const inspection = await container.inspect().catch(() => undefined);
-      if (!inspection) {
-        return ref;
-      }
-      await container.remove({ force: true });
-      return ref;
-    } catch (e) {
-      throw new Error('Unable to remove container', { cause: e });
-    }
-  }
+  // private async removeContainer(ref: ContainerRef): Promise<ContainerRef> {
+  //   try {
+  //     const container = this.docker.getContainer(ref.name);
+  //     const inspection = await container.inspect().catch(() => undefined);
+  //     if (!inspection) {
+  //       return ref;
+  //     }
+  //     await container.remove({ force: true });
+  //     return ref;
+  //   } catch (e) {
+  //     throw new Error('Unable to remove container', { cause: e });
+  //   }
+  // }
 }
