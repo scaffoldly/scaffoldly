@@ -54547,7 +54547,7 @@ var next$ = (abortEvent, runtimeApi, env) => {
       return (0, import_rxjs2.throwError)(() => new Error("Unable to fetch next event", { cause: e }));
     }),
     (0, import_rxjs2.map)((next) => {
-      log("Received next event", { headers: next.headers });
+      log("Received next event", { headers: next.headers, data: next.data });
       const response$ = new import_rxjs2.AsyncSubject();
       response$.subscribe((response) => {
         const url2 = `http://${runtimeApi}/2018-06-01/runtime/invocation/${response.requestId}/response`;
@@ -54633,6 +54633,7 @@ var proxy$ = (abortEvent, runtimeEvent, url2, method, headers, data, deadline) =
   return (0, import_rxjs2.from)(
     Promise.resolve().then(() => {
       info("Proxy request", { method, url: url2 });
+      log("Proxying request", { headers, data, deadline });
     }).then(() => {
       return axios_default.request({
         method,
@@ -54653,6 +54654,7 @@ var proxy$ = (abortEvent, runtimeEvent, url2, method, headers, data, deadline) =
     }),
     (0, import_rxjs2.map)((resp) => {
       info("Proxy response", { method, url: url2, status: resp.status });
+      log("Proxied response", { headers: resp.headers });
       const { data: responseData, headers: responseHeaders } = resp;
       if (!Buffer.isBuffer(responseData)) {
         throw new Error(`Response from ${url2} is not a buffer`);
@@ -54711,6 +54713,9 @@ var asyncResponse$ = (abortEvent, runtimeEvent, routes) => {
   const decodedBody = isBase64Encoded && rawBody ? Buffer.from(rawBody, "base64") : rawBody;
   return endpoint$(handler, deadline).pipe(
     (0, import_rxjs2.switchMap)((url2) => {
+      if (rawPath) {
+        url2.pathname = rawPath;
+      }
       if (urlSearchParams) {
         url2.search = urlSearchParams.toString();
       }

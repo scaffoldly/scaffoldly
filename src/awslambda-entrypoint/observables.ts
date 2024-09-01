@@ -48,7 +48,7 @@ const next$ = (
       return throwError(() => new Error('Unable to fetch next event', { cause: e }));
     }),
     map((next) => {
-      log('Received next event', { headers: next.headers });
+      log('Received next event', { headers: next.headers, data: next.data });
 
       const response$ = new AsyncSubject<AsyncResponse>();
 
@@ -167,6 +167,7 @@ const proxy$ = (
     Promise.resolve()
       .then(() => {
         info('Proxy request', { method, url });
+        log('Proxying request', { headers, data, deadline });
       })
       .then(() => {
         return axios.request({
@@ -188,6 +189,7 @@ const proxy$ = (
     }),
     map((resp) => {
       info('Proxy response', { method, url, status: resp.status });
+      log('Proxied response', { headers: resp.headers });
 
       const { data: responseData, headers: responseHeaders } = resp;
 
@@ -267,6 +269,9 @@ export const asyncResponse$ = (
 
   return endpoint$(handler, deadline).pipe(
     switchMap((url) => {
+      if (rawPath) {
+        url.pathname = rawPath;
+      }
       if (urlSearchParams) {
         url.search = urlSearchParams.toString();
       }
