@@ -1,260 +1,254 @@
-// eslint-disable-next-line import/named
-import axios, { AxiosResponse, AxiosResponseHeaders, RawAxiosResponseHeaders } from 'axios';
-import net from 'net';
-import { EndpointProxyRequest, EndpointResponse } from './types';
-import { isDebug, log } from './log';
-import { ALBEvent, ALBEventQueryStringParameters, APIGatewayProxyEventV2 } from 'aws-lambda';
-import { Commands, CONFIG_SIGNATURE, Routes } from '../config';
-import { pathToRegexp } from 'path-to-regexp';
-import { execa } from 'execa';
+// // eslint-disable-next-line import/named
+// import axios, { AxiosResponse, AxiosResponseHeaders, RawAxiosResponseHeaders } from 'axios';
+// import net from 'net';
+// import { EndpointProxyRequest, EndpointResponse } from './types';
+// import { error, info, isDebug, log } from './log';
+// import { ALBEvent, ALBEventQueryStringParameters, APIGatewayProxyEventV2 } from 'aws-lambda';
+// import { Commands, CONFIG_SIGNATURE, Routes } from '../config';
+// import { pathToRegexp } from 'path-to-regexp';
+// import { execa } from 'execa';
 
-function convertHeaders(
-  headers: RawAxiosResponseHeaders | AxiosResponseHeaders,
-): { [header: string]: boolean | number | string } | undefined {
-  if (!headers) {
-    return undefined;
-  }
+// function convertHeaders(
+//   headers: RawAxiosResponseHeaders | AxiosResponseHeaders,
+// ): { [header: string]: boolean | number | string } | undefined {
+//   if (!headers) {
+//     return undefined;
+//   }
 
-  return Object.keys(headers).reduce((acc, key) => {
-    const value = headers[key];
+//   return Object.keys(headers).reduce((acc, key) => {
+//     const value = headers[key];
 
-    if (!value) return acc;
+//     if (!value) return acc;
 
-    if (Array.isArray(value)) {
-      acc[key] = value.join(', ');
-    } else if (
-      typeof value === 'string' ||
-      typeof value === 'number' ||
-      typeof value === 'boolean'
-    ) {
-      acc[key] = value;
-    }
+//     if (Array.isArray(value)) {
+//       acc[key] = value.join(', ');
+//     } else if (
+//       typeof value === 'string' ||
+//       typeof value === 'number' ||
+//       typeof value === 'boolean'
+//     ) {
+//       acc[key] = value;
+//     }
 
-    return acc;
-  }, {} as { [header: string]: boolean | number | string });
-}
+//     return acc;
+//   }, {} as { [header: string]: boolean | number | string });
+// }
 
-function convertToURLSearchParams(
-  params: ALBEventQueryStringParameters | undefined,
-): URLSearchParams {
-  // Initialize URLSearchParams
-  const searchParams = new URLSearchParams();
+// function convertToURLSearchParams(
+//   params: ALBEventQueryStringParameters | undefined,
+// ): URLSearchParams {
+//   // Initialize URLSearchParams
+//   const searchParams = new URLSearchParams();
 
-  // Check if params is not undefined
-  if (params) {
-    for (const [key, value] of Object.entries(params)) {
-      // Only append keys with defined values
-      if (value !== undefined) {
-        searchParams.append(key, value);
-      }
-    }
-  }
+//   // Check if params is not undefined
+//   if (params) {
+//     for (const [key, value] of Object.entries(params)) {
+//       // Only append keys with defined values
+//       if (value !== undefined) {
+//         searchParams.append(key, value);
+//       }
+//     }
+//   }
 
-  return searchParams;
-}
+//   return searchParams;
+// }
 
-const waitForEndpoint = async (handler: string, deadline: number): Promise<{ endpoint?: URL }> => {
-  const now = Date.now();
-  if (now > deadline) {
-    // Stop recursing if the deadline has passed
-    return { endpoint: undefined };
-  }
+// const waitForEndpoint = async (handler: string, deadline: number): Promise<{ endpoint: URL }> => {
+//   const now = Date.now();
+//   if (now > deadline) {
+//     throw new Error(`Deadline exceeded`);
+//   }
 
-  // TODO: support different protocols
-  const endpoint = new URL(`http://${handler}`);
+//   // TODO: support different protocols
+//   const endpoint = new URL(`http://${handler}`);
 
-  const hostname = endpoint.hostname;
-  const port = parseInt(endpoint.port, 10) || (endpoint.protocol === 'https:' ? 443 : 80);
+//   const hostname = endpoint.hostname;
+//   const port = parseInt(endpoint.port, 10) || (endpoint.protocol === 'https:' ? 443 : 80);
 
-  return new Promise((resolve) => {
-    const socket = new net.Socket();
+//   return new Promise((resolve) => {
+//     const socket = new net.Socket();
 
-    const onError = () => {
-      socket.destroy();
-      return waitForEndpoint(handler, deadline).then(resolve);
-    };
+//     const onError = () => {
+//       socket.destroy();
+//       return waitForEndpoint(handler, deadline).then(resolve);
+//     };
 
-    socket.setTimeout(deadline - now);
-    socket.once('error', onError);
-    socket.once('timeout', onError);
+//     socket.setTimeout(deadline - now);
 
-    socket.connect(port, hostname, () => {
-      socket.end();
-      resolve({ endpoint });
-    });
-  });
-};
+//     socket.once('error', onError);
+//     socket.once('timeout', onError);
+//     socket.once('data', () => {
+//       socket.end();
+//       resolve({ endpoint });
+//     });
 
-export const findHandler = (routes: Routes, rawPath?: string): string | undefined => {
-  if (!rawPath) {
-    return undefined;
-  }
+//     socket.connect(port, hostname, () => {});
+//   });
+// };
 
-  const found = Object.entries(routes).find(([path, handler]) => {
-    if (!handler) {
-      return false;
-    }
+// export const findHandler = (routes: Routes, rawPath?: string): string | undefined => {
+//   if (!rawPath) {
+//     return undefined;
+//   }
 
-    try {
-      return !!pathToRegexp(path).exec(rawPath);
-    } catch (e) {
-      throw new Error(`Invalid route path regex: ${path}`);
-    }
-  });
+//   const found = Object.entries(routes).find(([path, handler]) => {
+//     if (!handler) {
+//       return false;
+//     }
 
-  if (!found || !found[1]) {
-    return undefined;
-  }
+//     try {
+//       return !!pathToRegexp(path).exec(rawPath);
+//     } catch (e) {
+//       throw new Error(`Invalid route path regex: ${path}`);
+//     }
+//   });
 
-  return found[1];
-};
+//   if (!found || !found[1]) {
+//     return undefined;
+//   }
 
-export const endpointProxy = async ({
-  requestId,
-  routes,
-  env,
-  event,
-  deadline,
-}: EndpointProxyRequest): Promise<EndpointResponse> => {
-  // TDOO: fix event type for Function URL type
-  const rawEvent = JSON.parse(event) as Partial<APIGatewayProxyEventV2 | ALBEvent | string>;
-  deadline = deadline - 1000; // Subtract 1 second to allow errors to propagate
+//   return found[1];
+// };
 
-  log('Received event', { rawEvent });
+// export const endpointProxy = async ({
+//   requestId,
+//   routes,
+//   env,
+//   event,
+//   deadline,
+// }: EndpointProxyRequest): Promise<EndpointResponse> => {
+//   // TDOO: fix event type for Function URL type
+//   const rawEvent = JSON.parse(event) as Partial<APIGatewayProxyEventV2 | ALBEvent | string>;
+//   deadline = deadline - 1000; // Subtract 1 second to allow errors to propagate
 
-  if (typeof rawEvent === 'string' && rawEvent.startsWith(`${CONFIG_SIGNATURE}@`)) {
-    const commands = Commands.decode(rawEvent);
-    log('Received scheduled event', { commands });
+//   log('Received event', { rawEvent });
 
-    try {
-      const foo = await execa(commands.toString(), {
-        shell: true,
-        env: { ...process.env, ...env },
-        verbose: isDebug,
-        all: true, // Capture stdout and stderr into "all"
-      });
+//   if (typeof rawEvent === 'string' && rawEvent.startsWith(`${CONFIG_SIGNATURE}@`)) {
+//     const commands = Commands.decode(rawEvent);
+//     const command = commands.toString();
+//     log('Received scheduled event', { commands });
 
-      return {
-        requestId,
-        payload: {
-          statusCode: 200,
-          headers: {},
-          body: JSON.stringify(foo.all),
-          isBase64Encoded: false,
-        },
-      };
-    } catch (error) {
-      log('Error executing command', { error });
-      return {
-        requestId,
-        payload: {
-          statusCode: 500,
-          headers: {},
-          body: JSON.stringify(error.all),
-          isBase64Encoded: false,
-        },
-      };
-    }
+//     try {
+//       const output = await execa(command, {
+//         shell: true,
+//         env: { ...process.env, ...env },
+//         verbose: isDebug,
+//         all: true, // Capture stdout and stderr into "all"
+//       });
 
-    // TODO: Retries?
-  }
+//       return {
+//         requestId,
+//         payload: {
+//           statusCode: 200,
+//           headers: {},
+//           body: JSON.stringify(output.all),
+//           isBase64Encoded: false,
+//         },
+//       };
+//     } catch (e) {
+//       throw new Error(`Error executing \`${command}\`: ${e.all}`);
+//     }
 
-  if (typeof rawEvent !== 'object' || !('requestContext' in rawEvent)) {
-    throw new Error(`Unsupported event: ${JSON.stringify(rawEvent)}`);
-  }
+//     // TODO: Retries?
+//   }
 
-  const { requestContext, headers: rawHeaders, body: rawBody, isBase64Encoded } = rawEvent;
+//   if (typeof rawEvent !== 'object' || !('requestContext' in rawEvent)) {
+//     error('Unsupported event', { rawEvent });
+//     throw new Error(`Unsupported event`);
+//   }
 
-  if (!requestContext) {
-    throw new Error('No request context found in event');
-  }
+//   const { requestContext, headers: rawHeaders, body: rawBody, isBase64Encoded } = rawEvent;
 
-  let method: string | undefined = undefined;
-  if ('http' in requestContext) {
-    method = requestContext.http.method;
-  }
-  if ('elb' in requestContext && 'httpMethod' in rawEvent) {
-    method = rawEvent.httpMethod;
-  }
-  if (!method) {
-    throw new Error('No method found in event');
-  }
+//   if (!requestContext) {
+//     error('No request context found', { rawEvent });
+//     throw new Error('No request context found in event');
+//   }
 
-  let rawPath: string | undefined = undefined;
-  if ('http' in requestContext) {
-    rawPath = requestContext.http.path;
-  }
-  if ('elb' in requestContext && 'path' in rawEvent) {
-    rawPath = rawEvent.path;
-  }
-  if (!rawPath) {
-    throw new Error('No path found in event');
-  }
+//   let method: string | undefined = undefined;
+//   if ('http' in requestContext) {
+//     method = requestContext.http.method;
+//   }
+//   if ('elb' in requestContext && 'httpMethod' in rawEvent) {
+//     method = rawEvent.httpMethod;
+//   }
+//   if (!method) {
+//     error('No method found', { rawEvent });
+//     throw new Error('No method found in event');
+//   }
 
-  let urlSearchParams: URLSearchParams | undefined = undefined;
-  if ('http' in requestContext && 'rawQueryString' in rawEvent) {
-    urlSearchParams = new URLSearchParams(rawEvent.rawQueryString);
-  }
-  if ('elb' in requestContext && 'queryStringParameters' in rawEvent) {
-    urlSearchParams = convertToURLSearchParams(rawEvent.queryStringParameters);
-  }
+//   let rawPath: string | undefined = undefined;
+//   if ('http' in requestContext) {
+//     rawPath = requestContext.http.path;
+//   }
+//   if ('elb' in requestContext && 'path' in rawEvent) {
+//     rawPath = rawEvent.path;
+//   }
+//   if (!rawPath) {
+//     error('No path found', { rawEvent });
+//     throw new Error('No path found in event');
+//   }
 
-  const handler = findHandler(routes, rawPath);
+//   let urlSearchParams: URLSearchParams | undefined = undefined;
+//   if ('http' in requestContext && 'rawQueryString' in rawEvent) {
+//     urlSearchParams = new URLSearchParams(rawEvent.rawQueryString);
+//   }
+//   if ('elb' in requestContext && 'queryStringParameters' in rawEvent) {
+//     urlSearchParams = convertToURLSearchParams(rawEvent.queryStringParameters);
+//   }
 
-  if (!handler) {
-    throw new Error(`No handler found for ${rawPath} in routes ${JSON.stringify(routes)}`);
-  }
+//   const handler = findHandler(routes, rawPath);
 
-  log('Waiting for endpoint', { handler, routes, deadline });
-  const { endpoint } = await waitForEndpoint(handler, deadline);
+//   if (!handler) {
+//     error('No handler found', { rawPath, routes });
+//     throw new Error(`No handler found for ${rawPath}`);
+//   }
 
-  if (!endpoint) {
-    throw new Error(`${handler} did not start before ${new Date(deadline).toISOString()}.`);
-  }
+//   log('Waiting for endpoint', { handler, routes, deadline });
+//   const { endpoint } = await waitForEndpoint(handler, deadline);
 
-  const url = new URL(rawPath, endpoint);
-  if (urlSearchParams) {
-    url.search = urlSearchParams.toString();
-  }
+//   const url = new URL(rawPath, endpoint);
+//   if (urlSearchParams) {
+//     url.search = urlSearchParams.toString();
+//   }
 
-  const decodedBody = isBase64Encoded && rawBody ? Buffer.from(rawBody, 'base64') : rawBody;
-  const timeout = deadline - Date.now();
+//   const decodedBody = isBase64Encoded && rawBody ? Buffer.from(rawBody, 'base64') : rawBody;
+//   const timeout = deadline - Date.now();
 
-  log('Proxying request', { url, method, rawHeaders, timeout });
+//   info('Proxying request', { url, method, rawHeaders, timeout });
 
-  let response: AxiosResponse<unknown, unknown> | undefined = undefined;
+//   let response: AxiosResponse<unknown, unknown> | undefined = undefined;
 
-  response = await axios.request({
-    method: method.toLowerCase(),
-    url: url.toString(),
-    headers: rawHeaders,
-    data: decodedBody,
-    timeout,
-    transformRequest: (data) => data,
-    transformResponse: (data) => data,
-    validateStatus: () => true,
-    responseType: 'arraybuffer',
-  });
+//   response = await axios.request({
+//     method: method.toLowerCase(),
+//     url: url.toString(),
+//     headers: rawHeaders,
+//     data: decodedBody,
+//     timeout,
+//     transformRequest: (data) => data,
+//     transformResponse: (data) => data,
+//     validateStatus: () => true,
+//     responseType: 'arraybuffer',
+//   });
 
-  if (!response) {
-    throw new Error('No response received');
-  }
+//   if (!response) {
+//     throw new Error('No response received');
+//   }
 
-  const { data: rawData, headers: rawResponseHeaders } = response;
+//   const { data: rawData, headers: rawResponseHeaders } = response;
 
-  if (!Buffer.isBuffer(rawData)) {
-    throw new Error('Response data is not a buffer');
-  }
+//   if (!Buffer.isBuffer(rawData)) {
+//     throw new Error('Response data is not a buffer');
+//   }
 
-  log('Proxy request complete', { url, method, rawResponseHeaders });
+//   info('Proxy request complete', { method, url });
 
-  return {
-    requestId,
-    payload: {
-      statusCode: response.status,
-      headers: convertHeaders(rawResponseHeaders),
-      body: Buffer.from(rawData).toString('base64'),
-      isBase64Encoded: true,
-    },
-  };
-};
+//   return {
+//     requestId,
+//     payload: {
+//       statusCode: response.status,
+//       headers: convertHeaders(rawResponseHeaders),
+//       body: Buffer.from(rawData).toString('base64'),
+//       isBase64Encoded: true,
+//     },
+//   };
+// };

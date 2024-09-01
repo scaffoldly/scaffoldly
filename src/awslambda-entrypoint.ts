@@ -1,17 +1,19 @@
 #!/usr/bin/env node
-
-import { pollForEvents } from './awslambda-entrypoint/events';
-import { endpointProxy } from './awslambda-entrypoint/endpoints';
-import { isDebug, log } from './awslambda-entrypoint/log';
-import { getRuntimeEvent, postRuntimeEventResponse } from './awslambda-entrypoint/runtime';
-import { RuntimeEvent, EndpointProxyRequest, EndpointResponse } from './awslambda-entrypoint/types';
+import { AbortEvent, nextEvent$ } from './awslambda-entrypoint/events';
+import { info, isDebug, log } from './awslambda-entrypoint/log';
+import { mapRuntimeEvent } from './awslambda-entrypoint/runtime';
 import { Routes, Commands } from './config';
 import { GetSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
 import { execa } from 'execa';
+import { expand, lastValueFrom } from 'rxjs';
 
 const { SLY_SERVE, SLY_ROUTES, SLY_SECRET, AWS_LAMBDA_RUNTIME_API } = process.env;
 
-export const run = async (): Promise<void> => {
+const next$ = (abortEvent: AbortEvent, runtimeApi: string, routes: Routes) => {
+  return nextEvent$(abortEvent, runtimeApi).pipe(mapRuntimeEvent(abortEvent, routes));
+};
+
+export const run = async (abortEvent: AbortEvent): Promise<void> => {
   if (!AWS_LAMBDA_RUNTIME_API) {
     throw new Error('Missing AWS_LAMBDA_RUNTIME_API');
   }
@@ -71,7 +73,7 @@ export const run = async (): Promise<void> => {
   }
 
   if (!routes || !Object.keys(routes).length) {
-    throw new Error('No routes found');
+    throw new Error('No routes defined');
   }
 
   // Append "&" to run in background
@@ -83,30 +85,27 @@ export const run = async (): Promise<void> => {
     stderr: process.stderr,
     env: { ...process.env, ...env },
     verbose: isDebug,
+    signal: abortEvent.signal,
   });
 
   proc.unref();
 
-  log('Polling for events', { routes });
-  await pollForEvents(AWS_LAMBDA_RUNTIME_API, routes, commands, env);
-};
+  info('Polling for events', { routes });
 
-export {
-  endpointProxy,
-  getRuntimeEvent,
-  postRuntimeEventResponse,
-  RuntimeEvent,
-  EndpointProxyRequest,
-  EndpointResponse,
+  await lastValueFrom(
+    next$(abortEvent, AWS_LAMBDA_RUNTIME_API, routes).pipe(
+      expand(() => next$(abortEvent, AWS_LAMBDA_RUNTIME_API, routes)),
+    ),
+  );
+
+  info('Exiting!');
 };
 
 if (require.main === module) {
-  (async () => {
-    try {
-      await run();
-    } catch (e) {
-      console.error(e);
-      process.exit(-1);
-    }
-  })();
+  const abortEvent = new AbortEvent();
+  run(abortEvent)
+    .then(() => {})
+    .catch((e) => {
+      abortEvent.abort(e);
+    });
 }

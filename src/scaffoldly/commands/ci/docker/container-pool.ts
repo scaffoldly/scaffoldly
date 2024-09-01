@@ -6,6 +6,11 @@ import { EnvService } from '../env';
 import { RUNTIME_SERVER_PORT } from '../aws/lambda/lambda-runtime-server';
 import { uniqueId } from 'lodash';
 import { DevServer, Lifecycle } from '../server/dev-server';
+import { join } from 'path';
+import { readdirSync } from 'fs';
+import micromatch from 'micromatch';
+import { isDebug } from '../../../ui';
+import { ui } from '../../../command';
 
 export type ContainerRef = {
   name: string;
@@ -146,6 +151,7 @@ export class ContainerPool extends DevServer {
   private async createContainer(ref: ContainerRef): Promise<ContainerRef> {
     try {
       const env = this.envService.dockerEnv;
+      const mounts = await this.mounts;
       env.unshift(`AWS_LAMBDA_RUNTIME_API=${ref.runtimeApi}`);
 
       const container = await this.docker.createContainer({
@@ -161,7 +167,7 @@ export class ContainerPool extends DevServer {
         HostConfig: {
           NetworkMode: 'host',
           AutoRemove: true,
-          Mounts: [], // TODO
+          Mounts: mounts,
           // Memory: 1024 * 1024 * 1024, // TODO
         },
         abortSignal: this.abortController.signal,
@@ -188,6 +194,7 @@ export class ContainerPool extends DevServer {
 
       return ref;
     } catch (e) {
+      this.warn('Unable to create container', { cause: e });
       throw new Error('Unable to create container', { cause: e });
     }
   }
@@ -197,23 +204,38 @@ export class ContainerPool extends DevServer {
       const container = this.docker.getContainer(ref.name);
       await container.start({ abortSignal: this.abortController.signal });
     } catch (e) {
+      this.warn('Unable to start container', { cause: e });
       throw new Error('Unable to start container', { cause: e });
     }
 
     return ref;
   }
 
-  // private async removeContainer(ref: ContainerRef): Promise<ContainerRef> {
-  //   try {
-  //     const container = this.docker.getContainer(ref.name);
-  //     const inspection = await container.inspect().catch(() => undefined);
-  //     if (!inspection) {
-  //       return ref;
-  //     }
-  //     await container.remove({ force: true });
-  //     return ref;
-  //   } catch (e) {
-  //     throw new Error('Unable to remove container', { cause: e });
-  //   }
-  // }
+  private get mounts(): Promise<Dockerode.MountSettings[]> {
+    const { src, buildFiles } = this.gitService.config;
+    const dir = join(this.gitService.cwd, src);
+    const files = readdirSync(dir).filter((file) => {
+      const exclude = buildFiles.some((buildFile) => {
+        return !micromatch.isMatch(file, buildFile, { contains: true });
+      });
+      if (exclude && isDebug()) {
+        ui.updateBottomBarSubtext(`Excluding ${file} from mounts`);
+      }
+      return !exclude;
+    });
+    console.log('!!! mounting', files);
+    // TODO: consider .gitignore?
+    // TODO: push buildfiles into runtime container
+    return Promise.resolve(
+      files.map((file) => {
+        console.log('!!! mounting', file);
+        const settings: Dockerode.MountSettings = {
+          Type: 'bind',
+          Source: join(dir, file),
+          Target: `/var/task/${file}`,
+        };
+        return settings;
+      }),
+    );
+  }
 }

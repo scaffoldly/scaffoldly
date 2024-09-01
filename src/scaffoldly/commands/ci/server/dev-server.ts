@@ -63,6 +63,10 @@ class TimestampedStream extends Writable {
   }
 }
 
+type LogOption = {
+  cause?: unknown;
+};
+
 export abstract class DevServer {
   private _lifecycle$ = new BehaviorSubject<Lifecycle | undefined>(undefined);
 
@@ -84,11 +88,17 @@ export abstract class DevServer {
     return this._stderr;
   }
 
-  log(message: string): void {
+  log(message: string, opt?: LogOption): void {
+    if (opt && opt.cause && opt.cause instanceof Error) {
+      message = `${message}: ${opt.cause.message}`;
+    }
     this._stdout.log(message);
   }
 
-  warn(message: string): void {
+  warn(message: string, opt?: LogOption): void {
+    if (opt && opt.cause && opt.cause instanceof Error && opt.cause.message) {
+      message = `${message}: ${opt.cause.message}`;
+    }
     this._stderr.log(message);
   }
 
