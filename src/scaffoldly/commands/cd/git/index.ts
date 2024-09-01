@@ -4,6 +4,7 @@ import { ResourceOptions } from '..';
 import { context } from '@actions/github';
 import semver from 'semver';
 import { ScaffoldlyConfig } from '../../../../config';
+import { existsSync } from 'fs';
 
 export type GitDeployStatus = {
   branch?: string;
@@ -27,12 +28,14 @@ export class GitService {
   _config?: ScaffoldlyConfig;
 
   constructor(cwd?: string, config?: ScaffoldlyConfig) {
-    this._cwd = cwd;
-    if (cwd) {
-      this._git = simpleGit({ baseDir: cwd });
-    }
-    if (config) {
-      this._config = config;
+    if (cwd && existsSync(cwd)) {
+      this._cwd = cwd;
+      if (cwd) {
+        this._git = simpleGit({ baseDir: cwd });
+      }
+      if (config) {
+        this._config = config;
+      }
     }
   }
 
