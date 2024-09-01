@@ -2,9 +2,13 @@ import { Action, Mode } from './github-action/action';
 import { State } from './github-action/state';
 import { saveState, getState, debug, setOutput, summary, error } from '@actions/core';
 
-// process.on('unhandledRejection', (reason, promise) => {
-//   console.log('Unhandled Rejection at:', promise, 'reason:', reason);
-// });
+process.on('unhandledRejection', (reason, promise) => {
+  console.warn('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+});
 
 export const run = async (mode: Mode): Promise<void> => {
   const action = await new Action(mode).init();

@@ -4,7 +4,7 @@
   try {
     await run('pre');
   } catch (e) {
-    console.error(`BAD: Uncaught error in github-action-pre script!`);
+    console.error(`BAD: Uncaught error in pre script!`);
     console.error(e);
     process.exit(1);
   }

@@ -1,6 +1,5 @@
-import { debug, getIDToken, exportVariable, notice, getInput, error } from '@actions/core';
+import { debug, getIDToken, exportVariable, notice, getInput, error, warning } from '@actions/core';
 import { context, getOctokit } from '@actions/github';
-import { warn } from 'console';
 import {
   STSClient,
   AssumeRoleWithWebIdentityCommand,
@@ -203,7 +202,7 @@ export class Action {
             reject(e);
             return;
           }
-          warn(`Unable to infer logs URL: ${e.message}`);
+          warning(`Unable to infer logs URL: ${e.message}`);
           resolve(logsUrl);
         });
     });
@@ -218,10 +217,9 @@ export class Action {
       try {
         process.chdir(cwd);
       } catch (e) {
-        if (this.mode === 'pre') {
-          return undefined;
+        if (this.mode === 'main') {
+          throw new Error(`Unable to change working directory to ${cwd}: ${e.message}`);
         }
-        throw new Error(`Unable to change working directory to ${cwd}: ${e.message}`);
       }
     }
 

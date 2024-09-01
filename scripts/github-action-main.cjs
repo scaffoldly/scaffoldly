@@ -4,7 +4,7 @@
   try {
     await run('main');
   } catch (e) {
-    console.error(`BAD: Uncaught error in github-action-main script!`);
+    console.error(`BAD: Uncaught error in main script!`);
     console.error(e);
     process.exit(1);
   }
