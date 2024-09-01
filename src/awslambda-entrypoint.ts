@@ -1,17 +1,12 @@
 #!/usr/bin/env node
-import { AbortEvent, nextEvent$ } from './awslambda-entrypoint/events';
 import { info, isDebug, log } from './awslambda-entrypoint/log';
-import { mapRuntimeEvent } from './awslambda-entrypoint/runtime';
+import { poll } from './awslambda-entrypoint/observables';
+import { AbortEvent } from './awslambda-entrypoint/types';
 import { Routes, Commands } from './config';
 import { GetSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
 import { execa } from 'execa';
-import { expand, lastValueFrom } from 'rxjs';
 
 const { SLY_SERVE, SLY_ROUTES, SLY_SECRET, AWS_LAMBDA_RUNTIME_API } = process.env;
-
-const next$ = (abortEvent: AbortEvent, runtimeApi: string, routes: Routes) => {
-  return nextEvent$(abortEvent, runtimeApi).pipe(mapRuntimeEvent(abortEvent, routes));
-};
 
 export const run = async (abortEvent: AbortEvent): Promise<void> => {
   if (!AWS_LAMBDA_RUNTIME_API) {
@@ -92,11 +87,7 @@ export const run = async (abortEvent: AbortEvent): Promise<void> => {
 
   info('Polling for events', { routes });
 
-  await lastValueFrom(
-    next$(abortEvent, AWS_LAMBDA_RUNTIME_API, routes).pipe(
-      expand(() => next$(abortEvent, AWS_LAMBDA_RUNTIME_API, routes)),
-    ),
-  );
+  await poll(abortEvent, AWS_LAMBDA_RUNTIME_API, routes, env);
 
   info('Exiting!');
 };

@@ -82,11 +82,9 @@ export class LambdaRuntimeServer extends HttpServer {
     this.app.use(json({ limit: '6MB' }));
 
     this.app.get('/2018-06-01/runtime/invocation/next', (req, res) => {
-      console.log('!!! got next request');
       req.setTimeout(0);
       // TODO: Socket timeouts need will drop an event
       this.invocations.dequeue().subscribe((invocation) => {
-        console.log('!!! got invocation', invocation);
         this.log(`START RequestId: ${invocation.requestId} Version: $LATEST`);
         const deadline = new Date().getTime() + this.gitService.config.timeout * 1000;
         res.header('lambda-runtime-aws-request-id', invocation.requestId);
