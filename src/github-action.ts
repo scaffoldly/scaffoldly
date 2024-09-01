@@ -4,10 +4,12 @@ import { saveState, getState, debug, setOutput, summary, error } from '@actions/
 
 process.on('unhandledRejection', (reason, promise) => {
   console.warn('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(2);
 });
 
 process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
+  process.exit(3);
 });
 
 export const run = async (mode: Mode): Promise<void> => {
@@ -27,7 +29,7 @@ export const run = async (mode: Mode): Promise<void> => {
         state = await action.post(JSON.parse(getState('state') || '{}') as State);
         break;
       default:
-        throw new Error(`Invalid run: ${run}`);
+        throw new Error(`Invalid mode: ${mode}`);
     }
 
     debug('New state: ' + JSON.stringify(state));
@@ -42,10 +44,8 @@ export const run = async (mode: Mode): Promise<void> => {
     saveState('state', JSON.stringify(state));
 
     if (state.failed) {
-      process.exit(1);
+      throw new Error(`${mode} step failed`);
     }
-
-    process.exit(0);
   } catch (e) {
     error(e);
     debug(e.stack);

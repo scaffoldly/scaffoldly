@@ -50,7 +50,6 @@ export class Action {
   }
 
   async pre(state: State): Promise<State> {
-    state.status = {};
     state.deployLogsUrl = await this.logsUrl;
     state.commitSha = this.commitSha;
     state.owner = this.owner;
@@ -113,6 +112,9 @@ export class Action {
       if (!(e instanceof Error)) {
         throw e;
       }
+
+      error(`Failed to assume role: ${e.message}`);
+      debug(`Error: ${e}`);
 
       const newLongMessage = await roleSetupMoreInfo(state);
 
