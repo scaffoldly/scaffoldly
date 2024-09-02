@@ -22,5 +22,10 @@ export const info = (message: unknown, obj?: Record<string, unknown>): void => {
 
 export const log = (message: unknown, obj?: Record<string, unknown>): void => {
   if (!process.env.SLY_DEBUG) return;
-  info(message, obj);
+  const msg = `[scaffoldly@${name}] ${message}`;
+  if (!obj) {
+    console.log(msg);
+    return;
+  }
+  console.warn(msg, JSON.stringify(obj));
 };

@@ -24,55 +24,43 @@ import {
 import { AbortEvent, AsyncResponse, RuntimeEvent } from './types';
 import axios, { isAxiosError } from 'axios';
 import { execa } from 'execa';
-import { mapRuntimeEvent } from './mappers';
+import { mapAsyncResponse, mapRuntimeEvent } from './mappers';
 
 const next$ = (
   abortEvent: AbortEvent,
   runtimeApi: string,
   env: Record<string, string>,
 ): Observable<RuntimeEvent> => {
-  return from(
-    Promise.resolve()
-      .then(() => {
-        log('Awaiting next event', { runtimeApi });
-      })
-      .then(() => {
-        return axios.get(`http://${runtimeApi}/2018-06-01/runtime/invocation/next`, {
-          responseType: 'text',
-          signal: abortEvent.signal,
-        });
-      }),
-  ).pipe(
-    catchError((e) => {
-      abortEvent.abort(e);
-      return throwError(() => new Error('Unable to fetch next event', { cause: e }));
+  return defer(() => {
+    log('Fetching next event', { runtimeApi });
+    return axios.get(`http://${runtimeApi}/2018-06-01/runtime/invocation/next`, {
+      responseType: 'text',
+      signal: abortEvent.signal,
+      timeout: 0,
+    });
+  }).pipe(
+    retry({
+      delay: (e) => {
+        if (!isAxiosError(e)) {
+          return throwError(() => new Error(`Unknown error`, { cause: e }));
+        }
+
+        abortEvent.abort(new Error(`Error fetching next event: ${e.code}`, { cause: e }));
+        return timer(1000); // Will be aborted on next cycle
+      },
     }),
     map((next) => {
       log('Received next event', { headers: next.headers, data: next.data });
 
+      const requestId = next.headers['lambda-runtime-aws-request-id'];
       const response$ = new AsyncSubject<AsyncResponse>();
 
-      response$.subscribe((response) => {
-        const url = `http://${runtimeApi}/2018-06-01/runtime/invocation/${response.requestId}/response`;
-        axios
-          .post(url, response.payload)
-          .then((r) => {
-            log('Response sent to Lambda Runtime API', {
-              url,
-              statusCode: r.status,
-              headers: r.headers,
-            });
-          })
-          .catch((e) => {
-            error(`Error sending event response: ${e.message}`, {
-              url,
-              statusCode: e.response?.status,
-            });
-          });
+      response$.pipe(mapAsyncResponse(abortEvent, runtimeApi)).subscribe((response) => {
+        log('Response sent to Runtime API', { requestId, response });
       });
 
       return {
-        requestId: next.headers['lambda-runtime-aws-request-id'],
+        requestId,
         event: next.data,
         deadline: Number.parseInt(next.headers['lambda-runtime-deadline-ms']),
         env,
@@ -184,6 +172,8 @@ const proxy$ = (
       return {
         requestId: runtimeEvent.requestId,
         response$: runtimeEvent.response$,
+        method,
+        url,
         payload: {
           statusCode: resp.status,
           headers: transformAxiosResponseHeaders(responseHeaders),
@@ -281,8 +271,8 @@ export const poll = (
     return next$(abortEvent, runtimeApi, env)
       .pipe(mapRuntimeEvent(abortEvent, routes))
       .pipe(
-        switchMap((asyncResponse) => {
-          return of(asyncResponse.response$.complete());
+        switchMap((runtimeEvent) => {
+          return of(runtimeEvent.response$.complete());
         }),
       );
   };

@@ -16,11 +16,11 @@ var __export = (target, all3) => {
   for (var name2 in all3)
     __defProp(target, name2, { get: all3[name2], enumerable: true });
 };
-var __copyProps = (to, from2, except, desc) => {
-  if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-    for (let key of __getOwnPropNames(from2))
+var __copyProps = (to, from3, except, desc) => {
+  if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+    for (let key of __getOwnPropNames(from3))
       if (!__hasOwnProp.call(to, key) && key !== except)
-        __defProp(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc(from2, key)) || desc.enumerable });
+        __defProp(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc(from3, key)) || desc.enumerable });
   }
   return to;
 };
@@ -135,9 +135,9 @@ var require_Subscription = __commonJS({
       }
       return ar;
     };
-    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from2) {
-      for (var i = 0, il = from2.length, j = to.length; i < il; i++, j++)
-        to[j] = from2[i];
+    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from3) {
+      for (var i = 0, il = from3.length, j = to.length; i < il; i++, j++)
+        to[j] = from3[i];
       return to;
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -318,9 +318,9 @@ var require_timeoutProvider = __commonJS({
       }
       return ar;
     };
-    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from2) {
-      for (var i = 0, il = from2.length, j = to.length; i < il; i++, j++)
-        to[j] = from2[i];
+    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from3) {
+      for (var i = 0, il = from3.length, j = to.length; i < il; i++, j++)
+        to[j] = from3[i];
       return to;
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -1078,9 +1078,9 @@ var require_animationFrameProvider = __commonJS({
       }
       return ar;
     };
-    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from2) {
-      for (var i = 0, il = from2.length, j = to.length; i < il; i++, j++)
-        to[j] = from2[i];
+    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from3) {
+      for (var i = 0, il = from3.length, j = to.length; i < il; i++, j++)
+        to[j] = from3[i];
       return to;
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -1576,16 +1576,16 @@ var require_AsyncSubject = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.AsyncSubject = void 0;
     var Subject_1 = require_Subject();
-    var AsyncSubject3 = function(_super) {
-      __extends2(AsyncSubject4, _super);
-      function AsyncSubject4() {
+    var AsyncSubject2 = function(_super) {
+      __extends2(AsyncSubject3, _super);
+      function AsyncSubject3() {
         var _this = _super !== null && _super.apply(this, arguments) || this;
         _this._value = null;
         _this._hasValue = false;
         _this._isComplete = false;
         return _this;
       }
-      AsyncSubject4.prototype._checkFinalizedStatuses = function(subscriber) {
+      AsyncSubject3.prototype._checkFinalizedStatuses = function(subscriber) {
         var _a = this, hasError = _a.hasError, _hasValue = _a._hasValue, _value = _a._value, thrownError = _a.thrownError, isStopped = _a.isStopped, _isComplete = _a._isComplete;
         if (hasError) {
           subscriber.error(thrownError);
@@ -1594,13 +1594,13 @@ var require_AsyncSubject = __commonJS({
           subscriber.complete();
         }
       };
-      AsyncSubject4.prototype.next = function(value) {
+      AsyncSubject3.prototype.next = function(value) {
         if (!this.isStopped) {
           this._value = value;
           this._hasValue = true;
         }
       };
-      AsyncSubject4.prototype.complete = function() {
+      AsyncSubject3.prototype.complete = function() {
         var _a = this, _hasValue = _a._hasValue, _value = _a._value, _isComplete = _a._isComplete;
         if (!_isComplete) {
           this._isComplete = true;
@@ -1608,9 +1608,9 @@ var require_AsyncSubject = __commonJS({
           _super.prototype.complete.call(this);
         }
       };
-      return AsyncSubject4;
+      return AsyncSubject3;
     }(Subject_1.Subject);
-    exports2.AsyncSubject = AsyncSubject3;
+    exports2.AsyncSubject = AsyncSubject2;
   }
 });
 
@@ -1678,9 +1678,9 @@ var require_intervalProvider = __commonJS({
       }
       return ar;
     };
-    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from2) {
-      for (var i = 0, il = from2.length, j = to.length; i < il; i++, j++)
-        to[j] = from2[i];
+    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from3) {
+      for (var i = 0, il = from3.length, j = to.length; i < il; i++, j++)
+        to[j] = from3[i];
       return to;
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -1887,9 +1887,9 @@ var require_immediateProvider = __commonJS({
       }
       return ar;
     };
-    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from2) {
-      for (var i = 0, il = from2.length, j = to.length; i < il; i++, j++)
-        to[j] = from2[i];
+    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from3) {
+      for (var i = 0, il = from3.length, j = to.length; i < il; i++, j++)
+        to[j] = from3[i];
       return to;
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -3446,10 +3446,10 @@ var require_from = __commonJS({
     exports2.from = void 0;
     var scheduled_1 = require_scheduled();
     var innerFrom_1 = require_innerFrom();
-    function from2(input, scheduler) {
+    function from3(input, scheduler) {
       return scheduler ? scheduled_1.scheduled(input, scheduler) : innerFrom_1.innerFrom(input);
     }
-    exports2.from = from2;
+    exports2.from = from3;
   }
 });
 
@@ -3481,7 +3481,7 @@ var require_throwError = __commonJS({
     exports2.throwError = void 0;
     var Observable_1 = require_Observable();
     var isFunction_1 = require_isFunction();
-    function throwError2(errorOrErrorFactory, scheduler) {
+    function throwError3(errorOrErrorFactory, scheduler) {
       var errorFactory = isFunction_1.isFunction(errorOrErrorFactory) ? errorOrErrorFactory : function() {
         return errorOrErrorFactory;
       };
@@ -3492,7 +3492,7 @@ var require_throwError = __commonJS({
         return scheduler.schedule(init, 0, subscriber);
       } : init);
     }
-    exports2.throwError = throwError2;
+    exports2.throwError = throwError3;
   }
 });
 
@@ -3837,9 +3837,9 @@ var require_mapOneOrManyArgs = __commonJS({
       }
       return ar;
     };
-    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from2) {
-      for (var i = 0, il = from2.length, j = to.length; i < il; i++, j++)
-        to[j] = from2[i];
+    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from3) {
+      for (var i = 0, il = from3.length, j = to.length; i < il; i++, j++)
+        to[j] = from3[i];
       return to;
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -3879,9 +3879,9 @@ var require_bindCallbackInternals = __commonJS({
       }
       return ar;
     };
-    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from2) {
-      for (var i = 0, il = from2.length, j = to.length; i < il; i++, j++)
-        to[j] = from2[i];
+    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from3) {
+      for (var i = 0, il = from3.length, j = to.length; i < il; i++, j++)
+        to[j] = from3[i];
       return to;
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -5013,9 +5013,9 @@ var require_zip = __commonJS({
       }
       return ar;
     };
-    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from2) {
-      for (var i = 0, il = from2.length, j = to.length; i < il; i++, j++)
-        to[j] = from2[i];
+    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from3) {
+      for (var i = 0, il = from3.length, j = to.length; i < il; i++, j++)
+        to[j] = from3[i];
       return to;
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -5489,13 +5489,13 @@ var require_catchError = __commonJS({
     var innerFrom_1 = require_innerFrom();
     var OperatorSubscriber_1 = require_OperatorSubscriber();
     var lift_1 = require_lift();
-    function catchError2(selector) {
+    function catchError3(selector) {
       return lift_1.operate(function(source, subscriber) {
         var innerSub = null;
         var syncUnsub = false;
         var handledResult;
         innerSub = source.subscribe(OperatorSubscriber_1.createOperatorSubscriber(subscriber, void 0, void 0, function(err) {
-          handledResult = innerFrom_1.innerFrom(selector(err, catchError2(selector)(source)));
+          handledResult = innerFrom_1.innerFrom(selector(err, catchError3(selector)(source)));
           if (innerSub) {
             innerSub.unsubscribe();
             innerSub = null;
@@ -5511,7 +5511,7 @@ var require_catchError = __commonJS({
         }
       });
     }
-    exports2.catchError = catchError2;
+    exports2.catchError = catchError3;
   }
 });
 
@@ -5643,9 +5643,9 @@ var require_combineLatest2 = __commonJS({
       }
       return ar;
     };
-    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from2) {
-      for (var i = 0, il = from2.length, j = to.length; i < il; i++, j++)
-        to[j] = from2[i];
+    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from3) {
+      for (var i = 0, il = from3.length, j = to.length; i < il; i++, j++)
+        to[j] = from3[i];
       return to;
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -5691,9 +5691,9 @@ var require_combineLatestWith = __commonJS({
       }
       return ar;
     };
-    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from2) {
-      for (var i = 0, il = from2.length, j = to.length; i < il; i++, j++)
-        to[j] = from2[i];
+    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from3) {
+      for (var i = 0, il = from3.length, j = to.length; i < il; i++, j++)
+        to[j] = from3[i];
       return to;
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -5765,9 +5765,9 @@ var require_concat2 = __commonJS({
       }
       return ar;
     };
-    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from2) {
-      for (var i = 0, il = from2.length, j = to.length; i < il; i++, j++)
-        to[j] = from2[i];
+    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from3) {
+      for (var i = 0, il = from3.length, j = to.length; i < il; i++, j++)
+        to[j] = from3[i];
       return to;
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -5811,9 +5811,9 @@ var require_concatWith = __commonJS({
       }
       return ar;
     };
-    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from2) {
-      for (var i = 0, il = from2.length, j = to.length; i < il; i++, j++)
-        to[j] = from2[i];
+    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from3) {
+      for (var i = 0, il = from3.length, j = to.length; i < il; i++, j++)
+        to[j] = from3[i];
       return to;
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -6304,9 +6304,9 @@ var require_endWith = __commonJS({
       }
       return ar;
     };
-    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from2) {
-      for (var i = 0, il = from2.length, j = to.length; i < il; i++, j++)
-        to[j] = from2[i];
+    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from3) {
+      for (var i = 0, il = from3.length, j = to.length; i < il; i++, j++)
+        to[j] = from3[i];
       return to;
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -6851,9 +6851,9 @@ var require_merge2 = __commonJS({
       }
       return ar;
     };
-    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from2) {
-      for (var i = 0, il = from2.length, j = to.length; i < il; i++, j++)
-        to[j] = from2[i];
+    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from3) {
+      for (var i = 0, il = from3.length, j = to.length; i < il; i++, j++)
+        to[j] = from3[i];
       return to;
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -6900,9 +6900,9 @@ var require_mergeWith = __commonJS({
       }
       return ar;
     };
-    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from2) {
-      for (var i = 0, il = from2.length, j = to.length; i < il; i++, j++)
-        to[j] = from2[i];
+    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from3) {
+      for (var i = 0, il = from3.length, j = to.length; i < il; i++, j++)
+        to[j] = from3[i];
       return to;
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -6985,9 +6985,9 @@ var require_onErrorResumeNextWith = __commonJS({
       }
       return ar;
     };
-    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from2) {
-      for (var i = 0, il = from2.length, j = to.length; i < il; i++, j++)
-        to[j] = from2[i];
+    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from3) {
+      for (var i = 0, il = from3.length, j = to.length; i < il; i++, j++)
+        to[j] = from3[i];
       return to;
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -7169,9 +7169,9 @@ var require_raceWith = __commonJS({
       }
       return ar;
     };
-    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from2) {
-      for (var i = 0, il = from2.length, j = to.length; i < il; i++, j++)
-        to[j] = from2[i];
+    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from3) {
+      for (var i = 0, il = from3.length, j = to.length; i < il; i++, j++)
+        to[j] = from3[i];
       return to;
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -7567,9 +7567,9 @@ var require_share = __commonJS({
       }
       return ar;
     };
-    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from2) {
-      for (var i = 0, il = from2.length, j = to.length; i < il; i++, j++)
-        to[j] = from2[i];
+    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from3) {
+      for (var i = 0, il = from3.length, j = to.length; i < il; i++, j++)
+        to[j] = from3[i];
       return to;
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -8569,9 +8569,9 @@ var require_withLatestFrom = __commonJS({
       }
       return ar;
     };
-    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from2) {
-      for (var i = 0, il = from2.length, j = to.length; i < il; i++, j++)
-        to[j] = from2[i];
+    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from3) {
+      for (var i = 0, il = from3.length, j = to.length; i < il; i++, j++)
+        to[j] = from3[i];
       return to;
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -8655,9 +8655,9 @@ var require_zip2 = __commonJS({
       }
       return ar;
     };
-    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from2) {
-      for (var i = 0, il = from2.length, j = to.length; i < il; i++, j++)
-        to[j] = from2[i];
+    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from3) {
+      for (var i = 0, il = from3.length, j = to.length; i < il; i++, j++)
+        to[j] = from3[i];
       return to;
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -8698,9 +8698,9 @@ var require_zipWith = __commonJS({
       }
       return ar;
     };
-    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from2) {
-      for (var i = 0, il = from2.length, j = to.length; i < il; i++, j++)
-        to[j] = from2[i];
+    var __spreadArray2 = exports2 && exports2.__spreadArray || function(to, from3) {
+      for (var i = 0, il = from3.length, j = to.length; i < il; i++, j++)
+        to[j] = from3[i];
       return to;
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -18684,9 +18684,9 @@ var require_mime_types = __commonJS({
         for (var i = 0; i < exts.length; i++) {
           var extension2 = exts[i];
           if (types[extension2]) {
-            var from2 = preference.indexOf(db[types[extension2]].source);
+            var from3 = preference.indexOf(db[types[extension2]].source);
             var to = preference.indexOf(mime.source);
-            if (types[extension2] !== "application/octet-stream" && (from2 > to || from2 === to && types[extension2].substr(0, 12) === "application/")) {
+            if (types[extension2] !== "application/octet-stream" && (from3 > to || from3 === to && types[extension2].substr(0, 12) === "application/")) {
               continue;
             }
           }
@@ -21105,11 +21105,11 @@ var require_dist_cjs = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -21225,11 +21225,11 @@ var require_dist_cjs2 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -21464,11 +21464,11 @@ var require_dist_cjs3 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -21530,11 +21530,11 @@ var require_dist_cjs4 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -21604,11 +21604,11 @@ var require_dist_cjs5 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -21667,11 +21667,11 @@ var require_dist_cjs6 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -22084,11 +22084,11 @@ var require_dist_cjs7 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -22447,11 +22447,11 @@ var require_dist_cjs8 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -22556,11 +22556,11 @@ var require_dist_cjs9 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -22610,11 +22610,11 @@ var require_dist_cjs10 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -22648,11 +22648,11 @@ var require_dist_cjs11 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -22881,11 +22881,11 @@ var require_dist_cjs12 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -23117,11 +23117,11 @@ var require_dist_cjs13 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -23282,11 +23282,11 @@ var require_dist_cjs14 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -23422,11 +23422,11 @@ var require_dist_cjs15 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -23473,11 +23473,11 @@ var require_dist_cjs16 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -23520,11 +23520,11 @@ var require_dist_cjs17 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -23610,11 +23610,11 @@ var require_dist_cjs18 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -24289,11 +24289,11 @@ var require_dist_cjs19 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -24376,11 +24376,11 @@ var require_dist_cjs20 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -24690,11 +24690,11 @@ var require_dist_cjs21 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -24771,17 +24771,17 @@ var require_dist_cjs21 = __commonJS({
         (_a = toStack.identifyOnResolve) == null ? void 0 : _a.call(toStack, stack.identifyOnResolve());
         return toStack;
       }, "cloneTo");
-      const expandRelativeMiddlewareList = /* @__PURE__ */ __name((from2) => {
+      const expandRelativeMiddlewareList = /* @__PURE__ */ __name((from3) => {
         const expandedMiddlewareList = [];
-        from2.before.forEach((entry) => {
+        from3.before.forEach((entry) => {
           if (entry.before.length === 0 && entry.after.length === 0) {
             expandedMiddlewareList.push(entry);
           } else {
             expandedMiddlewareList.push(...expandRelativeMiddlewareList(entry));
           }
         });
-        expandedMiddlewareList.push(from2);
-        from2.after.reverse().forEach((entry) => {
+        expandedMiddlewareList.push(from3);
+        from3.after.reverse().forEach((entry) => {
           if (entry.before.length === 0 && entry.after.length === 0) {
             expandedMiddlewareList.push(entry);
           } else {
@@ -24947,12 +24947,12 @@ var require_dist_cjs21 = __commonJS({
           relativeEntries = relativeEntries.filter(filterCb);
           return isRemoved;
         },
-        concat: (from2) => {
+        concat: (from3) => {
           var _a;
           const cloned = cloneTo(constructStack());
-          cloned.use(from2);
+          cloned.use(from3);
           cloned.identifyOnResolve(
-            identifyOnResolve || cloned.identifyOnResolve() || (((_a = from2.identifyOnResolve) == null ? void 0 : _a.call(from2)) ?? false)
+            identifyOnResolve || cloned.identifyOnResolve() || (((_a = from3.identifyOnResolve) == null ? void 0 : _a.call(from3)) ?? false)
           );
           return cloned;
         },
@@ -25007,11 +25007,11 @@ var require_dist_cjs22 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -25037,11 +25037,11 @@ var require_dist_cjs23 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -25103,11 +25103,11 @@ var require_dist_cjs24 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -25176,11 +25176,11 @@ var require_dist_cjs25 = __commonJS({
     var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
     var __getOwnPropNames2 = Object.getOwnPropertyNames;
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -25243,11 +25243,11 @@ var require_dist_cjs26 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -25279,11 +25279,11 @@ var require_dist_cjs27 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -25331,11 +25331,11 @@ var require_dist_cjs28 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -26033,11 +26033,11 @@ var require_dist_cjs29 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -26269,11 +26269,11 @@ var require_dist_cjs30 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -26608,11 +26608,11 @@ var require_dist_cjs31 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -26690,11 +26690,11 @@ var require_dist_cjs32 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -27843,11 +27843,11 @@ var require_dist_cjs33 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -28586,11 +28586,11 @@ var require_dist_cjs34 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -28797,11 +28797,11 @@ var require_dist_cjs35 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -31598,14 +31598,14 @@ function __spreadArrays() {
       r[k] = a[j];
   return r;
 }
-function __spreadArray(to, from2, pack) {
-  if (pack || arguments.length === 2) for (var i = 0, l = from2.length, ar; i < l; i++) {
-    if (ar || !(i in from2)) {
-      if (!ar) ar = Array.prototype.slice.call(from2, 0, i);
-      ar[i] = from2[i];
+function __spreadArray(to, from3, pack) {
+  if (pack || arguments.length === 2) for (var i = 0, l = from3.length, ar; i < l; i++) {
+    if (ar || !(i in from3)) {
+      if (!ar) ar = Array.prototype.slice.call(from3, 0, i);
+      ar[i] = from3[i];
     }
   }
-  return to.concat(ar || Array.prototype.slice.call(from2));
+  return to.concat(ar || Array.prototype.slice.call(from3));
 }
 function __await(v) {
   return this instanceof __await ? (this.v = v, this) : new __await(v);
@@ -31964,11 +31964,11 @@ var require_dist_cjs36 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -32023,11 +32023,11 @@ var require_dist_cjs37 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -32799,11 +32799,11 @@ var require_dist_cjs39 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -32882,11 +32882,11 @@ var require_dist_cjs40 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -32946,11 +32946,11 @@ var require_dist_cjs41 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -33098,11 +33098,11 @@ var require_dist_cjs42 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -33257,11 +33257,11 @@ var require_dist_cjs43 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -33355,11 +33355,11 @@ var require_dist_cjs44 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -33899,11 +33899,11 @@ var require_dist_cjs45 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -34138,11 +34138,11 @@ var require_dist_cjs46 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -34204,11 +34204,11 @@ var require_dist_cjs47 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -34268,11 +34268,11 @@ var require_dist_cjs48 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -34478,11 +34478,11 @@ var require_dist_cjs49 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -35190,11 +35190,11 @@ var require_dist_cjs50 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -35892,11 +35892,11 @@ var require_dist_cjs51 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -36402,11 +36402,11 @@ var require_dist_cjs52 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -36484,11 +36484,11 @@ var require_dist_cjs53 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -37637,11 +37637,11 @@ var require_dist_cjs54 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -38378,11 +38378,11 @@ var require_dist_cjs55 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -38589,11 +38589,11 @@ var require_dist_cjs56 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -39676,11 +39676,11 @@ var require_dist_cjs57 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -40553,11 +40553,11 @@ var require_dist_cjs59 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -40712,11 +40712,11 @@ var require_dist_cjs60 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -41260,11 +41260,11 @@ var require_dist_cjs61 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -41991,11 +41991,11 @@ var require_dist_cjs62 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -43344,11 +43344,11 @@ var require_dist_cjs63 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -43520,11 +43520,11 @@ var require_dist_cjs64 = __commonJS({
     var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
     var __getOwnPropNames2 = Object.getOwnPropertyNames;
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -43552,11 +43552,11 @@ var require_dist_cjs65 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -43772,11 +43772,11 @@ var require_dist_cjs66 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -44067,11 +44067,11 @@ var require_dist_cjs67 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -45052,11 +45052,11 @@ var require_dist_cjs68 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -45233,11 +45233,11 @@ var require_dist_cjs69 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -45964,11 +45964,11 @@ var require_dist_cjs70 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -47319,11 +47319,11 @@ var require_dist_cjs71 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -47539,11 +47539,11 @@ var require_dist_cjs72 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -47834,11 +47834,11 @@ var require_dist_cjs73 = __commonJS({
       for (var name2 in all3)
         __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
-    var __copyProps2 = (to, from2, except, desc) => {
-      if (from2 && typeof from2 === "object" || typeof from2 === "function") {
-        for (let key of __getOwnPropNames2(from2))
+    var __copyProps2 = (to, from3, except, desc) => {
+      if (from3 && typeof from3 === "object" || typeof from3 === "function") {
+        for (let key of __getOwnPropNames2(from3))
           if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from2[key], enumerable: !(desc = __getOwnPropDesc2(from2, key)) || desc.enumerable });
+            __defProp2(to, key, { get: () => from3[key], enumerable: !(desc = __getOwnPropDesc2(from3, key)) || desc.enumerable });
       }
       return to;
     };
@@ -49447,7 +49447,12 @@ var info = (message, obj) => {
 };
 var log = (message, obj) => {
   if (!process.env.SLY_DEBUG) return;
-  info(message, obj);
+  const msg = `[scaffoldly@${name}] ${message}`;
+  if (!obj) {
+    console.log(msg);
+    return;
+  }
+  console.warn(msg, JSON.stringify(obj));
 };
 
 // src/awslambda-entrypoint/observables.ts
@@ -49502,13 +49507,13 @@ function join(separator = "") {
   if (typeof separator !== "string")
     throw new Error("join separator should be string");
   return {
-    encode: (from2) => {
-      if (!Array.isArray(from2) || from2.length && typeof from2[0] !== "string")
+    encode: (from3) => {
+      if (!Array.isArray(from3) || from3.length && typeof from3[0] !== "string")
         throw new Error("join.encode input should be array of strings");
-      for (let i of from2)
+      for (let i of from3)
         if (typeof i !== "string")
           throw new Error(`join.encode: non-string input=${i}`);
-      return from2.join(separator);
+      return from3.join(separator);
     },
     decode: (to) => {
       if (typeof to !== "string")
@@ -49518,9 +49523,9 @@ function join(separator = "") {
   };
 }
 // @__NO_SIDE_EFFECTS__
-function convertRadix(data, from2, to) {
-  if (from2 < 2)
-    throw new Error(`convertRadix: wrong from=${from2}, base cannot be less than 2`);
+function convertRadix(data, from3, to) {
+  if (from3 < 2)
+    throw new Error(`convertRadix: wrong from=${from3}, base cannot be less than 2`);
   if (to < 2)
     throw new Error(`convertRadix: wrong to=${to}, base cannot be less than 2`);
   if (!Array.isArray(data))
@@ -49532,7 +49537,7 @@ function convertRadix(data, from2, to) {
   const digits = Array.from(data);
   digits.forEach((d) => {
     /* @__PURE__ */ assertNumber(d);
-    if (d < 0 || d >= from2)
+    if (d < 0 || d >= from3)
       throw new Error(`Wrong integer: ${d}`);
   });
   while (true) {
@@ -49540,8 +49545,8 @@ function convertRadix(data, from2, to) {
     let done = true;
     for (let i = pos; i < digits.length; i++) {
       const digit = digits[i];
-      const digitBase = from2 * carry + digit;
-      if (!Number.isSafeInteger(digitBase) || from2 * carry / from2 !== carry || digitBase - digit !== from2 * carry) {
+      const digitBase = from3 * carry + digit;
+      if (!Number.isSafeInteger(digitBase) || from3 * carry / from3 !== carry || digitBase - digit !== from3 * carry) {
         throw new Error("convertRadix: carry overflow");
       }
       carry = digitBase % to;
@@ -52994,7 +52999,7 @@ var npmRunPathEnv = ({ env = import_node_process.default.env, ...options } = {})
 };
 
 // node_modules/mimic-fn/index.js
-var copyProperty = (to, from2, property, ignoreNonConfigurable) => {
+var copyProperty = (to, from3, property, ignoreNonConfigurable) => {
   if (property === "length" || property === "prototype") {
     return;
   }
@@ -53002,7 +53007,7 @@ var copyProperty = (to, from2, property, ignoreNonConfigurable) => {
     return;
   }
   const toDescriptor = Object.getOwnPropertyDescriptor(to, property);
-  const fromDescriptor = Object.getOwnPropertyDescriptor(from2, property);
+  const fromDescriptor = Object.getOwnPropertyDescriptor(from3, property);
   if (!canCopyProperty(toDescriptor, fromDescriptor) && ignoreNonConfigurable) {
     return;
   }
@@ -53011,8 +53016,8 @@ var copyProperty = (to, from2, property, ignoreNonConfigurable) => {
 var canCopyProperty = function(toDescriptor, fromDescriptor) {
   return toDescriptor === void 0 || toDescriptor.configurable || toDescriptor.writable === fromDescriptor.writable && toDescriptor.enumerable === fromDescriptor.enumerable && toDescriptor.configurable === fromDescriptor.configurable && (toDescriptor.writable || toDescriptor.value === fromDescriptor.value);
 };
-var changePrototype = (to, from2) => {
-  const fromPrototype = Object.getPrototypeOf(from2);
+var changePrototype = (to, from3) => {
+  const fromPrototype = Object.getPrototypeOf(from3);
   if (fromPrototype === Object.getPrototypeOf(to)) {
     return;
   }
@@ -53022,19 +53027,19 @@ var wrappedToString = (withName, fromBody) => `/* Wrapped ${withName}*/
 ${fromBody}`;
 var toStringDescriptor = Object.getOwnPropertyDescriptor(Function.prototype, "toString");
 var toStringName = Object.getOwnPropertyDescriptor(Function.prototype.toString, "name");
-var changeToString = (to, from2, name2) => {
+var changeToString = (to, from3, name2) => {
   const withName = name2 === "" ? "" : `with ${name2.trim()}() `;
-  const newToString = wrappedToString.bind(null, withName, from2.toString());
+  const newToString = wrappedToString.bind(null, withName, from3.toString());
   Object.defineProperty(newToString, "name", toStringName);
   Object.defineProperty(to, "toString", { ...toStringDescriptor, value: newToString });
 };
-function mimicFunction(to, from2, { ignoreNonConfigurable = false } = {}) {
+function mimicFunction(to, from3, { ignoreNonConfigurable = false } = {}) {
   const { name: name2 } = to;
-  for (const property of Reflect.ownKeys(from2)) {
-    copyProperty(to, from2, property, ignoreNonConfigurable);
+  for (const property of Reflect.ownKeys(from3)) {
+    copyProperty(to, from3, property, ignoreNonConfigurable);
   }
-  changePrototype(to, from2);
-  changeToString(to, from2, name2);
+  changePrototype(to, from3);
+  changeToString(to, from3, name2);
   return to;
 }
 
@@ -54528,43 +54533,95 @@ var mapRuntimeEvent = (abortEvent, routes) => {
     });
   };
 };
+var mapAsyncResponse = (abortEvent, runtimeApi) => {
+  return (source) => {
+    return new import_rxjs.Observable((subscriber) => {
+      const subscription = source.pipe(
+        (0, import_rxjs.switchMap)((asyncResponse) => {
+          return (0, import_rxjs.from)(
+            axios_default.post(
+              `http://${runtimeApi}/2018-06-01/runtime/invocation/${asyncResponse.requestId}/response`,
+              asyncResponse.payload,
+              { signal: abortEvent.signal }
+            )
+          ).pipe(
+            (0, import_rxjs.catchError)((e) => {
+              if (!isAxiosError2(e)) {
+                return (0, import_rxjs.throwError)(() => new Error(`Unknown error`, { cause: e }));
+              }
+              let message = e.response?.statusText || e.message;
+              if (asyncResponse.method && asyncResponse.url) {
+                message = `Unable to ${asyncResponse.method} ${asyncResponse.url}: ${message}`;
+              }
+              return (0, import_rxjs.from)(
+                axios_default.post(
+                  `http://${runtimeApi}/2018-06-01/runtime/invocation/${asyncResponse.requestId}/response`,
+                  {
+                    statusCode: 500,
+                    body: `${message}
+`,
+                    headers: {
+                      "Content-Type": "text/plain"
+                    },
+                    isBase64Encoded: false
+                  },
+                  { signal: abortEvent.signal }
+                )
+              );
+            })
+          );
+        })
+      ).subscribe({
+        next(axiosResponse) {
+          subscriber.next({
+            url: axiosResponse.config.url,
+            headers: axiosResponse.headers,
+            statusCode: axiosResponse.status
+          });
+        },
+        error(err) {
+          abortEvent.abort(err);
+          subscriber.error(err);
+        },
+        complete() {
+          subscriber.complete();
+        }
+      });
+      return () => {
+        subscription.unsubscribe();
+      };
+    });
+  };
+};
 
 // src/awslambda-entrypoint/observables.ts
 var next$ = (abortEvent, runtimeApi, env) => {
-  return (0, import_rxjs2.from)(
-    Promise.resolve().then(() => {
-      log("Awaiting next event", { runtimeApi });
-    }).then(() => {
-      return axios_default.get(`http://${runtimeApi}/2018-06-01/runtime/invocation/next`, {
-        responseType: "text",
-        signal: abortEvent.signal
-      });
-    })
-  ).pipe(
-    (0, import_rxjs2.catchError)((e) => {
-      abortEvent.abort(e);
-      return (0, import_rxjs2.throwError)(() => new Error("Unable to fetch next event", { cause: e }));
+  return (0, import_rxjs2.defer)(() => {
+    log("Fetching next event", { runtimeApi });
+    return axios_default.get(`http://${runtimeApi}/2018-06-01/runtime/invocation/next`, {
+      responseType: "text",
+      signal: abortEvent.signal,
+      timeout: 0
+    });
+  }).pipe(
+    (0, import_rxjs2.retry)({
+      delay: (e) => {
+        if (!isAxiosError2(e)) {
+          return (0, import_rxjs2.throwError)(() => new Error(`Unknown error`, { cause: e }));
+        }
+        abortEvent.abort(new Error(`Error fetching next event: ${e.code}`, { cause: e }));
+        return (0, import_rxjs2.timer)(1e3);
+      }
     }),
     (0, import_rxjs2.map)((next) => {
       log("Received next event", { headers: next.headers, data: next.data });
+      const requestId = next.headers["lambda-runtime-aws-request-id"];
       const response$ = new import_rxjs2.AsyncSubject();
-      response$.subscribe((response) => {
-        const url2 = `http://${runtimeApi}/2018-06-01/runtime/invocation/${response.requestId}/response`;
-        axios_default.post(url2, response.payload).then((r) => {
-          log("Response sent to Lambda Runtime API", {
-            url: url2,
-            statusCode: r.status,
-            headers: r.headers
-          });
-        }).catch((e) => {
-          error(`Error sending event response: ${e.message}`, {
-            url: url2,
-            statusCode: e.response?.status
-          });
-        });
+      response$.pipe(mapAsyncResponse(abortEvent, runtimeApi)).subscribe((response) => {
+        log("Response sent to Runtime API", { requestId, response });
       });
       return {
-        requestId: next.headers["lambda-runtime-aws-request-id"],
+        requestId,
         event: next.data,
         deadline: Number.parseInt(next.headers["lambda-runtime-deadline-ms"]),
         env,
@@ -54649,6 +54706,8 @@ var proxy$ = (abortEvent, runtimeEvent, url2, method, headers, data, deadline) =
       return {
         requestId: runtimeEvent.requestId,
         response$: runtimeEvent.response$,
+        method,
+        url: url2,
         payload: {
           statusCode: resp.status,
           headers: transformAxiosResponseHeaders(responseHeaders),
@@ -54721,8 +54780,8 @@ var asyncResponse$ = (abortEvent, runtimeEvent, routes) => {
 var poll = (abortEvent, runtimeApi, routes, env) => {
   const poll$ = () => {
     return next$(abortEvent, runtimeApi, env).pipe(mapRuntimeEvent(abortEvent, routes)).pipe(
-      (0, import_rxjs2.switchMap)((asyncResponse) => {
-        return (0, import_rxjs2.of)(asyncResponse.response$.complete());
+      (0, import_rxjs2.switchMap)((runtimeEvent) => {
+        return (0, import_rxjs2.of)(runtimeEvent.response$.complete());
       })
     );
   };
@@ -54730,38 +54789,21 @@ var poll = (abortEvent, runtimeApi, routes, env) => {
 };
 
 // src/awslambda-entrypoint/types.ts
-var import_rxjs3 = __toESM(require_cjs());
 var AbortEvent = class extends AbortController {
-  response$;
   constructor() {
     super();
     this.signal.onabort = () => {
-      const { reason } = this.signal;
-      const message = reason instanceof Error ? reason.message : reason;
-      log("Aborting!", { reason });
-      const payload = {
-        statusCode: 500,
-        body: JSON.stringify({ error: message }),
-        headers: {
-          "Content-Type": "application/json"
-        },
-        isBase64Encoded: false
-      };
-      let { response$ } = this;
-      if (!response$) {
-        response$ = new import_rxjs3.AsyncSubject();
-        response$.next({ payload, response$ });
-      }
-      response$.subscribe((response) => {
-        error(`ABORTED: ${message}`, { requestId: response.requestId });
+      const reason = this.signal.reason;
+      const { reason: abortReason } = reason;
+      const message = abortReason instanceof Error ? abortReason.message : `${abortReason}`;
+      process.nextTick(() => {
+        error(`ABORTING: ${message}`);
         process.exit(-1);
       });
-      response$.complete();
     };
   }
-  abortResponse(response$, reason) {
-    this.response$ = response$;
-    this.abort(reason);
+  abort(reason) {
+    super.abort({ reason });
   }
 };
 

@@ -83,32 +83,47 @@ export class LambdaRuntimeServer extends HttpServer {
     // TODO: Compression Supported? Streaming?
     this.app.use(json({ limit: '6MB' }));
 
-    this.app.get('/2018-06-01/runtime/invocation/next', (req, res) => {
-      req.setTimeout(0);
+    this.app.get('/2018-06-01/runtime/invocation/next', (incomingReq, incomingRes) => {
+      incomingReq.setTimeout(0);
       // TODO: Socket timeouts need will drop an event
       this.invocations.dequeue().subscribe((invocation) => {
         this.log(`START RequestId: ${invocation.requestId} Version: $LATEST`);
         const deadline = new Date().getTime() + this.gitService.config.timeout * 1000;
-        res.header('lambda-runtime-aws-request-id', invocation.requestId);
-        res.header('lambda-runtime-deadline-ms', `${deadline}`);
-        res.status(200).json(invocation.event).end();
-      });
-    });
+        incomingRes.header('lambda-runtime-aws-request-id', invocation.requestId);
+        incomingRes.header('lambda-runtime-deadline-ms', `${deadline}`);
 
-    this.app.post('/2018-06-01/runtime/invocation/:requestId/response', (req, res) => {
-      this.log(`END RequestId: ${req.params.requestId}`);
-      const invocation = this.invocations.get(req.params.requestId);
-      if (!invocation) {
-        res.status(404).send('Invocation not found');
-        return;
-      }
-      invocation.response$.next(req.body);
-      invocation.response$.complete();
-      res.status(202).send('');
-      // TODO: Init Duration: 0.00 ms
-      this.log(
-        `REPORT RequestId: ${req.params.requestId} Duration: 0.00 ms Billed Duration: 0 ms Memory Size: 0 MB Max Memory Used: 0 MB`,
-      );
+        // Add the return route
+        this.app.post(
+          `/2018-06-01/runtime/invocation/${invocation.requestId}/response`,
+          (responseReq, responseRes) => {
+            this.log(`END RequestId: ${invocation.requestId}`);
+            invocation.response$.next(responseReq.body);
+            invocation.response$.complete();
+            responseRes.status(202).send('');
+            this.log(
+              `REPORT RequestId: ${invocation.requestId} Duration: 0.00 ms Billed Duration: 0 ms Memory Size: 0 MB Max Memory Used: 0 MB`,
+            );
+          },
+        );
+
+        // Delayed removal of the return route
+        invocation.response$.subscribe({
+          complete: () => {
+            this.app._router.stack = this.app._router.stack.filter(
+              (layer: { route?: { path: string; methods?: { [key: string]: unknown } } }) => {
+                return !(
+                  layer.route &&
+                  layer.route.path ===
+                    `/2018-06-01/runtime/invocation/${invocation.requestId}/response` &&
+                  layer.route.methods?.post
+                );
+              },
+            );
+          },
+        });
+
+        incomingRes.status(200).json(invocation.event).end();
+      });
     });
 
     this.app.get('/', (_req, res) => {

@@ -72,7 +72,9 @@ export abstract class DevServer {
 
   private _stdout = new TimestampedStream(process.stdout, chalk.green);
 
-  private _stderr = new TimestampedStream(process.stderr, chalk.yellow);
+  private _stdwarn = new TimestampedStream(process.stderr, chalk.yellow);
+
+  private _stderr = new TimestampedStream(process.stderr, chalk.red);
 
   constructor(public readonly name: string, public readonly abortController: AbortController) {
     this.abortController.signal.addEventListener('abort', async () => {
@@ -85,7 +87,7 @@ export abstract class DevServer {
   }
 
   get stderr(): Writable {
-    return this._stderr;
+    return this._stdwarn;
   }
 
   log(message: string, opt?: LogOption): void {
@@ -96,6 +98,13 @@ export abstract class DevServer {
   }
 
   warn(message: string, opt?: LogOption): void {
+    if (opt && opt.cause && opt.cause instanceof Error && opt.cause.message) {
+      message = `${message}: ${opt.cause.message}`;
+    }
+    this._stdwarn.log(message);
+  }
+
+  error(message: string, opt?: LogOption): void {
     if (opt && opt.cause && opt.cause instanceof Error && opt.cause.message) {
       message = `${message}: ${opt.cause.message}`;
     }

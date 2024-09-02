@@ -16,9 +16,10 @@ export type ContainerRef = {
   name: string;
   runtimeApi: string;
   lifecycle$: BehaviorSubject<Lifecycle>;
+  disposed?: boolean;
 };
 
-class DelayedSubject<T> extends Subject<T> {
+class DelayedSubject<T extends { disposed?: boolean }> extends Subject<T> {
   private delayTime: number;
 
   constructor(delayTime: number) {
@@ -27,7 +28,8 @@ class DelayedSubject<T> extends Subject<T> {
   }
 
   next(value: T): void {
-    timer(this.delayTime)
+    const actualDelayTime = value.disposed ? 0 : this.delayTime;
+    timer(actualDelayTime)
       .pipe(concatMap(async () => super.next(value)))
       .subscribe();
   }
@@ -109,9 +111,7 @@ export class ContainerPool extends DevServer {
   ): void {
     const current = this.pool.size;
     desired = Math.min(desired, max);
-    if (current !== desired) {
-      this.concurrency$.next({ current, desired, max });
-    }
+    this.concurrency$.next({ current, desired, max });
   }
 
   async start(): Promise<void> {
@@ -132,9 +132,7 @@ export class ContainerPool extends DevServer {
         this.setConcurrency();
       }),
       this.garbage$.subscribe(async (containerRef) => {
-        // TODO: Removing containers drops events
-        // await this.removeContainer(containerRef)
-        await Promise.resolve(containerRef)
+        await this.removeContainer(containerRef)
           .then(() => this.deleted$.next(containerRef))
           .catch(() => this.deleted$.next(containerRef));
       }),
@@ -190,6 +188,14 @@ export class ContainerPool extends DevServer {
             return;
           }
           container.modem.demuxStream(stream, this.stdout, this.stderr);
+
+          if (stream) {
+            stream.on('end', () => {
+              this.log(`Disposing ${ref.name}...`);
+              ref.disposed = true;
+              this.garbage$.next(ref);
+            });
+          }
         },
       );
 
@@ -212,6 +218,21 @@ export class ContainerPool extends DevServer {
     return ref;
   }
 
+  private async removeContainer(ref: ContainerRef): Promise<ContainerRef> {
+    try {
+      const container = this.docker.getContainer(ref.name);
+      await container.remove({ force: true, v: true, abortSignal: this.abortController.signal });
+    } catch (e) {
+      if ('statusCode' in e && e.statusCode === 409) {
+        return ref;
+      }
+      this.warn('Unable to remove container', { cause: e });
+      throw new Error('Unable to remove container', { cause: e });
+    }
+
+    return ref;
+  }
+
   private get mounts(): Promise<Dockerode.MountSettings[]> {
     const { src, buildFiles } = this.gitService.config;
     const dir = join(this.gitService.cwd, src);
@@ -228,7 +249,6 @@ export class ContainerPool extends DevServer {
     // TODO: push buildfiles into runtime container
     return Promise.resolve(
       files.map((file) => {
-        console.log('!!! mounting', file);
         const settings: Dockerode.MountSettings = {
           Type: 'bind',
           Source: join(dir, file),

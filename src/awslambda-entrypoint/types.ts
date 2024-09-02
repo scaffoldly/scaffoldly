@@ -1,6 +1,6 @@
 import { ChildProcess } from 'child_process';
 import { AsyncSubject } from 'rxjs';
-import { error, log } from './log';
+import { error } from './log';
 
 export type SpawnResult = {
   childProcess?: ChildProcess;
@@ -18,6 +18,8 @@ export type AsyncResponse = {
   requestId?: string;
   payload: AsyncPayload;
   response$: AsyncSubject<AsyncResponse>;
+  method?: string;
+  url?: string;
 };
 
 export type RuntimeEvent = {
@@ -28,44 +30,34 @@ export type RuntimeEvent = {
   response$: AsyncSubject<AsyncResponse>;
 };
 
-export class AbortEvent extends AbortController {
-  private response$?: AsyncSubject<AsyncResponse>;
+export type RuntimeResponse = {
+  url?: string;
+  statusCode: number;
+  headers: Record<string, unknown>;
+};
 
+type AbortReason = {
+  requestId?: string;
+  reason: unknown;
+};
+
+export class AbortEvent extends AbortController {
   constructor() {
     super();
 
     this.signal.onabort = () => {
-      const { reason } = this.signal;
-      const message = reason instanceof Error ? reason.message : reason;
+      const reason = this.signal.reason as AbortReason;
+      const { reason: abortReason } = reason;
+      const message = abortReason instanceof Error ? abortReason.message : `${abortReason}`;
 
-      log('Aborting!', { reason });
-
-      const payload: AsyncPayload = {
-        statusCode: 500,
-        body: JSON.stringify({ error: message }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        isBase64Encoded: false,
-      };
-
-      let { response$ } = this;
-      if (!response$) {
-        response$ = new AsyncSubject<AsyncResponse>();
-        response$.next({ payload, response$ });
-      }
-
-      response$.subscribe((response) => {
-        error(`ABORTED: ${message}`, { requestId: response.requestId });
+      process.nextTick(() => {
+        error(`ABORTING: ${message}`);
         process.exit(-1);
       });
-
-      response$.complete();
     };
   }
 
-  abortResponse(response$: AsyncSubject<AsyncResponse>, reason: unknown): void {
-    this.response$ = response$;
-    this.abort(reason);
+  abort(reason: unknown): void {
+    super.abort({ reason } as AbortReason);
   }
 }
