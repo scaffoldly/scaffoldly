@@ -13,8 +13,8 @@ import {
 } from '@actions/core';
 
 onExit((code, signal) => {
-  if (code === 0) {
-    error(`Recived exit code: ${code}, signal: ${signal}`);
+  if (code !== 0) {
+    console.warn(`Recived exit code: ${code}, signal: ${signal}`);
   }
 });
 
@@ -24,7 +24,7 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err);
+  console.warn('Uncaught Exception:', err);
   process.exit(-1);
 });
 
