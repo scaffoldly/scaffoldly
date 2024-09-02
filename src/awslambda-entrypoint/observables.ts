@@ -57,7 +57,11 @@ const next$ = (
         axios
           .post(url, response.payload)
           .then((r) => {
-            log('Response sent to Lambda Runtime API', { url, statusCode: r.status });
+            log('Response sent to Lambda Runtime API', {
+              url,
+              statusCode: r.status,
+              headers: r.headers,
+            });
           })
           .catch((e) => {
             error(`Error sending event response: ${e.message}`, {

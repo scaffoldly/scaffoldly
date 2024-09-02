@@ -54551,7 +54551,11 @@ var next$ = (abortEvent, runtimeApi, env) => {
       response$.subscribe((response) => {
         const url2 = `http://${runtimeApi}/2018-06-01/runtime/invocation/${response.requestId}/response`;
         axios_default.post(url2, response.payload).then((r) => {
-          log("Response sent to Lambda Runtime API", { url: url2, statusCode: r.status });
+          log("Response sent to Lambda Runtime API", {
+            url: url2,
+            statusCode: r.status,
+            headers: r.headers
+          });
         }).catch((e) => {
           error(`Error sending event response: ${e.message}`, {
             url: url2,
