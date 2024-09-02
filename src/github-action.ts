@@ -1,3 +1,4 @@
+import { decode, encode } from './config';
 import { Action, Mode } from './github-action/action';
 import { Status } from './github-action/status';
 import {
@@ -12,39 +13,35 @@ import {
 
 export const run = async (mode: Mode): Promise<void> => {
   const action = await new Action(mode).init();
-  let state: Status = {};
+  let status: Status = {};
 
   try {
     switch (mode) {
       case 'pre':
-        state = await action.pre(state);
+        status = await action.pre(status);
         break;
       case 'main':
-        state = await action.main(
-          JSON.parse(Buffer.from(getState('state'), 'base64').toString('utf8')) as Status,
-        );
+        status = await action.main(decode(getState('status')) as Status);
         break;
       case 'post':
-        state = await action.post(
-          JSON.parse(Buffer.from(getState('state'), 'base64').toString('utf8')) as Status,
-        );
+        status = await action.post(decode(getState('status')) as Status);
         break;
       default:
         throw new Error(`Invalid mode: ${mode}`);
     }
 
-    debug(`New state: ${JSON.stringify(state)}`);
+    debug(`New status: ${JSON.stringify(status)}`);
 
-    if (mode === 'post' && state.longMessage) {
-      summary.addRaw(state.longMessage, true);
+    if (mode === 'post' && status.longMessage) {
+      summary.addRaw(status.longMessage, true);
       await summary.write({ overwrite: true });
     }
 
-    saveState('state', Buffer.from(JSON.stringify(state)).toString('base64'));
+    saveState('status', encode(status));
     // setOutput('TODO', 'TODO');
 
-    if (state.failed) {
-      throw new Error(`${mode} step failed: ${state.shortMessage}`);
+    if (status.failed) {
+      throw new Error(`${mode} step failed: ${status.shortMessage}`);
     }
   } catch (e) {
     if (e instanceof Error) {
