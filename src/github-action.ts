@@ -30,7 +30,7 @@ export const run = async (mode: Mode): Promise<void> => {
         throw new Error(`Invalid mode: ${mode}`);
     }
 
-    debug(`New status: ${JSON.stringify(status)}`);
+    // debug(`New status: ${JSON.stringify(status)}`);
 
     if (mode === 'post' && status.longMessage) {
       summary.addRaw(status.longMessage, true);
