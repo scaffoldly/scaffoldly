@@ -20,23 +20,27 @@ export const run = async (mode: Mode): Promise<void> => {
         state = await action.pre(state);
         break;
       case 'main':
-        state = await action.main(JSON.parse(getState('state') || '{}') as Status);
+        state = await action.main(
+          JSON.parse(Buffer.from(getState('state'), 'base64').toString('utf8')) as Status,
+        );
         break;
       case 'post':
-        state = await action.post(JSON.parse(getState('state') || '{}') as Status);
+        state = await action.post(
+          JSON.parse(Buffer.from(getState('state'), 'base64').toString('utf8')) as Status,
+        );
         break;
       default:
         throw new Error(`Invalid mode: ${mode}`);
     }
 
-    debug(`New state: ${state}`);
+    debug(`New state: ${JSON.stringify(state)}`);
 
     if (mode === 'post' && state.longMessage) {
       summary.addRaw(state.longMessage, true);
       await summary.write({ overwrite: true });
     }
 
-    saveState('state', state);
+    saveState('state', Buffer.from(JSON.stringify(state)).toString('base64'));
     // setOutput('TODO', 'TODO');
 
     if (state.failed) {
