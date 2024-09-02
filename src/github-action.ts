@@ -1,5 +1,5 @@
 import { Action, Mode } from './github-action/action';
-import { State } from './github-action/state';
+import { Status } from './github-action/status';
 import {
   saveState,
   getState,
@@ -10,19 +10,9 @@ import {
   info,
 } from '@actions/core';
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.warn('Unhandled Rejection at:', promise, 'reason:', reason);
-  process.exit(-1);
-});
-
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err);
-  process.exit(-1);
-});
-
 export const run = async (mode: Mode): Promise<void> => {
   const action = await new Action(mode).init();
-  let state: State = { status: {} };
+  let state: Status = {};
 
   try {
     switch (mode) {
@@ -30,23 +20,23 @@ export const run = async (mode: Mode): Promise<void> => {
         state = await action.pre(state);
         break;
       case 'main':
-        state = await action.main(JSON.parse(getState('state') || '{}') as State);
+        state = await action.main(JSON.parse(getState('state') || '{}') as Status);
         break;
       case 'post':
-        state = await action.post(JSON.parse(getState('state') || '{}') as State);
+        state = await action.post(JSON.parse(getState('state') || '{}') as Status);
         break;
       default:
         throw new Error(`Invalid mode: ${mode}`);
     }
 
-    debug('New state: ' + JSON.stringify(state));
+    debug(`New state: ${state}`);
 
     if (mode === 'post' && state.longMessage) {
       summary.addRaw(state.longMessage, true);
       await summary.write({ overwrite: true });
     }
 
-    saveState('state', JSON.stringify(state));
+    saveState('state', state);
     // setOutput('TODO', 'TODO');
 
     if (state.failed) {

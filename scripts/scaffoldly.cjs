@@ -1,4 +1,14 @@
 #!/usr/bin/env node
+process.on('unhandledRejection', (reason, promise) => {
+  console.warn('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(-1);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  process.exit(-1);
+});
+
 (async () => {
   const { run } = await import('../dist/scaffoldly.js');
   const { version } = require('../package.json');

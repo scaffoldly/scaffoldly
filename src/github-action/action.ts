@@ -6,7 +6,7 @@ import {
   GetCallerIdentityCommand,
 } from '@aws-sdk/client-sts';
 import { deployedMarkdown, failedMarkdown, roleSetupMoreInfo } from './messages';
-import { State } from './state';
+import { Status } from './status';
 import { GitService } from '../scaffoldly/commands/cd/git';
 import { DeployCommand } from '../scaffoldly/commands/deploy';
 import path from 'path';
@@ -49,11 +49,11 @@ export class Action {
     return this;
   }
 
-  async pre(state: State): Promise<State> {
-    state.deployLogsUrl = await this.logsUrl;
-    state.commitSha = this.commitSha;
-    state.owner = this.owner;
-    state.repo = this.repo;
+  async pre(status: Status): Promise<Status> {
+    status.deployLogsUrl = await this.logsUrl;
+    status.commitSha = this.commitSha;
+    status.owner = this.owner;
+    status.repo = this.repo;
 
     const region =
       getInput('aws-region') ||
@@ -116,26 +116,26 @@ export class Action {
       error(`Failed to assume role: ${e.message}`);
       debug(`Error: ${e}`);
 
-      const newLongMessage = await roleSetupMoreInfo(state);
+      const newLongMessage = await roleSetupMoreInfo(status);
 
-      state.failed = true;
-      state.shortMessage = e.message;
-      state.longMessage = newLongMessage;
+      status.failed = true;
+      status.shortMessage = e.message;
+      status.longMessage = newLongMessage;
     }
 
-    return state;
+    return status;
   }
 
-  async main(state: State): Promise<State> {
-    debug(`state: ${JSON.stringify(state)}`);
+  async main(status: Status): Promise<Status> {
+    debug(`status: ${JSON.stringify(status)}`);
 
-    if (state.failed) {
-      debug('state: ' + JSON.stringify(state));
+    if (status.failed) {
+      debug('status: ' + JSON.stringify(status));
       notice(`Deployment skipped due to failure...`);
-      return state;
+      return status;
     }
 
-    const deployCommand = new DeployCommand(this.gitService).withStatus(state.status).withOptions({
+    const deployCommand = new DeployCommand(this.gitService).withStatus(status).withOptions({
       notify: (message, level) => {
         if (level === 'error') {
           error(message);
@@ -152,28 +152,28 @@ export class Action {
         throw e;
       }
 
-      state.failed = true;
-      state.shortMessage = e.message;
-      state.longMessage = 'TODO: Implement long message';
+      status.failed = true;
+      status.shortMessage = e.message;
+      status.longMessage = 'TODO: Implement long message';
     }
 
-    return state;
+    return status;
   }
 
-  async post(state: State): Promise<State> {
-    debug(`state: ${JSON.stringify(state)}`);
+  async post(status: Status): Promise<Status> {
+    debug(`status: ${JSON.stringify(status)}`);
 
-    if (!state.failed) {
-      const { longMessage, shortMessage } = await deployedMarkdown(state);
-      state.shortMessage = shortMessage;
-      state.longMessage = longMessage;
+    if (!status.failed) {
+      const { longMessage, shortMessage } = await deployedMarkdown(status);
+      status.shortMessage = shortMessage;
+      status.longMessage = longMessage;
     } else {
-      const { longMessage, shortMessage } = await failedMarkdown(state, state.longMessage);
-      state.shortMessage = shortMessage;
-      state.longMessage = longMessage;
+      const { longMessage, shortMessage } = await failedMarkdown(status, status.longMessage);
+      status.shortMessage = shortMessage;
+      status.longMessage = longMessage;
     }
 
-    return state;
+    return status;
   }
 
   get logsUrl(): Promise<string> {

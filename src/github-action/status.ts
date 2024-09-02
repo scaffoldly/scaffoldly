@@ -1,6 +1,6 @@
 import { DeployStatus } from '../scaffoldly/commands/cd/aws';
 
-export type State = {
+export type Status = DeployStatus & {
   failed?: boolean;
   commitSha?: string;
   deployLogsUrl?: string;
@@ -8,5 +8,4 @@ export type State = {
   longMessage?: string;
   owner?: string;
   repo?: string;
-  status: DeployStatus;
 };
