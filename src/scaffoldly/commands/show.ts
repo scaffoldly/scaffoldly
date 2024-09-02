@@ -37,7 +37,7 @@ export class ShowCommand extends Command<ShowCommand> {
     private messagesHelper: MessagesHelper,
     private gitService: GitService,
   ) {
-    super(process.cwd());
+    super(process.cwd(), 'production'); // TODO withMode functionality
     this.scms = new Scms(this.apiHelper, this.messagesHelper, this.gitService);
     this.awsHelper = new AwsHelper(this.apiHelper);
     this.dockerService = new DockerService(this.gitService.cwd);
@@ -99,7 +99,6 @@ export class ShowCommand extends Command<ShowCommand> {
     ui.updateBottomBar('Generating Dockerfile...');
     const dockerfile = await this.dockerService.generateDockerfile(
       this.config,
-      'build',
       this.envService.buildEnv,
     );
     ui.updateBottomBar('');

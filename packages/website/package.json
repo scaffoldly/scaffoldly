@@ -62,6 +62,9 @@
     ],
     "buildFiles": [
       "!node_modules",
+      "!build",
+      "!.docusaurus",
+      "!cache-loader",
       "!package-lock.json"
     ],
     "services": [

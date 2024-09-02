@@ -1,6 +1,7 @@
 import {
   AsyncSubject,
   catchError,
+  defer,
   expand,
   from,
   lastValueFrom,
@@ -13,7 +14,6 @@ import {
   timer,
 } from 'rxjs';
 import { Commands, CONFIG_SIGNATURE, Routes } from '../config';
-import { Socket } from 'net';
 import { ALBEvent, APIGatewayProxyEventV2 } from 'aws-lambda';
 import { error, info, isDebug, log } from './log';
 import {
@@ -22,7 +22,7 @@ import {
   transformAxiosResponseHeaders,
 } from './util';
 import { AbortEvent, AsyncResponse, RuntimeEvent } from './types';
-import axios from 'axios';
+import axios, { isAxiosError } from 'axios';
 import { execa } from 'execa';
 import { mapRuntimeEvent } from './mappers';
 
@@ -60,7 +60,10 @@ const next$ = (
             log('Response sent to Lambda Runtime API', { url, statusCode: r.status });
           })
           .catch((e) => {
-            error('Error sending event response', { cause: e });
+            error(`Error sending event response: ${e.message}`, {
+              url,
+              statusCode: e.response?.status,
+            });
           });
       });
 
@@ -76,44 +79,11 @@ const next$ = (
 };
 
 const endpoint$ = (handler: string, deadline: number): Observable<URL> => {
-  return new Observable<URL>((subscriber) => {
-    const now = Date.now();
-
-    const endpoint = new URL(`http://${handler}`);
-
-    const hostname = endpoint.hostname;
-    const port = parseInt(endpoint.port, 10) || (endpoint.protocol === 'https:' ? 443 : 80);
-
-    const socket = new Socket();
-
-    const onError = () => {
-      socket.destroy();
-      subscriber.error(new Error(`Error connecting to ${hostname}:${port}`));
-    };
-
-    socket.setTimeout(deadline - now);
-
-    socket.once('error', onError);
-    socket.once('timeout', onError);
-
-    socket.connect(port, hostname, () => {
-      info(`Connected to ${hostname}:${port}`);
-      socket.end();
-      subscriber.next(endpoint);
-      subscriber.complete();
-    });
-  }).pipe(
-    retry({
-      delay: (e) => {
-        const now = Date.now();
-        if (now > deadline) {
-          return throwError(() => new Error(`Deadline exceeded`, { cause: e }));
-        } else {
-          return timer(1); // Retry after 1ms
-        }
-      },
-    }),
-  );
+  // TODO: We can do some preflight checks here if necessary
+  if (Date.now() > deadline) {
+    return throwError(() => new Error(`Deadline exceeded`));
+  }
+  return of(new URL(`http://${handler}`));
 };
 
 const shell$ = (
@@ -163,29 +133,38 @@ const proxy$ = (
   data?: unknown,
   deadline?: number,
 ): Observable<AsyncResponse> => {
-  return from(
-    Promise.resolve()
-      .then(() => {
-        info('Proxy request', { method, url });
-        log('Proxying request', { headers, data, deadline });
-      })
-      .then(() => {
-        return axios.request({
-          method,
-          url,
-          headers,
-          data,
-          timeout: deadline ? deadline - Date.now() : undefined,
-          transformRequest: (req) => req,
-          transformResponse: (res) => res,
-          validateStatus: () => true,
-          responseType: 'arraybuffer',
-          signal: abortEvent.signal,
-        });
-      }),
-  ).pipe(
-    catchError((e) => {
-      return throwError(() => new Error('Unable proxy request', { cause: e }));
+  info('Proxy request', { method, url });
+  log('Proxying request', { headers, data, deadline });
+
+  return defer(() => {
+    return axios.request({
+      method,
+      url,
+      headers,
+      data,
+      timeout: deadline ? deadline - Date.now() : undefined,
+      transformRequest: (req) => req,
+      transformResponse: (res) => res,
+      validateStatus: () => true,
+      responseType: 'arraybuffer',
+      signal: abortEvent.signal,
+    });
+  }).pipe(
+    retry({
+      delay: (e) => {
+        if (!isAxiosError(e)) {
+          return throwError(() => new Error(`Unknown error`, { cause: e }));
+        }
+
+        if (!deadline || Date.now() > deadline) {
+          return throwError(() => new Error(`Deadline exceeded: ${e.code}`, { cause: e }));
+        } else if (e.code === 'ECONNREFUSED') {
+          return timer(100); // Retry after 100ms (likely cold start)
+        }
+
+        error(`Unexpected axios error: ${e}`);
+        return throwError(() => new Error(`Error proxying request: ${e.code}`, { cause: e }));
+      },
     }),
     map((resp) => {
       info('Proxy response', { method, url, status: resp.status });

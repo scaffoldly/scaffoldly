@@ -13,8 +13,8 @@ var __commonJS = (cb, mod) => function __require() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
 var __export = (target, all3) => {
-  for (var name in all3)
-    __defProp(target, name, { get: all3[name], enumerable: true });
+  for (var name2 in all3)
+    __defProp(target, name2, { get: all3[name2], enumerable: true });
 };
 var __copyProps = (to, from2, except, desc) => {
   if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -4282,12 +4282,12 @@ var require_defer = __commonJS({
     exports2.defer = void 0;
     var Observable_1 = require_Observable();
     var innerFrom_1 = require_innerFrom();
-    function defer(observableFactory) {
+    function defer2(observableFactory) {
       return new Observable_1.Observable(function(subscriber) {
         innerFrom_1.innerFrom(observableFactory()).subscribe(subscriber);
       });
     }
-    exports2.defer = defer;
+    exports2.defer = defer2;
   }
 });
 
@@ -9469,14 +9469,14 @@ var require_dist = __commonJS({
           continue;
         }
         if (value === ":") {
-          let name = "";
+          let name2 = "";
           while (ID_CHAR.test(chars[++i])) {
-            name += chars[i];
+            name2 += chars[i];
           }
-          if (!name) {
+          if (!name2) {
             throw new TypeError(`Missing parameter name at ${i}`);
           }
-          tokens.push({ type: "NAME", index: i, value: name });
+          tokens.push({ type: "NAME", index: i, value: name2 });
           continue;
         }
         if (value === "(") {
@@ -9567,11 +9567,11 @@ var require_dist = __commonJS({
         const path3 = it.text();
         if (path3)
           tokens.push(encodePath(path3));
-        const name = it.tryConsume("NAME");
+        const name2 = it.tryConsume("NAME");
         const pattern = it.tryConsume("PATTERN");
-        if (name || pattern) {
+        if (name2 || pattern) {
           tokens.push({
-            name: name || String(key++),
+            name: name2 || String(key++),
             pattern
           });
           const next = it.peek();
@@ -9593,14 +9593,14 @@ var require_dist = __commonJS({
         const open = it.tryConsume("{");
         if (open) {
           const prefix = it.text();
-          const name2 = it.tryConsume("NAME");
+          const name3 = it.tryConsume("NAME");
           const pattern2 = it.tryConsume("PATTERN");
           const suffix = it.text();
           const separator = it.tryConsume(";") && it.text();
           it.consume("}");
           const modifier = it.modifier();
           tokens.push({
-            name: name2 || (pattern2 ? String(key++) : ""),
+            name: name3 || (pattern2 ? String(key++) : ""),
             prefix: encodePath(prefix),
             suffix: encodePath(suffix),
             pattern: pattern2,
@@ -9796,11 +9796,11 @@ var require_dist = __commonJS({
         return `(?:${pre}${post})${modifier}`;
       });
     }
-    function checkPattern(pattern, name, flags) {
+    function checkPattern(pattern, name2, flags) {
       try {
         return new RegExp(`^${pattern}$`, flags);
       } catch (err) {
-        throw new TypeError(`Invalid pattern for "${name}": ${err.message}`);
+        throw new TypeError(`Invalid pattern for "${name2}": ${err.message}`);
       }
     }
     function safePattern(re, value) {
@@ -18700,8 +18700,8 @@ var require_mime_types = __commonJS({
 // node_modules/asynckit/lib/defer.js
 var require_defer2 = __commonJS({
   "node_modules/asynckit/lib/defer.js"(exports2, module2) {
-    module2.exports = defer;
-    function defer(fn) {
+    module2.exports = defer2;
+    function defer2(fn) {
       var nextTick = typeof setImmediate == "function" ? setImmediate : typeof process == "object" && typeof process.nextTick == "function" ? process.nextTick : null;
       if (nextTick) {
         nextTick(fn);
@@ -18715,18 +18715,18 @@ var require_defer2 = __commonJS({
 // node_modules/asynckit/lib/async.js
 var require_async2 = __commonJS({
   "node_modules/asynckit/lib/async.js"(exports2, module2) {
-    var defer = require_defer2();
+    var defer2 = require_defer2();
     module2.exports = async;
     function async(callback) {
       var isAsync = false;
-      defer(function() {
+      defer2(function() {
         isAsync = true;
       });
       return function async_callback(err, result) {
         if (isAsync) {
           callback(err, result);
         } else {
-          defer(function nextTick_callback() {
+          defer2(function nextTick_callback() {
             callback(err, result);
           });
         }
@@ -19251,15 +19251,15 @@ var require_proxy_from_env = __commonJS({
     function getProxyForUrl2(url2) {
       var parsedUrl = typeof url2 === "string" ? parseUrl(url2) : url2 || {};
       var proto = parsedUrl.protocol;
-      var hostname = parsedUrl.host;
+      var hostname2 = parsedUrl.host;
       var port = parsedUrl.port;
-      if (typeof hostname !== "string" || !hostname || typeof proto !== "string") {
+      if (typeof hostname2 !== "string" || !hostname2 || typeof proto !== "string") {
         return "";
       }
       proto = proto.split(":", 1)[0];
-      hostname = hostname.replace(/:\d*$/, "");
+      hostname2 = hostname2.replace(/:\d*$/, "");
       port = parseInt(port) || DEFAULT_PORTS[proto] || 0;
-      if (!shouldProxy(hostname, port)) {
+      if (!shouldProxy(hostname2, port)) {
         return "";
       }
       var proxy = getEnv2("npm_config_" + proto + "_proxy") || getEnv2(proto + "_proxy") || getEnv2("npm_config_proxy") || getEnv2("all_proxy");
@@ -19268,7 +19268,7 @@ var require_proxy_from_env = __commonJS({
       }
       return proxy;
     }
-    function shouldProxy(hostname, port) {
+    function shouldProxy(hostname2, port) {
       var NO_PROXY = (getEnv2("npm_config_no_proxy") || getEnv2("no_proxy")).toLowerCase();
       if (!NO_PROXY) {
         return true;
@@ -19287,12 +19287,12 @@ var require_proxy_from_env = __commonJS({
           return true;
         }
         if (!/^[.*]/.test(parsedProxyHostname)) {
-          return hostname !== parsedProxyHostname;
+          return hostname2 !== parsedProxyHostname;
         }
         if (parsedProxyHostname.charAt(0) === "*") {
           parsedProxyHostname = parsedProxyHostname.slice(1);
         }
-        return !stringEndsWith.call(hostname, parsedProxyHostname);
+        return !stringEndsWith.call(hostname2, parsedProxyHostname);
       });
     }
     function getEnv2(key) {
@@ -19411,9 +19411,9 @@ var require_ms = __commonJS({
       }
       return ms + " ms";
     }
-    function plural(ms, msAbs, n, name) {
+    function plural(ms, msAbs, n, name2) {
       var isPlural = msAbs >= n * 1.5;
-      return Math.round(ms / n) + " " + name + (isPlural ? "s" : "");
+      return Math.round(ms / n) + " " + name2 + (isPlural ? "s" : "");
     }
   }
 });
@@ -19544,19 +19544,19 @@ var require_common = __commonJS({
         createDebug.enable("");
         return namespaces;
       }
-      function enabled(name) {
-        if (name[name.length - 1] === "*") {
+      function enabled(name2) {
+        if (name2[name2.length - 1] === "*") {
           return true;
         }
         let i;
         let len;
         for (i = 0, len = createDebug.skips.length; i < len; i++) {
-          if (createDebug.skips[i].test(name)) {
+          if (createDebug.skips[i].test(name2)) {
             return false;
           }
         }
         for (i = 0, len = createDebug.names.length; i < len; i++) {
-          if (createDebug.names[i].test(name)) {
+          if (createDebug.names[i].test(name2)) {
             return true;
           }
         }
@@ -19989,15 +19989,15 @@ var require_node = __commonJS({
       return "colors" in exports2.inspectOpts ? Boolean(exports2.inspectOpts.colors) : tty.isatty(process.stderr.fd);
     }
     function formatArgs(args) {
-      const { namespace: name, useColors: useColors2 } = this;
+      const { namespace: name2, useColors: useColors2 } = this;
       if (useColors2) {
         const c = this.color;
         const colorCode = "\x1B[3" + (c < 8 ? c : "8;5;" + c);
-        const prefix = `  ${colorCode};1m${name} \x1B[0m`;
+        const prefix = `  ${colorCode};1m${name2} \x1B[0m`;
         args[0] = prefix + args[0].split("\n").join("\n" + prefix);
         args.push(colorCode + "m+" + module2.exports.humanize(this.diff) + "\x1B[0m");
       } else {
-        args[0] = getDate() + name + " " + args[0];
+        args[0] = getDate() + name2 + " " + args[0];
       }
     }
     function getDate() {
@@ -20210,13 +20210,13 @@ var require_follow_redirects = __commonJS({
         this._ending = true;
       }
     };
-    RedirectableRequest.prototype.setHeader = function(name, value) {
-      this._options.headers[name] = value;
-      this._currentRequest.setHeader(name, value);
+    RedirectableRequest.prototype.setHeader = function(name2, value) {
+      this._options.headers[name2] = value;
+      this._currentRequest.setHeader(name2, value);
     };
-    RedirectableRequest.prototype.removeHeader = function(name) {
-      delete this._options.headers[name];
-      this._currentRequest.removeHeader(name);
+    RedirectableRequest.prototype.removeHeader = function(name2) {
+      delete this._options.headers[name2];
+      this._currentRequest.removeHeader(name2);
     };
     RedirectableRequest.prototype.setTimeout = function(msecs, callback) {
       var self2 = this;
@@ -20995,8 +20995,8 @@ var require_enoent = __commonJS({
         return;
       }
       const originalEmit = cp.emit;
-      cp.emit = function(name, arg1) {
-        if (name === "exit") {
+      cp.emit = function(name2, arg1) {
+        if (name2 === "exit") {
           const err = verifyENOENT(arg1, parsed, "spawn");
           if (err) {
             return originalEmit.call(cp, "error", err);
@@ -21102,8 +21102,8 @@ var require_dist_cjs = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -21222,8 +21222,8 @@ var require_dist_cjs2 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -21270,8 +21270,8 @@ var require_dist_cjs2 = __commonJS({
     }, "resolveHttpHandlerRuntimeConfig");
     var import_types10 = require_dist_cjs();
     var _Field = class _Field {
-      constructor({ name, kind = import_types10.FieldPosition.HEADER, values = [] }) {
-        this.name = name;
+      constructor({ name: name2, kind = import_types10.FieldPosition.HEADER, values = [] }) {
+        this.name = name2;
         this.kind = kind;
         this.values = values;
       }
@@ -21340,16 +21340,16 @@ var require_dist_cjs2 = __commonJS({
        *  to retrieve
        * @returns The {@link Field} if it exists.
        */
-      getField(name) {
-        return this.entries[name.toLowerCase()];
+      getField(name2) {
+        return this.entries[name2.toLowerCase()];
       }
       /**
        * Delete entry from collection.
        *
        * @param name Name of the entry to delete.
        */
-      removeField(name) {
-        delete this.entries[name.toLowerCase()];
+      removeField(name2) {
+        delete this.entries[name2.toLowerCase()];
       }
       /**
        * Helper function for retrieving specific types of fields.
@@ -21443,9 +21443,9 @@ var require_dist_cjs2 = __commonJS({
     };
     __name(_HttpResponse, "HttpResponse");
     var HttpResponse3 = _HttpResponse;
-    function isValidHostname(hostname) {
+    function isValidHostname(hostname2) {
       const hostPattern = /^[a-z0-9][a-z0-9\.\-]*[a-z0-9]$/;
-      return hostPattern.test(hostname);
+      return hostPattern.test(hostname2);
     }
     __name(isValidHostname, "isValidHostname");
   }
@@ -21461,8 +21461,8 @@ var require_dist_cjs3 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -21527,8 +21527,8 @@ var require_dist_cjs4 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -21601,8 +21601,8 @@ var require_dist_cjs5 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -21664,8 +21664,8 @@ var require_dist_cjs6 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -21771,8 +21771,8 @@ var require_dist_cjs6 = __commonJS({
             return value;
           }
           if (typeof value === "object" && "hostname" in value) {
-            const { hostname: hostname2, port, protocol: protocol2 = "", path: path3 = "", query = {} } = value;
-            const url2 = new URL(`${protocol2}//${hostname2}${port ? `:${port}` : ""}${path3}`);
+            const { hostname: hostname22, port, protocol: protocol2 = "", path: path3 = "", query = {} } = value;
+            const url2 = new URL(`${protocol2}//${hostname22}${port ? `:${port}` : ""}${path3}`);
             url2.search = Object.entries(query).map(([k, v]) => `${k}=${v}`).join("&");
             return url2;
           }
@@ -21786,7 +21786,7 @@ var require_dist_cjs6 = __commonJS({
         return null;
       }
       const urlString = whatwgURL.href;
-      const { host, hostname, pathname, protocol, search } = whatwgURL;
+      const { host, hostname: hostname2, pathname, protocol, search } = whatwgURL;
       if (search) {
         return null;
       }
@@ -21794,7 +21794,7 @@ var require_dist_cjs6 = __commonJS({
       if (!Object.values(import_types32.EndpointURLScheme).includes(scheme)) {
         return null;
       }
-      const isIp = isIpAddress2(hostname);
+      const isIp = isIpAddress2(hostname2);
       const inputContainsDefaultPort = urlString.includes(`${host}:${DEFAULT_PORTS[scheme]}`) || typeof value === "string" && value.includes(`${host}:${DEFAULT_PORTS[scheme]}`);
       const authority = `${host}${inputContainsDefaultPort ? `:${DEFAULT_PORTS[scheme]}` : ``}`;
       return {
@@ -22081,8 +22081,8 @@ var require_dist_cjs7 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -22444,8 +22444,8 @@ var require_dist_cjs8 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -22510,11 +22510,11 @@ var require_dist_cjs8 = __commonJS({
     }, "userAgentMiddleware");
     var escapeUserAgent = /* @__PURE__ */ __name((userAgentPair) => {
       var _a;
-      const name = userAgentPair[0].split(UA_NAME_SEPARATOR).map((part) => part.replace(UA_NAME_ESCAPE_REGEX, UA_ESCAPE_CHAR)).join(UA_NAME_SEPARATOR);
+      const name2 = userAgentPair[0].split(UA_NAME_SEPARATOR).map((part) => part.replace(UA_NAME_ESCAPE_REGEX, UA_ESCAPE_CHAR)).join(UA_NAME_SEPARATOR);
       const version3 = (_a = userAgentPair[1]) == null ? void 0 : _a.replace(UA_VALUE_ESCAPE_REGEX, UA_ESCAPE_CHAR);
-      const prefixSeparatorIndex = name.indexOf(UA_NAME_SEPARATOR);
-      const prefix = name.substring(0, prefixSeparatorIndex);
-      let uaName = name.substring(prefixSeparatorIndex + 1);
+      const prefixSeparatorIndex = name2.indexOf(UA_NAME_SEPARATOR);
+      const prefix = name2.substring(0, prefixSeparatorIndex);
+      let uaName = name2.substring(prefixSeparatorIndex + 1);
       if (prefix === "api") {
         uaName = uaName.toLowerCase();
       }
@@ -22553,8 +22553,8 @@ var require_dist_cjs9 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -22607,8 +22607,8 @@ var require_dist_cjs10 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -22645,8 +22645,8 @@ var require_dist_cjs11 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -22714,11 +22714,11 @@ var require_dist_cjs11 = __commonJS({
       }
       const useDualstackEndpoint = await input.useDualstackEndpoint();
       const useFipsEndpoint = await input.useFipsEndpoint();
-      const { hostname } = await input.regionInfoProvider(region, { useDualstackEndpoint, useFipsEndpoint }) ?? {};
-      if (!hostname) {
+      const { hostname: hostname2 } = await input.regionInfoProvider(region, { useDualstackEndpoint, useFipsEndpoint }) ?? {};
+      if (!hostname2) {
         throw new Error("Cannot resolve hostname from client config");
       }
-      return input.urlParser(`${tls ? "https:" : "http:"}//${hostname}`);
+      return input.urlParser(`${tls ? "https:" : "http:"}//${hostname2}`);
     }, "getEndpointFromRegion");
     var resolveEndpointsConfig = /* @__PURE__ */ __name((input) => {
       const useDualstackEndpoint = (0, import_util_middleware5.normalizeProvider)(input.useDualstackEndpoint ?? false);
@@ -22776,12 +22776,12 @@ var require_dist_cjs11 = __commonJS({
     }, "getHostnameFromVariants");
     var getResolvedHostname = /* @__PURE__ */ __name((resolvedRegion, { regionHostname, partitionHostname }) => regionHostname ? regionHostname : partitionHostname ? partitionHostname.replace("{region}", resolvedRegion) : void 0, "getResolvedHostname");
     var getResolvedPartition = /* @__PURE__ */ __name((region, { partitionHash }) => Object.keys(partitionHash || {}).find((key) => partitionHash[key].regions.includes(region)) ?? "aws", "getResolvedPartition");
-    var getResolvedSigningRegion = /* @__PURE__ */ __name((hostname, { signingRegion, regionRegex, useFipsEndpoint }) => {
+    var getResolvedSigningRegion = /* @__PURE__ */ __name((hostname2, { signingRegion, regionRegex, useFipsEndpoint }) => {
       if (signingRegion) {
         return signingRegion;
       } else if (useFipsEndpoint) {
         const regionRegexJs = regionRegex.replace("\\\\", "\\").replace(/^\^/g, "\\.").replace(/\$$/g, "\\.");
-        const regionRegexmatchArray = hostname.match(regionRegexJs);
+        const regionRegexmatchArray = hostname2.match(regionRegexJs);
         if (regionRegexmatchArray) {
           return regionRegexmatchArray[0].slice(1, -1);
         }
@@ -22800,11 +22800,11 @@ var require_dist_cjs11 = __commonJS({
       const hostnameOptions = { useFipsEndpoint, useDualstackEndpoint };
       const regionHostname = getHostnameFromVariants((_b = regionHash[resolvedRegion]) == null ? void 0 : _b.variants, hostnameOptions);
       const partitionHostname = getHostnameFromVariants((_c = partitionHash[partition]) == null ? void 0 : _c.variants, hostnameOptions);
-      const hostname = getResolvedHostname(resolvedRegion, { regionHostname, partitionHostname });
-      if (hostname === void 0) {
+      const hostname2 = getResolvedHostname(resolvedRegion, { regionHostname, partitionHostname });
+      if (hostname2 === void 0) {
         throw new Error(`Endpoint resolution failed for: ${{ resolvedRegion, useFipsEndpoint, useDualstackEndpoint }}`);
       }
-      const signingRegion = getResolvedSigningRegion(hostname, {
+      const signingRegion = getResolvedSigningRegion(hostname2, {
         signingRegion: (_d = regionHash[resolvedRegion]) == null ? void 0 : _d.signingRegion,
         regionRegex: partitionHash[partition].regionRegex,
         useFipsEndpoint
@@ -22812,7 +22812,7 @@ var require_dist_cjs11 = __commonJS({
       return {
         partition,
         signingService,
-        hostname,
+        hostname: hostname2,
         ...signingRegion && { signingRegion },
         ...((_e = regionHash[resolvedRegion]) == null ? void 0 : _e.signingService) && {
           signingService: regionHash[resolvedRegion].signingService
@@ -22878,8 +22878,8 @@ var require_dist_cjs12 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -23114,8 +23114,8 @@ var require_dist_cjs13 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -23186,9 +23186,9 @@ var require_dist_cjs13 = __commonJS({
           const sectionName = trimmedLine.substring(1, trimmedLine.length - 1);
           const matches = prefixKeyRegex.exec(sectionName);
           if (matches) {
-            const [, prefix, , name] = matches;
+            const [, prefix, , name2] = matches;
             if (Object.values(import_types10.IniSectionType).includes(prefix)) {
-              currentSection = [prefix, name].join(CONFIG_PREFIX_SEPARATOR);
+              currentSection = [prefix, name2].join(CONFIG_PREFIX_SEPARATOR);
             }
           } else {
             currentSection = sectionName;
@@ -23199,18 +23199,18 @@ var require_dist_cjs13 = __commonJS({
         } else if (currentSection) {
           const indexOfEqualsSign = trimmedLine.indexOf("=");
           if (![0, -1].includes(indexOfEqualsSign)) {
-            const [name, value] = [
+            const [name2, value] = [
               trimmedLine.substring(0, indexOfEqualsSign).trim(),
               trimmedLine.substring(indexOfEqualsSign + 1).trim()
             ];
             if (value === "") {
-              currentSubSection = name;
+              currentSubSection = name2;
             } else {
               if (currentSubSection && iniLine.trimStart() === iniLine) {
                 currentSubSection = void 0;
               }
               map2[currentSection] = map2[currentSection] || {};
-              const key = currentSubSection ? [currentSubSection, name].join(CONFIG_PREFIX_SEPARATOR) : name;
+              const key = currentSubSection ? [currentSubSection, name2].join(CONFIG_PREFIX_SEPARATOR) : name2;
               map2[currentSection][key] = value;
             }
           }
@@ -23279,8 +23279,8 @@ var require_dist_cjs14 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -23419,8 +23419,8 @@ var require_dist_cjs15 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -23470,8 +23470,8 @@ var require_dist_cjs16 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -23492,13 +23492,13 @@ var require_dist_cjs16 = __commonJS({
       if (typeof url2 === "string") {
         return parseUrl(new URL(url2));
       }
-      const { hostname, pathname, port, protocol, search } = url2;
+      const { hostname: hostname2, pathname, port, protocol, search } = url2;
       let query;
       if (search) {
         query = (0, import_querystring_parser.parseQueryString)(search);
       }
       return {
-        hostname,
+        hostname: hostname2,
         port: port ? parseInt(port) : void 0,
         protocol,
         path: pathname,
@@ -23517,8 +23517,8 @@ var require_dist_cjs17 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -23607,8 +23607,8 @@ var require_dist_cjs18 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -23691,8 +23691,8 @@ var require_dist_cjs18 = __commonJS({
               return endpoint.url.href;
             }
             if ("hostname" in endpoint) {
-              const { protocol, hostname, port, path: path3 } = endpoint;
-              return `${protocol}//${hostname}${port ? ":" + port : ""}${path3}`;
+              const { protocol, hostname: hostname2, port, path: path3 } = endpoint;
+              return `${protocol}//${hostname2}${port ? ":" + port : ""}${path3}`;
             }
           }
           return endpoint;
@@ -23729,17 +23729,17 @@ var require_dist_cjs18 = __commonJS({
       var _a;
       const endpointParams = {};
       const instructions = ((_a = instructionsSupplier == null ? void 0 : instructionsSupplier.getEndpointParameterInstructions) == null ? void 0 : _a.call(instructionsSupplier)) || {};
-      for (const [name, instruction] of Object.entries(instructions)) {
+      for (const [name2, instruction] of Object.entries(instructions)) {
         switch (instruction.type) {
           case "staticContextParams":
-            endpointParams[name] = instruction.value;
+            endpointParams[name2] = instruction.value;
             break;
           case "contextParams":
-            endpointParams[name] = commandInput[instruction.name];
+            endpointParams[name2] = commandInput[instruction.name];
             break;
           case "clientContextParams":
           case "builtInParams":
-            endpointParams[name] = await createConfigValueProvider(instruction.name, name, clientConfig)();
+            endpointParams[name2] = await createConfigValueProvider(instruction.name, name2, clientConfig)();
             break;
           default:
             throw new Error("Unrecognized endpoint parameter instruction: " + JSON.stringify(instruction));
@@ -24087,7 +24087,7 @@ function stringToBytes(str) {
   }
   return bytes;
 }
-function v35(name, version3, hashfunc) {
+function v35(name2, version3, hashfunc) {
   function generateUUID(value, namespace, buf, offset) {
     var _namespace;
     if (typeof value === "string") {
@@ -24115,7 +24115,7 @@ function v35(name, version3, hashfunc) {
     return unsafeStringify(bytes);
   }
   try {
-    generateUUID.name = name;
+    generateUUID.name = name2;
   } catch (err) {
   }
   generateUUID.DNS = DNS;
@@ -24286,8 +24286,8 @@ var require_dist_cjs19 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -24373,8 +24373,8 @@ var require_dist_cjs20 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -24687,8 +24687,8 @@ var require_dist_cjs21 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -24704,10 +24704,10 @@ var require_dist_cjs21 = __commonJS({
       constructStack: () => constructStack
     });
     module2.exports = __toCommonJS2(src_exports);
-    var getAllAliases = /* @__PURE__ */ __name((name, aliases2) => {
+    var getAllAliases = /* @__PURE__ */ __name((name2, aliases2) => {
       const _aliases = [];
-      if (name) {
-        _aliases.push(name);
+      if (name2) {
+        _aliases.push(name2);
       }
       if (aliases2) {
         for (const alias of aliases2) {
@@ -24716,8 +24716,8 @@ var require_dist_cjs21 = __commonJS({
       }
       return _aliases;
     }, "getAllAliases");
-    var getMiddlewareNameWithAliases = /* @__PURE__ */ __name((name, aliases2) => {
-      return `${name || "anonymous"}${aliases2 && aliases2.length > 0 ? ` (a.k.a. ${aliases2.join(",")})` : ""}`;
+    var getMiddlewareNameWithAliases = /* @__PURE__ */ __name((name2, aliases2) => {
+      return `${name2 || "anonymous"}${aliases2 && aliases2.length > 0 ? ` (a.k.a. ${aliases2.join(",")})` : ""}`;
     }, "getMiddlewareNameWithAliases");
     var constructStack = /* @__PURE__ */ __name(() => {
       let absoluteEntries = [];
@@ -24846,18 +24846,18 @@ var require_dist_cjs21 = __commonJS({
       }, "getMiddlewareList");
       const stack = {
         add: (middleware, options = {}) => {
-          const { name, override, aliases: _aliases } = options;
+          const { name: name2, override, aliases: _aliases } = options;
           const entry = {
             step: "initialize",
             priority: "normal",
             middleware,
             ...options
           };
-          const aliases2 = getAllAliases(name, _aliases);
+          const aliases2 = getAllAliases(name2, _aliases);
           if (aliases2.length > 0) {
             if (aliases2.some((alias) => entriesNameSet.has(alias))) {
               if (!override)
-                throw new Error(`Duplicate middleware name '${getMiddlewareNameWithAliases(name, _aliases)}'`);
+                throw new Error(`Duplicate middleware name '${getMiddlewareNameWithAliases(name2, _aliases)}'`);
               for (const alias of aliases2) {
                 const toOverrideIndex = absoluteEntries.findIndex(
                   (entry2) => {
@@ -24871,7 +24871,7 @@ var require_dist_cjs21 = __commonJS({
                 const toOverride = absoluteEntries[toOverrideIndex];
                 if (toOverride.step !== entry.step || entry.priority !== toOverride.priority) {
                   throw new Error(
-                    `"${getMiddlewareNameWithAliases(toOverride.name, toOverride.aliases)}" middleware with ${toOverride.priority} priority in ${toOverride.step} step cannot be overridden by "${getMiddlewareNameWithAliases(name, _aliases)}" middleware with ${entry.priority} priority in ${entry.step} step.`
+                    `"${getMiddlewareNameWithAliases(toOverride.name, toOverride.aliases)}" middleware with ${toOverride.priority} priority in ${toOverride.step} step cannot be overridden by "${getMiddlewareNameWithAliases(name2, _aliases)}" middleware with ${entry.priority} priority in ${entry.step} step.`
                   );
                 }
                 absoluteEntries.splice(toOverrideIndex, 1);
@@ -24884,16 +24884,16 @@ var require_dist_cjs21 = __commonJS({
           absoluteEntries.push(entry);
         },
         addRelativeTo: (middleware, options) => {
-          const { name, override, aliases: _aliases } = options;
+          const { name: name2, override, aliases: _aliases } = options;
           const entry = {
             middleware,
             ...options
           };
-          const aliases2 = getAllAliases(name, _aliases);
+          const aliases2 = getAllAliases(name2, _aliases);
           if (aliases2.length > 0) {
             if (aliases2.some((alias) => entriesNameSet.has(alias))) {
               if (!override)
-                throw new Error(`Duplicate middleware name '${getMiddlewareNameWithAliases(name, _aliases)}'`);
+                throw new Error(`Duplicate middleware name '${getMiddlewareNameWithAliases(name2, _aliases)}'`);
               for (const alias of aliases2) {
                 const toOverrideIndex = relativeEntries.findIndex(
                   (entry2) => {
@@ -24907,7 +24907,7 @@ var require_dist_cjs21 = __commonJS({
                 const toOverride = relativeEntries[toOverrideIndex];
                 if (toOverride.toMiddleware !== entry.toMiddleware || toOverride.relation !== entry.relation) {
                   throw new Error(
-                    `"${getMiddlewareNameWithAliases(toOverride.name, toOverride.aliases)}" middleware ${toOverride.relation} "${toOverride.toMiddleware}" middleware cannot be overridden by "${getMiddlewareNameWithAliases(name, _aliases)}" middleware ${entry.relation} "${entry.toMiddleware}" middleware.`
+                    `"${getMiddlewareNameWithAliases(toOverride.name, toOverride.aliases)}" middleware ${toOverride.relation} "${toOverride.toMiddleware}" middleware cannot be overridden by "${getMiddlewareNameWithAliases(name2, _aliases)}" middleware ${entry.relation} "${entry.toMiddleware}" middleware.`
                   );
                 }
                 relativeEntries.splice(toOverrideIndex, 1);
@@ -24932,9 +24932,9 @@ var require_dist_cjs21 = __commonJS({
         removeByTag: (toRemove) => {
           let isRemoved = false;
           const filterCb = /* @__PURE__ */ __name((entry) => {
-            const { tags, name, aliases: _aliases } = entry;
+            const { tags, name: name2, aliases: _aliases } = entry;
             if (tags && tags.includes(toRemove)) {
-              const aliases2 = getAllAliases(name, _aliases);
+              const aliases2 = getAllAliases(name2, _aliases);
               for (const alias of aliases2) {
                 entriesNameSet.delete(alias);
               }
@@ -25004,8 +25004,8 @@ var require_dist_cjs22 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -25034,8 +25034,8 @@ var require_dist_cjs23 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -25100,8 +25100,8 @@ var require_dist_cjs24 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -25240,8 +25240,8 @@ var require_dist_cjs26 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -25276,8 +25276,8 @@ var require_dist_cjs27 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -25328,8 +25328,8 @@ var require_dist_cjs28 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -25363,9 +25363,9 @@ var require_dist_cjs28 = __commonJS({
     var NODEJS_TIMEOUT_ERROR_CODES = ["ECONNRESET", "EPIPE", "ETIMEDOUT"];
     var getTransformedHeaders = /* @__PURE__ */ __name((headers) => {
       const transformedHeaders = {};
-      for (const name of Object.keys(headers)) {
-        const headerValues = headers[name];
-        transformedHeaders[name] = Array.isArray(headerValues) ? headerValues.join(",") : headerValues;
+      for (const name2 of Object.keys(headers)) {
+        const headerValues = headers[name2];
+        transformedHeaders[name2] = Array.isArray(headerValues) ? headerValues.join(",") : headerValues;
       }
       return transformedHeaders;
     }, "getTransformedHeaders");
@@ -25850,14 +25850,14 @@ or increase socketAcquisitionWarningTimeout=(millis) in the NodeHttpHandler conf
             reject(abortError);
             return;
           }
-          const { hostname, method, port, protocol, query } = request;
+          const { hostname: hostname2, method, port, protocol, query } = request;
           let auth = "";
           if (request.username != null || request.password != null) {
             const username = request.username ?? "";
             const password = request.password ?? "";
             auth = `${username}:${password}@`;
           }
-          const authority = `${protocol}//${auth}${hostname}${port ? `:${port}` : ""}`;
+          const authority = `${protocol}//${auth}${hostname2}${port ? `:${port}` : ""}`;
           const requestContext = { destination: new URL(authority) };
           const session = this.connectionManager.lease(requestContext, {
             requestTimeout: (_a = this.config) == null ? void 0 : _a.sessionTimeout,
@@ -26030,8 +26030,8 @@ var require_dist_cjs29 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -26266,8 +26266,8 @@ var require_dist_cjs30 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -26350,8 +26350,8 @@ var require_sdk_stream_mixin_browser = __commonJS({
     var sdkStreamMixin2 = (stream4) => {
       var _a, _b;
       if (!isBlobInstance(stream4) && !(0, stream_type_check_1.isReadableStream)(stream4)) {
-        const name = ((_b = (_a = stream4 === null || stream4 === void 0 ? void 0 : stream4.__proto__) === null || _a === void 0 ? void 0 : _a.constructor) === null || _b === void 0 ? void 0 : _b.name) || stream4;
-        throw new Error(`Unexpected stream implementation, expect Blob or ReadableStream, got ${name}`);
+        const name2 = ((_b = (_a = stream4 === null || stream4 === void 0 ? void 0 : stream4.__proto__) === null || _a === void 0 ? void 0 : _a.constructor) === null || _b === void 0 ? void 0 : _b.name) || stream4;
+        throw new Error(`Unexpected stream implementation, expect Blob or ReadableStream, got ${name2}`);
       }
       let transformed = false;
       const transformToByteArray = async () => {
@@ -26421,8 +26421,8 @@ var require_sdk_stream_mixin = __commonJS({
         try {
           return (0, sdk_stream_mixin_browser_1.sdkStreamMixin)(stream4);
         } catch (e) {
-          const name = ((_b = (_a = stream4 === null || stream4 === void 0 ? void 0 : stream4.__proto__) === null || _a === void 0 ? void 0 : _a.constructor) === null || _b === void 0 ? void 0 : _b.name) || stream4;
-          throw new Error(`Unexpected stream implementation, expect Stream.Readable instance, got ${name}`);
+          const name2 = ((_b = (_a = stream4 === null || stream4 === void 0 ? void 0 : stream4.__proto__) === null || _a === void 0 ? void 0 : _a.constructor) === null || _b === void 0 ? void 0 : _b.name) || stream4;
+          throw new Error(`Unexpected stream implementation, expect Stream.Readable instance, got ${name2}`);
         }
       }
       let transformed = false;
@@ -26605,8 +26605,8 @@ var require_dist_cjs31 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -26687,8 +26687,8 @@ var require_dist_cjs32 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -27840,8 +27840,8 @@ var require_dist_cjs33 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -28440,14 +28440,14 @@ var init_requestBuilder = __esm({
         this.resolvePathStack = [];
       }
       async build() {
-        const { hostname, protocol = "https", port, path: basePath } = await this.context.endpoint();
+        const { hostname: hostname2, protocol = "https", port, path: basePath } = await this.context.endpoint();
         this.path = basePath;
         for (const resolvePath of this.resolvePathStack) {
           resolvePath(this.path);
         }
         return new import_protocol_http4.HttpRequest({
           protocol,
-          hostname: this.hostname || hostname,
+          hostname: this.hostname || hostname2,
           port,
           method: this.method,
           path: this.path,
@@ -28456,8 +28456,8 @@ var init_requestBuilder = __esm({
           headers: this.headers
         });
       }
-      hn(hostname) {
-        this.hostname = hostname;
+      hn(hostname2) {
+        this.hostname = hostname2;
         return this;
       }
       bp(uriLabel) {
@@ -28583,8 +28583,8 @@ var require_dist_cjs34 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -28724,9 +28724,9 @@ var init_AwsSdkSigV4Signer = __esm({
   "node_modules/@aws-sdk/client-secrets-manager/node_modules/@aws-sdk/core/dist-es/submodules/httpAuthSchemes/aws_sdk/AwsSdkSigV4Signer.js"() {
     import_protocol_http6 = __toESM(require_dist_cjs2());
     init_utils();
-    throwSigningPropertyError = (name, property) => {
+    throwSigningPropertyError = (name2, property) => {
       if (!property) {
-        throw new Error(`Property \`${name}\` is not resolved for AWS SDK SigV4Auth`);
+        throw new Error(`Property \`${name2}\` is not resolved for AWS SDK SigV4Auth`);
       }
       return property;
     };
@@ -28794,8 +28794,8 @@ var require_dist_cjs35 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -29097,11 +29097,11 @@ var require_dist_cjs35 = __commonJS({
     var moveHeadersToQuery = /* @__PURE__ */ __name((request, options = {}) => {
       var _a;
       const { headers, query = {} } = import_protocol_http11.HttpRequest.clone(request);
-      for (const name of Object.keys(headers)) {
-        const lname = name.toLowerCase();
+      for (const name2 of Object.keys(headers)) {
+        const lname = name2.toLowerCase();
         if (lname.slice(0, 6) === "x-amz-" && !((_a = options.unhoistableHeaders) == null ? void 0 : _a.has(lname))) {
-          query[name] = headers[name];
-          delete headers[name];
+          query[name2] = headers[name2];
+          delete headers[name2];
         }
       }
       return {
@@ -29278,7 +29278,7 @@ var require_dist_cjs35 = __commonJS({
         return `${request.method}
 ${this.getCanonicalPath(request)}
 ${getCanonicalQuery(request)}
-${sortedHeaders.map((name) => `${name}:${canonicalHeaders[name]}`).join("\n")}
+${sortedHeaders.map((name2) => `${name2}:${canonicalHeaders[name2]}`).join("\n")}
 
 ${sortedHeaders.join(";")}
 ${payloadHash}`;
@@ -30123,11 +30123,11 @@ var require_DocTypeReader = __commonJS({
       if (xmlData[i + 1] === "!" && xmlData[i + 2] === "N" && xmlData[i + 3] === "O" && xmlData[i + 4] === "T" && xmlData[i + 5] === "A" && xmlData[i + 6] === "T" && xmlData[i + 7] === "I" && xmlData[i + 8] === "O" && xmlData[i + 9] === "N") return true;
       return false;
     }
-    function validateEntityName(name) {
-      if (util2.isName(name))
-        return name;
+    function validateEntityName(name2) {
+      if (util2.isName(name2))
+        return name2;
       else
-        throw new Error(`Invalid entity name ${name}`);
+        throw new Error(`Invalid entity name ${name2}`);
     }
     module2.exports = readDocType;
   }
@@ -31165,9 +31165,9 @@ var require_json2xml = __commonJS({
     function indentate(level) {
       return this.options.indentBy.repeat(level);
     }
-    function isAttribute(name) {
-      if (name.startsWith(this.options.attributeNamePrefix)) {
-        return name.substr(this.attrPrefixLen);
+    function isAttribute(name2) {
+      if (name2.startsWith(this.options.attributeNamePrefix)) {
+        return name2.substr(this.attrPrefixLen);
       } else {
         return false;
       }
@@ -31452,9 +31452,9 @@ function __runInitializers(thisArg, initializers, value) {
 function __propKey(x) {
   return typeof x === "symbol" ? x : "".concat(x);
 }
-function __setFunctionName(f, name, prefix) {
-  if (typeof name === "symbol") name = name.description ? "[".concat(name.description, "]") : "";
-  return Object.defineProperty(f, "name", { configurable: true, value: prefix ? "".concat(prefix, " ", name) : name });
+function __setFunctionName(f, name2, prefix) {
+  if (typeof name2 === "symbol") name2 = name2.description ? "[".concat(name2.description, "]") : "";
+  return Object.defineProperty(f, "name", { configurable: true, value: prefix ? "".concat(prefix, " ", name2) : name2 });
 }
 function __metadata(metadataKey, metadataValue) {
   if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(metadataKey, metadataValue);
@@ -31961,8 +31961,8 @@ var require_dist_cjs36 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -32020,8 +32020,8 @@ var require_dist_cjs37 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -32796,8 +32796,8 @@ var require_dist_cjs39 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -32817,7 +32817,7 @@ var require_dist_cjs39 = __commonJS({
     });
     module2.exports = __toCommonJS2(src_exports);
     var import_node_config_provider = require_dist_cjs14();
-    var import_os = require("os");
+    var import_os2 = require("os");
     var import_process = require("process");
     var crtAvailability = {
       isCrtAvailable: false
@@ -32837,7 +32837,7 @@ var require_dist_cjs39 = __commonJS({
         // ua-metadata
         ["ua", "2.0"],
         // os-metadata
-        [`os/${(0, import_os.platform)()}`, (0, import_os.release)()],
+        [`os/${(0, import_os2.platform)()}`, (0, import_os2.release)()],
         // language-metadata
         // ECMAScript edition doesn't matter in JS, so no version needed.
         ["lang/js"],
@@ -32879,8 +32879,8 @@ var require_dist_cjs40 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -32943,8 +32943,8 @@ var require_dist_cjs41 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -33095,8 +33095,8 @@ var require_dist_cjs42 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -33254,8 +33254,8 @@ var require_dist_cjs43 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -33352,8 +33352,8 @@ var require_dist_cjs44 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -33896,8 +33896,8 @@ var require_dist_cjs45 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -33944,8 +33944,8 @@ var require_dist_cjs45 = __commonJS({
     }, "resolveHttpHandlerRuntimeConfig");
     var import_types10 = require_dist_cjs();
     var _Field = class _Field {
-      constructor({ name, kind = import_types10.FieldPosition.HEADER, values = [] }) {
-        this.name = name;
+      constructor({ name: name2, kind = import_types10.FieldPosition.HEADER, values = [] }) {
+        this.name = name2;
         this.kind = kind;
         this.values = values;
       }
@@ -34014,16 +34014,16 @@ var require_dist_cjs45 = __commonJS({
        *  to retrieve
        * @returns The {@link Field} if it exists.
        */
-      getField(name) {
-        return this.entries[name.toLowerCase()];
+      getField(name2) {
+        return this.entries[name2.toLowerCase()];
       }
       /**
        * Delete entry from collection.
        *
        * @param name Name of the entry to delete.
        */
-      removeField(name) {
-        delete this.entries[name.toLowerCase()];
+      removeField(name2) {
+        delete this.entries[name2.toLowerCase()];
       }
       /**
        * Helper function for retrieving specific types of fields.
@@ -34117,9 +34117,9 @@ var require_dist_cjs45 = __commonJS({
     };
     __name(_HttpResponse, "HttpResponse");
     var HttpResponse3 = _HttpResponse;
-    function isValidHostname(hostname) {
+    function isValidHostname(hostname2) {
       const hostPattern = /^[a-z0-9][a-z0-9\.\-]*[a-z0-9]$/;
-      return hostPattern.test(hostname);
+      return hostPattern.test(hostname2);
     }
     __name(isValidHostname, "isValidHostname");
   }
@@ -34135,8 +34135,8 @@ var require_dist_cjs46 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -34201,8 +34201,8 @@ var require_dist_cjs47 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -34265,8 +34265,8 @@ var require_dist_cjs48 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -34331,11 +34331,11 @@ var require_dist_cjs48 = __commonJS({
     }, "userAgentMiddleware");
     var escapeUserAgent = /* @__PURE__ */ __name((userAgentPair) => {
       var _a;
-      const name = userAgentPair[0].split(UA_NAME_SEPARATOR).map((part) => part.replace(UA_NAME_ESCAPE_REGEX, UA_ESCAPE_CHAR)).join(UA_NAME_SEPARATOR);
+      const name2 = userAgentPair[0].split(UA_NAME_SEPARATOR).map((part) => part.replace(UA_NAME_ESCAPE_REGEX, UA_ESCAPE_CHAR)).join(UA_NAME_SEPARATOR);
       const version3 = (_a = userAgentPair[1]) == null ? void 0 : _a.replace(UA_VALUE_ESCAPE_REGEX, UA_ESCAPE_CHAR);
-      const prefixSeparatorIndex = name.indexOf(UA_NAME_SEPARATOR);
-      const prefix = name.substring(0, prefixSeparatorIndex);
-      let uaName = name.substring(prefixSeparatorIndex + 1);
+      const prefixSeparatorIndex = name2.indexOf(UA_NAME_SEPARATOR);
+      const prefix = name2.substring(0, prefixSeparatorIndex);
+      let uaName = name2.substring(prefixSeparatorIndex + 1);
       if (prefix === "api") {
         uaName = uaName.toLowerCase();
       }
@@ -34475,8 +34475,8 @@ var require_dist_cjs49 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -34552,8 +34552,8 @@ var require_dist_cjs49 = __commonJS({
               return endpoint.url.href;
             }
             if ("hostname" in endpoint) {
-              const { protocol, hostname, port, path: path3 } = endpoint;
-              return `${protocol}//${hostname}${port ? ":" + port : ""}${path3}`;
+              const { protocol, hostname: hostname2, port, path: path3 } = endpoint;
+              return `${protocol}//${hostname2}${port ? ":" + port : ""}${path3}`;
             }
           }
           return endpoint;
@@ -34590,17 +34590,17 @@ var require_dist_cjs49 = __commonJS({
       var _a;
       const endpointParams = {};
       const instructions = ((_a = instructionsSupplier == null ? void 0 : instructionsSupplier.getEndpointParameterInstructions) == null ? void 0 : _a.call(instructionsSupplier)) || {};
-      for (const [name, instruction] of Object.entries(instructions)) {
+      for (const [name2, instruction] of Object.entries(instructions)) {
         switch (instruction.type) {
           case "staticContextParams":
-            endpointParams[name] = instruction.value;
+            endpointParams[name2] = instruction.value;
             break;
           case "contextParams":
-            endpointParams[name] = commandInput[instruction.name];
+            endpointParams[name2] = commandInput[instruction.name];
             break;
           case "clientContextParams":
           case "builtInParams":
-            endpointParams[name] = await createConfigValueProvider(instruction.name, name, clientConfig)();
+            endpointParams[name2] = await createConfigValueProvider(instruction.name, name2, clientConfig)();
             break;
           default:
             throw new Error("Unrecognized endpoint parameter instruction: " + JSON.stringify(instruction));
@@ -34948,7 +34948,7 @@ function stringToBytes2(str) {
   }
   return bytes;
 }
-function v352(name, version3, hashfunc) {
+function v352(name2, version3, hashfunc) {
   function generateUUID(value, namespace, buf, offset) {
     var _namespace;
     if (typeof value === "string") {
@@ -34976,7 +34976,7 @@ function v352(name, version3, hashfunc) {
     return unsafeStringify2(bytes);
   }
   try {
-    generateUUID.name = name;
+    generateUUID.name = name2;
   } catch (err) {
   }
   generateUUID.DNS = DNS2;
@@ -35187,8 +35187,8 @@ var require_dist_cjs50 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -35222,9 +35222,9 @@ var require_dist_cjs50 = __commonJS({
     var NODEJS_TIMEOUT_ERROR_CODES = ["ECONNRESET", "EPIPE", "ETIMEDOUT"];
     var getTransformedHeaders = /* @__PURE__ */ __name((headers) => {
       const transformedHeaders = {};
-      for (const name of Object.keys(headers)) {
-        const headerValues = headers[name];
-        transformedHeaders[name] = Array.isArray(headerValues) ? headerValues.join(",") : headerValues;
+      for (const name2 of Object.keys(headers)) {
+        const headerValues = headers[name2];
+        transformedHeaders[name2] = Array.isArray(headerValues) ? headerValues.join(",") : headerValues;
       }
       return transformedHeaders;
     }, "getTransformedHeaders");
@@ -35709,14 +35709,14 @@ or increase socketAcquisitionWarningTimeout=(millis) in the NodeHttpHandler conf
             reject(abortError);
             return;
           }
-          const { hostname, method, port, protocol, query } = request;
+          const { hostname: hostname2, method, port, protocol, query } = request;
           let auth = "";
           if (request.username != null || request.password != null) {
             const username = request.username ?? "";
             const password = request.password ?? "";
             auth = `${username}:${password}@`;
           }
-          const authority = `${protocol}//${auth}${hostname}${port ? `:${port}` : ""}`;
+          const authority = `${protocol}//${auth}${hostname2}${port ? `:${port}` : ""}`;
           const requestContext = { destination: new URL(authority) };
           const session = this.connectionManager.lease(requestContext, {
             requestTimeout: (_a = this.config) == null ? void 0 : _a.sessionTimeout,
@@ -35889,8 +35889,8 @@ var require_dist_cjs51 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -36144,8 +36144,8 @@ var require_sdk_stream_mixin_browser2 = __commonJS({
     var sdkStreamMixin2 = (stream4) => {
       var _a, _b;
       if (!isBlobInstance(stream4) && !(0, stream_type_check_1.isReadableStream)(stream4)) {
-        const name = ((_b = (_a = stream4 === null || stream4 === void 0 ? void 0 : stream4.__proto__) === null || _a === void 0 ? void 0 : _a.constructor) === null || _b === void 0 ? void 0 : _b.name) || stream4;
-        throw new Error(`Unexpected stream implementation, expect Blob or ReadableStream, got ${name}`);
+        const name2 = ((_b = (_a = stream4 === null || stream4 === void 0 ? void 0 : stream4.__proto__) === null || _a === void 0 ? void 0 : _a.constructor) === null || _b === void 0 ? void 0 : _b.name) || stream4;
+        throw new Error(`Unexpected stream implementation, expect Blob or ReadableStream, got ${name2}`);
       }
       let transformed = false;
       const transformToByteArray = async () => {
@@ -36215,8 +36215,8 @@ var require_sdk_stream_mixin2 = __commonJS({
         try {
           return (0, sdk_stream_mixin_browser_1.sdkStreamMixin)(stream4);
         } catch (e) {
-          const name = ((_b = (_a = stream4 === null || stream4 === void 0 ? void 0 : stream4.__proto__) === null || _a === void 0 ? void 0 : _a.constructor) === null || _b === void 0 ? void 0 : _b.name) || stream4;
-          throw new Error(`Unexpected stream implementation, expect Stream.Readable instance, got ${name}`);
+          const name2 = ((_b = (_a = stream4 === null || stream4 === void 0 ? void 0 : stream4.__proto__) === null || _a === void 0 ? void 0 : _a.constructor) === null || _b === void 0 ? void 0 : _b.name) || stream4;
+          throw new Error(`Unexpected stream implementation, expect Stream.Readable instance, got ${name2}`);
         }
       }
       let transformed = false;
@@ -36399,8 +36399,8 @@ var require_dist_cjs52 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -36481,8 +36481,8 @@ var require_dist_cjs53 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -37634,8 +37634,8 @@ var require_dist_cjs54 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -38232,14 +38232,14 @@ var init_requestBuilder2 = __esm({
         this.resolvePathStack = [];
       }
       async build() {
-        const { hostname, protocol = "https", port, path: basePath } = await this.context.endpoint();
+        const { hostname: hostname2, protocol = "https", port, path: basePath } = await this.context.endpoint();
         this.path = basePath;
         for (const resolvePath of this.resolvePathStack) {
           resolvePath(this.path);
         }
         return new import_protocol_http8.HttpRequest({
           protocol,
-          hostname: this.hostname || hostname,
+          hostname: this.hostname || hostname2,
           port,
           method: this.method,
           path: this.path,
@@ -38248,8 +38248,8 @@ var init_requestBuilder2 = __esm({
           headers: this.headers
         });
       }
-      hn(hostname) {
-        this.hostname = hostname;
+      hn(hostname2) {
+        this.hostname = hostname2;
         return this;
       }
       bp(uriLabel) {
@@ -38375,8 +38375,8 @@ var require_dist_cjs55 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -38516,9 +38516,9 @@ var init_AwsSdkSigV4Signer2 = __esm({
   "node_modules/@aws-sdk/core/dist-es/submodules/httpAuthSchemes/aws_sdk/AwsSdkSigV4Signer.js"() {
     import_protocol_http10 = __toESM(require_dist_cjs45());
     init_utils2();
-    throwSigningPropertyError2 = (name, property) => {
+    throwSigningPropertyError2 = (name2, property) => {
       if (!property) {
-        throw new Error(`Property \`${name}\` is not resolved for AWS SDK SigV4Auth`);
+        throw new Error(`Property \`${name2}\` is not resolved for AWS SDK SigV4Auth`);
       }
       return property;
     };
@@ -38586,8 +38586,8 @@ var require_dist_cjs56 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -38900,11 +38900,11 @@ var require_dist_cjs56 = __commonJS({
     var moveHeadersToQuery = /* @__PURE__ */ __name((request, options = {}) => {
       var _a;
       const { headers, query = {} } = typeof request.clone === "function" ? request.clone() : cloneRequest(request);
-      for (const name of Object.keys(headers)) {
-        const lname = name.toLowerCase();
+      for (const name2 of Object.keys(headers)) {
+        const lname = name2.toLowerCase();
         if (lname.slice(0, 6) === "x-amz-" && !((_a = options.unhoistableHeaders) == null ? void 0 : _a.has(lname))) {
-          query[name] = headers[name];
-          delete headers[name];
+          query[name2] = headers[name2];
+          delete headers[name2];
         }
       }
       return {
@@ -39081,7 +39081,7 @@ var require_dist_cjs56 = __commonJS({
         return `${request.method}
 ${this.getCanonicalPath(request)}
 ${getCanonicalQuery(request)}
-${sortedHeaders.map((name) => `${name}:${canonicalHeaders[name]}`).join("\n")}
+${sortedHeaders.map((name2) => `${name2}:${canonicalHeaders[name2]}`).join("\n")}
 
 ${sortedHeaders.join(";")}
 ${payloadHash}`;
@@ -39673,8 +39673,8 @@ var require_dist_cjs57 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -40550,8 +40550,8 @@ var require_dist_cjs59 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -40709,8 +40709,8 @@ var require_dist_cjs60 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -41257,8 +41257,8 @@ var require_dist_cjs61 = __commonJS({
       return fn && (res = (0, fn[__getOwnPropNames2(fn)[0]])(fn = 0)), res;
     };
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -41988,8 +41988,8 @@ var require_dist_cjs62 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -43017,10 +43017,10 @@ var require_dist_cjs62 = __commonJS({
     }), "deserializeMetadata");
     var throwDefaultError = (0, import_smithy_client9.withBaseException)(STSServiceException);
     var buildHttpRpcRequest = /* @__PURE__ */ __name(async (context, headers, path3, resolvedHostname, body) => {
-      const { hostname, protocol = "https", port, path: basePath } = await context.endpoint();
+      const { hostname: hostname2, protocol = "https", port, path: basePath } = await context.endpoint();
       const contents = {
         protocol,
-        hostname,
+        hostname: hostname2,
         port,
         method: "POST",
         path: basePath.endsWith("/") ? basePath.slice(0, -1) + path3 : basePath + path3,
@@ -43341,8 +43341,8 @@ var require_dist_cjs63 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -43549,8 +43549,8 @@ var require_dist_cjs65 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -43769,8 +43769,8 @@ var require_dist_cjs66 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -44064,8 +44064,8 @@ var require_dist_cjs67 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -45049,8 +45049,8 @@ var require_dist_cjs68 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -45230,8 +45230,8 @@ var require_dist_cjs69 = __commonJS({
       return fn && (res = (0, fn[__getOwnPropNames2(fn)[0]])(fn = 0)), res;
     };
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -45961,8 +45961,8 @@ var require_dist_cjs70 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -46990,10 +46990,10 @@ var require_dist_cjs70 = __commonJS({
     }), "deserializeMetadata");
     var throwDefaultError = (0, import_smithy_client9.withBaseException)(STSServiceException);
     var buildHttpRpcRequest = /* @__PURE__ */ __name(async (context, headers, path3, resolvedHostname, body) => {
-      const { hostname, protocol = "https", port, path: basePath } = await context.endpoint();
+      const { hostname: hostname2, protocol = "https", port, path: basePath } = await context.endpoint();
       const contents = {
         protocol,
-        hostname,
+        hostname: hostname2,
         port,
         method: "POST",
         path: basePath.endsWith("/") ? basePath.slice(0, -1) + path3 : basePath + path3,
@@ -47316,8 +47316,8 @@ var require_dist_cjs71 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -47536,8 +47536,8 @@ var require_dist_cjs72 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -47831,8 +47831,8 @@ var require_dist_cjs73 = __commonJS({
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __name = (target, value) => __defProp2(target, "name", { value, configurable: true });
     var __export2 = (target, all3) => {
-      for (var name in all3)
-        __defProp2(target, name, { get: all3[name], enumerable: true });
+      for (var name2 in all3)
+        __defProp2(target, name2, { get: all3[name2], enumerable: true });
     };
     var __copyProps2 = (to, from2, except, desc) => {
       if (from2 && typeof from2 === "object" || typeof from2 === "function") {
@@ -49105,10 +49105,10 @@ var require_dist_cjs73 = __commonJS({
     }), "deserializeMetadata");
     var throwDefaultError = (0, import_smithy_client9.withBaseException)(SecretsManagerServiceException);
     var buildHttpRpcRequest = /* @__PURE__ */ __name(async (context, headers, path3, resolvedHostname, body) => {
-      const { hostname, protocol = "https", port, path: basePath } = await context.endpoint();
+      const { hostname: hostname2, protocol = "https", port, path: basePath } = await context.endpoint();
       const contents = {
         protocol,
-        hostname,
+        hostname: hostname2,
         port,
         method: "POST",
         path: basePath.endsWith("/") ? basePath.slice(0, -1) + path3 : basePath + path3,
@@ -49426,9 +49426,11 @@ __export(awslambda_entrypoint_exports, {
 module.exports = __toCommonJS(awslambda_entrypoint_exports);
 
 // src/awslambda-entrypoint/log.ts
+var import_os = require("os");
 var isDebug = !!process.env.SLY_DEBUG;
+var name = (0, import_os.hostname)();
 var error = (message, obj) => {
-  const msg = `[awslambda-bootstrap] ${message}`;
+  const msg = `[scaffoldly@${name}] ${message}`;
   if (!obj) {
     console.error(msg);
     return;
@@ -49436,7 +49438,7 @@ var error = (message, obj) => {
   console.error(msg, JSON.stringify(obj));
 };
 var info = (message, obj) => {
-  const msg = `[awslambda-bootstrap] ${message}`;
+  const msg = `[scaffoldly@${name}] ${message}`;
   if (!obj) {
     console.log(msg);
     return;
@@ -49625,9 +49627,6 @@ var Commands = class _Commands {
     return commands;
   };
 };
-
-// src/awslambda-entrypoint/observables.ts
-var import_net = require("net");
 
 // src/awslambda-entrypoint/util.ts
 var import_path_to_regexp = __toESM(require_dist());
@@ -49891,20 +49890,20 @@ var isRegExp = kindOfTest("RegExp");
 var reduceDescriptors = (obj, reducer) => {
   const descriptors3 = Object.getOwnPropertyDescriptors(obj);
   const reducedDescriptors = {};
-  forEach(descriptors3, (descriptor, name) => {
+  forEach(descriptors3, (descriptor, name2) => {
     let ret;
-    if ((ret = reducer(descriptor, name, obj)) !== false) {
-      reducedDescriptors[name] = ret || descriptor;
+    if ((ret = reducer(descriptor, name2, obj)) !== false) {
+      reducedDescriptors[name2] = ret || descriptor;
     }
   });
   Object.defineProperties(obj, reducedDescriptors);
 };
 var freezeMethods = (obj) => {
-  reduceDescriptors(obj, (descriptor, name) => {
-    if (isFunction(obj) && ["arguments", "caller", "callee"].indexOf(name) !== -1) {
+  reduceDescriptors(obj, (descriptor, name2) => {
+    if (isFunction(obj) && ["arguments", "caller", "callee"].indexOf(name2) !== -1) {
       return false;
     }
-    const value = obj[name];
+    const value = obj[name2];
     if (!isFunction(value)) return;
     descriptor.enumerable = false;
     if ("writable" in descriptor) {
@@ -49913,7 +49912,7 @@ var freezeMethods = (obj) => {
     }
     if (!descriptor.set) {
       descriptor.set = () => {
-        throw Error("Can not rewrite read-only method '" + name + "'");
+        throw Error("Can not rewrite read-only method '" + name2 + "'");
       };
     }
   });
@@ -50242,8 +50241,8 @@ function AxiosURLSearchParams(params, options) {
   params && toFormData_default(params, this, options);
 }
 var prototype2 = AxiosURLSearchParams.prototype;
-prototype2.append = function append(name, value) {
-  this._pairs.push([name, value]);
+prototype2.append = function append(name2, value) {
+  this._pairs.push([name2, value]);
 };
 prototype2.toString = function toString2(encoder) {
   const _encode = encoder ? function(value) {
@@ -50405,8 +50404,8 @@ function toURLEncodedForm(data, options) {
 }
 
 // node_modules/axios/lib/helpers/formDataToJSON.js
-function parsePropPath(name) {
-  return utils_default.matchAll(/\w+|\[(\w*)]/g, name).map((match) => {
+function parsePropPath(name2) {
+  return utils_default.matchAll(/\w+|\[(\w*)]/g, name2).map((match) => {
     return match[0] === "[]" ? "" : match[1] || match[0];
   });
 }
@@ -50424,32 +50423,32 @@ function arrayToObject(arr) {
 }
 function formDataToJSON(formData) {
   function buildPath(path3, value, target, index) {
-    let name = path3[index++];
-    if (name === "__proto__") return true;
-    const isNumericKey = Number.isFinite(+name);
+    let name2 = path3[index++];
+    if (name2 === "__proto__") return true;
+    const isNumericKey = Number.isFinite(+name2);
     const isLast = index >= path3.length;
-    name = !name && utils_default.isArray(target) ? target.length : name;
+    name2 = !name2 && utils_default.isArray(target) ? target.length : name2;
     if (isLast) {
-      if (utils_default.hasOwnProp(target, name)) {
-        target[name] = [target[name], value];
+      if (utils_default.hasOwnProp(target, name2)) {
+        target[name2] = [target[name2], value];
       } else {
-        target[name] = value;
+        target[name2] = value;
       }
       return !isNumericKey;
     }
-    if (!target[name] || !utils_default.isObject(target[name])) {
-      target[name] = [];
+    if (!target[name2] || !utils_default.isObject(target[name2])) {
+      target[name2] = [];
     }
-    const result = buildPath(path3, value, target[name], index);
-    if (result && utils_default.isArray(target[name])) {
-      target[name] = arrayToObject(target[name]);
+    const result = buildPath(path3, value, target[name2], index);
+    if (result && utils_default.isArray(target[name2])) {
+      target[name2] = arrayToObject(target[name2]);
     }
     return !isNumericKey;
   }
   if (utils_default.isFormData(formData) && utils_default.isFunction(formData.entries)) {
     const obj = {};
-    utils_default.forEachEntry(formData, (name, value) => {
-      buildPath(parsePropPath(name), value, obj, 0);
+    utils_default.forEachEntry(formData, (name2, value) => {
+      buildPath(parsePropPath(name2), value, obj, 0);
     });
     return obj;
   }
@@ -51188,10 +51187,10 @@ var CRLF = "\r\n";
 var CRLF_BYTES = textEncoder.encode(CRLF);
 var CRLF_BYTES_COUNT = 2;
 var FormDataPart = class {
-  constructor(name, value) {
+  constructor(name2, value) {
     const { escapeName } = this.constructor;
     const isStringValue = utils_default.isString(value);
-    let headers = `Content-Disposition: form-data; name="${escapeName(name)}"${!isStringValue && value.name ? `; filename="${escapeName(value.name)}"` : ""}${CRLF}`;
+    let headers = `Content-Disposition: form-data; name="${escapeName(name2)}"${!isStringValue && value.name ? `; filename="${escapeName(value.name)}"` : ""}${CRLF}`;
     if (isStringValue) {
       value = textEncoder.encode(String(value).replace(/\r?\n|\r\n?/g, CRLF));
     } else {
@@ -51200,7 +51199,7 @@ var FormDataPart = class {
     this.headers = textEncoder.encode(headers + CRLF);
     this.contentLength = isStringValue ? value.byteLength : value.size;
     this.size = this.headers.byteLength + this.contentLength + CRLF_BYTES_COUNT;
-    this.name = name;
+    this.name = name2;
     this.value = value;
   }
   async *encode() {
@@ -51213,8 +51212,8 @@ var FormDataPart = class {
     }
     yield CRLF_BYTES;
   }
-  static escapeName(name) {
-    return String(name).replace(/[\r\n"]/g, (match) => ({
+  static escapeName(name2) {
+    return String(name2).replace(/[\r\n"]/g, (match) => ({
       "\r": "%0D",
       "\n": "%0A",
       '"': "%22"
@@ -51236,8 +51235,8 @@ var formDataToStream = (form, headersHandler, options) => {
   const boundaryBytes = textEncoder.encode("--" + boundary + CRLF);
   const footerBytes = textEncoder.encode("--" + boundary + "--" + CRLF + CRLF);
   let contentLength = footerBytes.byteLength;
-  const parts = Array.from(form.entries()).map(([name, value]) => {
-    const part = new FormDataPart(name, value);
+  const parts = Array.from(form.entries()).map(([name2, value]) => {
+    const part = new FormDataPart(name2, value);
     contentLength += part.size;
     return part;
   });
@@ -51394,8 +51393,8 @@ var http_default = isHttpAdapterSupported && function httpAdapter(config) {
     let req;
     if (lookup) {
       const _lookup = callbackify_default(lookup, (value) => utils_default.isArray(value) ? value : [value]);
-      lookup = (hostname, opt, cb) => {
-        _lookup(hostname, opt, (err, arg0, arg1) => {
+      lookup = (hostname2, opt, cb) => {
+        _lookup(hostname2, opt, (err, arg0, arg1) => {
           if (err) {
             return cb(err);
           }
@@ -51863,20 +51862,20 @@ var isURLSameOrigin_default = platform_default.hasStandardBrowserEnv ? (
 var cookies_default = platform_default.hasStandardBrowserEnv ? (
   // Standard browser envs support document.cookie
   {
-    write(name, value, expires, path3, domain, secure) {
-      const cookie = [name + "=" + encodeURIComponent(value)];
+    write(name2, value, expires, path3, domain, secure) {
+      const cookie = [name2 + "=" + encodeURIComponent(value)];
       utils_default.isNumber(expires) && cookie.push("expires=" + new Date(expires).toGMTString());
       utils_default.isString(path3) && cookie.push("path=" + path3);
       utils_default.isString(domain) && cookie.push("domain=" + domain);
       secure === true && cookie.push("secure");
       document.cookie = cookie.join("; ");
     },
-    read(name) {
-      const match = document.cookie.match(new RegExp("(^|;\\s*)(" + name + ")=([^;]*)"));
+    read(name2) {
+      const match = document.cookie.match(new RegExp("(^|;\\s*)(" + name2 + ")=([^;]*)"));
       return match ? decodeURIComponent(match[3]) : null;
     },
-    remove(name) {
-      this.write(name, "", Date.now() - 864e5);
+    remove(name2) {
+      this.write(name2, "", Date.now() - 864e5);
     }
   }
 ) : (
@@ -53023,19 +53022,19 @@ var wrappedToString = (withName, fromBody) => `/* Wrapped ${withName}*/
 ${fromBody}`;
 var toStringDescriptor = Object.getOwnPropertyDescriptor(Function.prototype, "toString");
 var toStringName = Object.getOwnPropertyDescriptor(Function.prototype.toString, "name");
-var changeToString = (to, from2, name) => {
-  const withName = name === "" ? "" : `with ${name.trim()}() `;
+var changeToString = (to, from2, name2) => {
+  const withName = name2 === "" ? "" : `with ${name2.trim()}() `;
   const newToString = wrappedToString.bind(null, withName, from2.toString());
   Object.defineProperty(newToString, "name", toStringName);
   Object.defineProperty(to, "toString", { ...toStringDescriptor, value: newToString });
 };
 function mimicFunction(to, from2, { ignoreNonConfigurable = false } = {}) {
-  const { name } = to;
+  const { name: name2 } = to;
   for (const property of Reflect.ownKeys(from2)) {
     copyProperty(to, from2, property, ignoreNonConfigurable);
   }
   changePrototype(to, from2);
-  changeToString(to, from2, name);
+  changeToString(to, from2, name2);
   return to;
 }
 
@@ -53374,7 +53373,7 @@ var getSignals = () => {
   return signals2;
 };
 var normalizeSignal = ({
-  name,
+  name: name2,
   number: defaultNumber,
   description,
   action,
@@ -53382,11 +53381,11 @@ var normalizeSignal = ({
   standard
 }) => {
   const {
-    signals: { [name]: constantSignal }
+    signals: { [name2]: constantSignal }
   } = import_node_os.constants;
   const supported = constantSignal !== void 0;
   const number = supported ? constantSignal : defaultNumber;
-  return { name, number, description, supported, action, forced, standard };
+  return { name: name2, number, description, supported, action, forced, standard };
 };
 
 // node_modules/human-signals/build/src/main.js
@@ -53395,14 +53394,14 @@ var getSignalsByName = () => {
   return Object.fromEntries(signals2.map(getSignalByName));
 };
 var getSignalByName = ({
-  name,
+  name: name2,
   number,
   description,
   supported,
   action,
   forced,
   standard
-}) => [name, { name, number, description, supported, action, forced, standard }];
+}) => [name2, { name: name2, number, description, supported, action, forced, standard }];
 var signalsByName = getSignalsByName();
 var getSignalsByNumber = () => {
   const signals2 = getSignals();
@@ -53418,10 +53417,10 @@ var getSignalByNumber = (number, signals2) => {
   if (signal === void 0) {
     return {};
   }
-  const { name, description, supported, action, forced, standard } = signal;
+  const { name: name2, description, supported, action, forced, standard } = signal;
   return {
     [number]: {
-      name,
+      name: name2,
       number,
       description,
       supported,
@@ -53432,7 +53431,7 @@ var getSignalByNumber = (number, signals2) => {
   };
 };
 var findSignalByNumber = (number, signals2) => {
-  const signal = signals2.find(({ name }) => import_node_os2.constants.signals[name] === number);
+  const signal = signals2.find(({ name: name2 }) => import_node_os2.constants.signals[name2] === number);
   if (signal !== void 0) {
     return signal;
   }
@@ -54554,7 +54553,10 @@ var next$ = (abortEvent, runtimeApi, env) => {
         axios_default.post(url2, response.payload).then((r) => {
           log("Response sent to Lambda Runtime API", { url: url2, statusCode: r.status });
         }).catch((e) => {
-          error("Error sending event response", { cause: e });
+          error(`Error sending event response: ${e.message}`, {
+            url: url2,
+            statusCode: e.response?.status
+          });
         });
       });
       return {
@@ -54568,37 +54570,10 @@ var next$ = (abortEvent, runtimeApi, env) => {
   );
 };
 var endpoint$ = (handler, deadline) => {
-  return new import_rxjs2.Observable((subscriber) => {
-    const now = Date.now();
-    const endpoint = new URL(`http://${handler}`);
-    const hostname = endpoint.hostname;
-    const port = parseInt(endpoint.port, 10) || (endpoint.protocol === "https:" ? 443 : 80);
-    const socket = new import_net.Socket();
-    const onError = () => {
-      socket.destroy();
-      subscriber.error(new Error(`Error connecting to ${hostname}:${port}`));
-    };
-    socket.setTimeout(deadline - now);
-    socket.once("error", onError);
-    socket.once("timeout", onError);
-    socket.connect(port, hostname, () => {
-      info(`Connected to ${hostname}:${port}`);
-      socket.end();
-      subscriber.next(endpoint);
-      subscriber.complete();
-    });
-  }).pipe(
-    (0, import_rxjs2.retry)({
-      delay: (e) => {
-        const now = Date.now();
-        if (now > deadline) {
-          return (0, import_rxjs2.throwError)(() => new Error(`Deadline exceeded`, { cause: e }));
-        } else {
-          return (0, import_rxjs2.timer)(1);
-        }
-      }
-    })
-  );
+  if (Date.now() > deadline) {
+    return (0, import_rxjs2.throwError)(() => new Error(`Deadline exceeded`));
+  }
+  return (0, import_rxjs2.of)(new URL(`http://${handler}`));
 };
 var shell$ = (abortEvent, runtimeEvent, rawEvent, env) => {
   const commands = Commands.decode(rawEvent);
@@ -54630,27 +54605,35 @@ var shell$ = (abortEvent, runtimeEvent, rawEvent, env) => {
   );
 };
 var proxy$ = (abortEvent, runtimeEvent, url2, method, headers, data, deadline) => {
-  return (0, import_rxjs2.from)(
-    Promise.resolve().then(() => {
-      info("Proxy request", { method, url: url2 });
-      log("Proxying request", { headers, data, deadline });
-    }).then(() => {
-      return axios_default.request({
-        method,
-        url: url2,
-        headers,
-        data,
-        timeout: deadline ? deadline - Date.now() : void 0,
-        transformRequest: (req) => req,
-        transformResponse: (res) => res,
-        validateStatus: () => true,
-        responseType: "arraybuffer",
-        signal: abortEvent.signal
-      });
-    })
-  ).pipe(
-    (0, import_rxjs2.catchError)((e) => {
-      return (0, import_rxjs2.throwError)(() => new Error("Unable proxy request", { cause: e }));
+  info("Proxy request", { method, url: url2 });
+  log("Proxying request", { headers, data, deadline });
+  return (0, import_rxjs2.defer)(() => {
+    return axios_default.request({
+      method,
+      url: url2,
+      headers,
+      data,
+      timeout: deadline ? deadline - Date.now() : void 0,
+      transformRequest: (req) => req,
+      transformResponse: (res) => res,
+      validateStatus: () => true,
+      responseType: "arraybuffer",
+      signal: abortEvent.signal
+    });
+  }).pipe(
+    (0, import_rxjs2.retry)({
+      delay: (e) => {
+        if (!isAxiosError2(e)) {
+          return (0, import_rxjs2.throwError)(() => new Error(`Unknown error`, { cause: e }));
+        }
+        if (!deadline || Date.now() > deadline) {
+          return (0, import_rxjs2.throwError)(() => new Error(`Deadline exceeded: ${e.code}`, { cause: e }));
+        } else if (e.code === "ECONNREFUSED") {
+          return (0, import_rxjs2.timer)(100);
+        }
+        error(`Unexpected axios error: ${e}`);
+        return (0, import_rxjs2.throwError)(() => new Error(`Error proxying request: ${e.code}`, { cause: e }));
+      }
     }),
     (0, import_rxjs2.map)((resp) => {
       info("Proxy response", { method, url: url2, status: resp.status });

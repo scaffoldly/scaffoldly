@@ -15,7 +15,7 @@ export type DockerDeployStatus = {
 };
 
 export class DockerService {
-  constructor(private gitService: GitService, private dockerCiService: DockerCiService) {}
+  constructor(private gitService: GitService, public dockerCiService: DockerCiService) {}
 
   get platform(): Platform {
     return this.dockerCiService.platform;

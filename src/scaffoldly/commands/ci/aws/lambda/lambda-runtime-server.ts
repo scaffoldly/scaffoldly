@@ -79,7 +79,9 @@ export class LambdaRuntimeServer extends HttpServer {
   }
 
   async registerHandlers(): Promise<void> {
-    this.app.use(json({ limit: '6MB' }));
+    // TODO: Put back at 6MB
+    // TODO: Compression? Streaming?
+    this.app.use(json({ limit: '60MB' }));
 
     this.app.get('/2018-06-01/runtime/invocation/next', (req, res) => {
       req.setTimeout(0);

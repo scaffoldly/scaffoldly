@@ -125,8 +125,15 @@ export class DockerService {
 
   private _platform?: Platform;
 
+  private _withBuildFiles?: string[];
+
   constructor(private cwd: string) {
     this.docker = new Docker({ version: 'v1.45' });
+  }
+
+  withBuildFiles(buildFiles: string[]): DockerService {
+    this._withBuildFiles = buildFiles;
+    return this;
   }
 
   get platform(): Platform {
@@ -449,6 +456,19 @@ export class DockerService {
         return cp;
       });
 
+      if (name !== 'base') {
+        const withBuildFiles = this._withBuildFiles || [];
+        withBuildFiles.forEach((file) => {
+          copy.push({
+            from: fromStage?.as,
+            src: `${file}*`,
+            dest: file,
+            resolve: false,
+            noGlob: true,
+          });
+        });
+      }
+
       spec.copy = copy;
       spec.paths = paths;
 
@@ -463,7 +483,8 @@ export class DockerService {
         .reverse() // Earlier stages get higher precedence
         .map((key) => {
           const fromStage = fromStages[key];
-          return (fromStage?.copy || []).map((c) => {
+          const copies = fromStage?.copy || [];
+          return copies.map((c) => {
             const cp: Copy = { ...c, from: key, noGlob: true };
             return cp;
           });

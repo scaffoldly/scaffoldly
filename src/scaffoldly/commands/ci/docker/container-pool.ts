@@ -156,6 +156,7 @@ export class ContainerPool extends DevServer {
 
       const container = await this.docker.createContainer({
         name: ref.name,
+        Hostname: ref.name,
         Image: this.imageName,
         AttachStderr: false, // TODO: Capture output
         AttachStdout: false, // TODO: Capture output
@@ -165,7 +166,7 @@ export class ContainerPool extends DevServer {
         Cmd: [], // TODO
         Entrypoint: ['.entrypoint'],
         HostConfig: {
-          NetworkMode: 'host',
+          NetworkMode: 'bridge',
           AutoRemove: true,
           Mounts: mounts,
           // Memory: 1024 * 1024 * 1024, // TODO
@@ -223,7 +224,6 @@ export class ContainerPool extends DevServer {
       }
       return !exclude;
     });
-    console.log('!!! mounting', files);
     // TODO: consider .gitignore?
     // TODO: push buildfiles into runtime container
     return Promise.resolve(

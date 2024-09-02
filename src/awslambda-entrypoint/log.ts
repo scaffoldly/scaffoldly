@@ -1,7 +1,9 @@
+import { hostname } from 'os';
 export const isDebug = !!process.env.SLY_DEBUG;
+const name = hostname();
 
 export const error = (message: unknown, obj?: Record<string, unknown>): void => {
-  const msg = `[awslambda-bootstrap] ${message}`;
+  const msg = `[scaffoldly@${name}] ${message}`;
   if (!obj) {
     console.error(msg);
     return;
@@ -10,7 +12,7 @@ export const error = (message: unknown, obj?: Record<string, unknown>): void => 
 };
 
 export const info = (message: unknown, obj?: Record<string, unknown>): void => {
-  const msg = `[awslambda-bootstrap] ${message}`;
+  const msg = `[scaffoldly@${name}] ${message}`;
   if (!obj) {
     console.log(msg);
     return;
