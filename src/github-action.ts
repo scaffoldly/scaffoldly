@@ -1,3 +1,4 @@
+import { onExit } from 'signal-exit';
 import { decode, encode } from './config';
 import { Action, Mode } from './github-action/action';
 import { Status } from './github-action/status';
@@ -10,6 +11,22 @@ import {
   error,
   info,
 } from '@actions/core';
+
+onExit((code, signal) => {
+  if (code === 0) {
+    error(`Recived exit code: ${code}, signal: ${signal}`);
+  }
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.warn('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(-1);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  process.exit(-1);
+});
 
 export const run = async (mode: Mode): Promise<void> => {
   const action = await new Action(mode).init();
@@ -30,7 +47,7 @@ export const run = async (mode: Mode): Promise<void> => {
         throw new Error(`Invalid mode: ${mode}`);
     }
 
-    // debug(`New status: ${JSON.stringify(status)}`);
+    debug(`New status: ${JSON.stringify(status)}`);
 
     if (mode === 'post' && status.longMessage) {
       summary.addRaw(status.longMessage, true);
