@@ -20,7 +20,7 @@ Please follow these instructions to ensure the application can deploy to AWS:
          "Action": "sts:AssumeRoleWithWebIdentity",
          "Condition": {
            "StringLike": {
-             "token.actions.githubusercontent.com:sub": "repo:{%= state.owner %}/{%= state.repo %}:*"
+             "token.actions.githubusercontent.com:sub": "repo:{%= status.owner %}/{%= status.repo %}:*"
            }
          }
        }
@@ -60,10 +60,10 @@ Please follow these instructions to ensure the application can deploy to AWS:
 
 4. Add the AWS IAM Role ARN to your GitHub Repository Variables:
 
-   - Visit: https://github.com/{%= state.owner %}/{%= state.repo %}/settings/variables/actions
+   - Visit: https://github.com/{%= status.owner %}/{%= status.repo %}/settings/variables/actions
    - **Variable Name**: `DEPLOYMENT_ROLE`
    - **Variable Value**: `arn:aws:iam::YOUR_ACCOUNT_ID:role/YOUR_ROLE_NAME`
 
    Be sure to replace `YOUR_ACCOUNT_ID` with your AWS Account ID and `YOUR_ROLE_NAME` with the AWS IAM Role Name.
 
-5. Re-run [this action]({%= state.deployLogsUrl %}). Enable debug logging if you need more detail.
+5. Re-run [this action]({%= status.deployLogsUrl %}). Enable debug logging if you need more detail.

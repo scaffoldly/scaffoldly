@@ -1,10 +1,10 @@
-### 🚨 Unable to update `{%= state.branch %}`!
+### 🚨 Unable to update `{%= status.branch %}`!
 
-🤔 Review the [Deploy Logs]({%= state.deployLogsUrl %}) and re-run once the issue is resolved. Enable Debug Logging when re-running the action for more detail.
+🤔 Review the [Deploy Logs]({%= status.deployLogsUrl %}) and re-run once the issue is resolved. Enable Debug Logging when re-running the action for more detail.
 
-- **CI/CD Logs:** [{%= state.deployLogsUrl %}]({%= state.deployLogsUrl %})
-- **Commit:** `{%= state.commitSha %}`
-- **Stage:** `{%= state.secretName %}`
+- **CI/CD Logs:** [{%= status.deployLogsUrl %}]({%= status.deployLogsUrl %})
+- **Commit:** `{%= status.commitSha %}`
+- **Stage:** `{%= status.secretName %}`
 
 {% if (moreInfo) { %}
 

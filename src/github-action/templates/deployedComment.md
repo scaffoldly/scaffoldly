@@ -1,6 +1,6 @@
-### ✅ Deployed `{%= state.secretName %}`!
+### ✅ Deployed `{%= status.secretName %}`!
 
-- **CI/CD Logs:** [{%= state.deployLogsUrl %}]({%= state.deployLogsUrl %})
-- **Commit:** `{%= state.commitSha %}`
-- **Stage:** `{%= state.secretName %}`
-- **URL:** [{%= state.url %}]({%= state.url %})
+- **CI/CD Logs:** [{%= status.deployLogsUrl %}]({%= status.deployLogsUrl %})
+- **Commit:** `{%= status.commitSha %}`
+- **Stage:** `{%= status.secretName %}`
+- **URL:** [{%= status.url %}]({%= status.url %})
