@@ -1,6 +1,15 @@
-import { json } from 'express';
+import { json, Request, Response } from 'express';
 import { HttpServer, HttpServerOptions } from '../../http/http-server';
-import { AsyncSubject, BehaviorSubject, Observable, switchMap, of, filter, take } from 'rxjs';
+import {
+  AsyncSubject,
+  BehaviorSubject,
+  Observable,
+  filter,
+  take,
+  Subject,
+  map,
+  mergeMap,
+} from 'rxjs';
 import { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda';
 import { ContainerPool } from '../../docker/container-pool';
 import { GitService } from '../../../cd/git';
@@ -15,53 +24,16 @@ interface Invocation {
   response$: ResonseSubject;
 }
 
-class Invocations {
-  private invocations: Invocation[] = [];
-
-  private invocationMap: Map<string, Invocation> = new Map();
-
-  private count$ = new BehaviorSubject<number>(0);
-
-  private size$ = new BehaviorSubject<number>(0);
-
-  get size(): Observable<number> {
-    return this.size$.asObservable();
-  }
-
-  get(requestId: string): Invocation | undefined {
-    return this.invocationMap.get(requestId);
-  }
-
-  enqueue(invocation: Invocation): void {
-    this.invocations.push(invocation);
-    this.invocationMap.set(invocation.requestId, invocation);
-    this.size$.next(this.invocations.length);
-    this.count$.next(this.count$.value + 1);
-    invocation.response$.subscribe({
-      complete: () => {
-        this.invocationMap.delete(invocation.requestId);
-      },
-    });
-  }
-
-  dequeue(): Observable<Invocation> {
-    return this.count$
-      .pipe(
-        switchMap(() => {
-          const invocation = this.invocations.shift();
-          this.size$.next(this.invocations.length);
-          return of(invocation);
-        }),
-      )
-      .pipe(
-        filter((i) => !!i),
-        take(1),
-      );
-  }
+interface NextRequest {
+  req: Request;
+  res: Response;
+  hasError: () => boolean;
 }
 
 export class LambdaRuntimeServer extends HttpServer {
-  private invocations: Invocations = new Invocations();
+  private invocations$ = new BehaviorSubject<Invocation[]>([]);
+
+  private request$ = new Subject<NextRequest>();
 
   constructor(
     private gitService: GitService,
@@ -73,59 +45,90 @@ export class LambdaRuntimeServer extends HttpServer {
   ) {
     super('Lambda Runtime', RUNTIME_SERVER_PORT, containerPool.abortController);
 
-    this.invocations.size.subscribe((size) => {
-      this.containerPool.setConcurrency(size, this.options.maxConcurrency);
+    this.invocations$.subscribe((invocations) => {
+      this.log(`Concurrent Invocations: ${invocations.length}`);
+      this.containerPool.setConcurrency(invocations.length, options.maxConcurrency);
+    });
+
+    this.observeInvocations().subscribe({
+      next: ({ nextRequest, nextInvocation }) => {
+        this.handleInvocation(nextRequest, nextInvocation);
+      },
+      error: (e) => {
+        this.error('Error handling invocation.', { cause: e });
+      },
     });
   }
 
+  observeInvocations(): Observable<{
+    nextRequest: NextRequest;
+    nextInvocation: Invocation;
+  }> {
+    return this.request$.pipe(
+      mergeMap((nextRequest) =>
+        this.invocations$.pipe(
+          filter((queue) => queue.length > 0),
+          take(1),
+          map((queue) => {
+            const [nextInvocation, ...restQueue] = queue;
+            if (nextRequest.hasError()) {
+              this.warn('Request has an error. Requeueing invocation.');
+              this.invocations$.next([nextInvocation, ...restQueue]);
+            } else {
+              this.invocations$.next(restQueue);
+            }
+            return { nextRequest, nextInvocation };
+          }),
+        ),
+      ),
+    );
+  }
+
+  handleInvocation(nextRequest: NextRequest, nextInvocation: Invocation): void {
+    this.log(`START RequestId: ${nextInvocation.requestId} Version: $LATEST`);
+    const start = new Date().getTime();
+
+    const deadline = new Date().getTime() + this.gitService.config.timeout * 1000;
+    nextRequest.res.header('lambda-runtime-aws-request-id', nextInvocation.requestId);
+    nextRequest.res.header('lambda-runtime-deadline-ms', `${deadline}`);
+
+    // Add the return route
+    this.app.post(
+      `/2018-06-01/runtime/invocation/${nextInvocation.requestId}/response`, // TODO: remove on completion?
+      (responseReq, responseRes) => {
+        this.log(`END RequestId: ${nextInvocation.requestId}`);
+        const end = new Date().getTime();
+        const duration = end - start;
+
+        nextInvocation.response$.next(responseReq.body);
+        nextInvocation.response$.complete();
+        responseRes.status(202).send('');
+        // TODO Init duration
+        this.log(
+          `REPORT RequestId: ${nextInvocation.requestId} Duration: ${duration}.00 ms Billed Duration: ${duration} ms Memory Size: 0 MB Max Memory Used: 0 MB`,
+        );
+      },
+    );
+
+    nextRequest.res.status(200).json(nextInvocation.event).end();
+  }
+
   async registerHandlers(): Promise<void> {
-    // TODO: Put back at 6MB
     // TODO: Compression Supported? Streaming?
     this.app.use(json({ limit: '6MB' }));
+    this.app.get('/2018-06-01/runtime/invocation/next', (req, res) => {
+      req.setTimeout(0);
 
-    this.app.get('/2018-06-01/runtime/invocation/next', (incomingReq, incomingRes) => {
-      incomingReq.setTimeout(0);
-      // TODO: Socket timeouts need will drop an event
-      this.invocations.dequeue().subscribe((invocation) => {
-        this.log(`START RequestId: ${invocation.requestId} Version: $LATEST`);
-        const deadline = new Date().getTime() + this.gitService.config.timeout * 1000;
-        incomingRes.header('lambda-runtime-aws-request-id', invocation.requestId);
-        incomingRes.header('lambda-runtime-deadline-ms', `${deadline}`);
+      let errored = false;
+      const hasError = () => errored;
 
-        // Add the return route
-        this.app.post(
-          `/2018-06-01/runtime/invocation/${invocation.requestId}/response`,
-          (responseReq, responseRes) => {
-            this.log(`END RequestId: ${invocation.requestId}`);
-            invocation.response$.next(responseReq.body);
-            invocation.response$.complete();
-            responseRes.status(202).send('');
-            this.log(
-              `REPORT RequestId: ${invocation.requestId} Duration: 0.00 ms Billed Duration: 0 ms Memory Size: 0 MB Max Memory Used: 0 MB`,
-            );
-          },
-        );
-
-        // Delayed removal of the return route
-        invocation.response$.subscribe({
-          complete: () => {
-            this.app._router.stack = this.app._router.stack.filter(
-              (layer: { route?: { path: string; methods?: { [key: string]: unknown } } }) => {
-                return !(
-                  layer.route &&
-                  layer.route.path ===
-                    `/2018-06-01/runtime/invocation/${invocation.requestId}/response` &&
-                  layer.route.methods?.post
-                );
-              },
-            );
-          },
-        });
-
-        incomingRes.status(200).json(invocation.event).end();
+      req.on('error', (e) => {
+        this.warn('Invocation poll error', { cause: e });
+        errored = true;
       });
-    });
 
+      this.request$.next({ req, res, hasError });
+    });
     this.app.get('/', (_req, res) => {
       res.status(204).send('');
     });
@@ -141,7 +144,7 @@ export class LambdaRuntimeServer extends HttpServer {
       response$,
     };
 
-    this.invocations.enqueue(invocation);
+    this.invocations$.next([...this.invocations$.value, invocation]);
 
     return invocation.response$;
   }
