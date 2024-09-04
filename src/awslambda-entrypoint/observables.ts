@@ -9,6 +9,7 @@ import {
   Observable,
   of,
   retry,
+  Subject,
   switchMap,
   throwError,
   timer,
@@ -21,10 +22,12 @@ import {
   findHandler,
   transformAxiosResponseHeaders,
 } from './util';
-import { AbortEvent, AsyncResponse, RuntimeEvent } from './types';
+import { AbortEvent, AsyncPrelude, AsyncResponse, RuntimeEvent } from './types';
 import axios, { isAxiosError } from 'axios';
 import { execa } from 'execa';
 import { mapAsyncResponse, mapRuntimeEvent } from './mappers';
+import { isReadableStream } from 'is-stream';
+import { Readable } from 'stream';
 
 const next$ = (
   abortEvent: AbortEvent,
@@ -45,7 +48,15 @@ const next$ = (
           return throwError(() => new Error(`Unknown error`, { cause: e }));
         }
 
-        abortEvent.abort(new Error(`Error fetching next event: ${e.code}`, { cause: e }));
+        abortEvent.abort(
+          new Error(
+            `Error fetching next event: ${e.response?.data || e.response?.statusText || e.code}`,
+            {
+              cause: e,
+            },
+          ),
+        );
+
         return timer(1000); // Will be aborted on next cycle
       },
     }),
@@ -54,9 +65,11 @@ const next$ = (
 
       const requestId = next.headers['lambda-runtime-aws-request-id'];
       const response$ = new AsyncSubject<AsyncResponse>();
+      const completed$ = new Subject<AsyncResponse>();
 
       response$.pipe(mapAsyncResponse(abortEvent, runtimeApi)).subscribe((response) => {
-        log('Response sent to Runtime API', { requestId, response });
+        log('Response sent to Runtime API', { requestId });
+        completed$.next(response);
       });
 
       return {
@@ -65,6 +78,7 @@ const next$ = (
         deadline: Number.parseInt(next.headers['lambda-runtime-deadline-ms']),
         env,
         response$,
+        completed$,
       };
     }),
   );
@@ -103,12 +117,14 @@ const shell$ = (
       return {
         requestId: runtimeEvent.requestId,
         response$: runtimeEvent.response$,
-        payload: {
+        completed$: runtimeEvent.completed$,
+        prelude: {
           statusCode: 200,
-          headers: {},
-          body: JSON.stringify(output.all),
-          isBase64Encoded: false,
+          headers: {
+            'Content-Type': 'text/plain',
+          },
         },
+        payload: Readable.from(output.all || ''),
       };
     }),
   );
@@ -138,7 +154,7 @@ const proxy$ = (
       transformRequest: (req) => req,
       transformResponse: (res) => res,
       validateStatus: () => true,
-      responseType: 'arraybuffer',
+      responseType: 'stream',
       signal: abortEvent.signal,
     });
   }).pipe(
@@ -164,22 +180,24 @@ const proxy$ = (
 
       const { data: responseData, headers: responseHeaders } = resp;
 
-      if (!Buffer.isBuffer(responseData)) {
-        throw new Error(`Response from ${url} is not a buffer`);
+      if (!isReadableStream(responseData)) {
+        throw new Error(`Response from ${method} ${url} was not a stream`);
       }
 
       // TODO: cookie headers
+      const prelude: AsyncPrelude = {
+        statusCode: resp.status,
+        headers: transformAxiosResponseHeaders(responseHeaders),
+      };
+
       return {
         requestId: runtimeEvent.requestId,
         response$: runtimeEvent.response$,
+        completed$: runtimeEvent.completed$,
         method,
         url,
-        payload: {
-          statusCode: resp.status,
-          headers: transformAxiosResponseHeaders(responseHeaders),
-          body: Buffer.from(responseData).toString('base64'),
-          isBase64Encoded: true,
-        },
+        prelude,
+        payload: responseData,
       };
     }),
   );
@@ -271,8 +289,12 @@ export const poll = (
     return next$(abortEvent, runtimeApi, env)
       .pipe(mapRuntimeEvent(abortEvent, routes))
       .pipe(
-        switchMap((runtimeEvent) => {
-          return of(runtimeEvent.response$.complete());
+        switchMap((asyncResponse) => {
+          asyncResponse.response$.complete();
+          return asyncResponse.completed$;
+        }),
+        switchMap(() => {
+          return of(undefined);
         }),
       );
   };

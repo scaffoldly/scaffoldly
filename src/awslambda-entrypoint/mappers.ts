@@ -1,4 +1,4 @@
-import { AbortEvent, AsyncResponse, RuntimeEvent, RuntimeResponse } from './types';
+import { AbortEvent, AsyncResponse, RuntimeEvent } from './types';
 import {
   catchError,
   from,
@@ -11,6 +11,8 @@ import {
 import { Routes } from '../config';
 import { asyncResponse$ } from './observables';
 import axios, { isAxiosError } from 'axios';
+import { Readable } from 'stream';
+import { responseStream, responseStreamOptions } from './util';
 
 export const mapRuntimeEvent = (
   abortEvent: AbortEvent,
@@ -45,19 +47,27 @@ export const mapRuntimeEvent = (
 export const mapAsyncResponse = (
   abortEvent: AbortEvent,
   runtimeApi: string,
-): OperatorFunction<AsyncResponse, RuntimeResponse> => {
-  return (source: Observable<AsyncResponse>): Observable<RuntimeResponse> => {
-    return new Observable<RuntimeResponse>((subscriber) => {
+): OperatorFunction<AsyncResponse, AsyncResponse> => {
+  return (source: Observable<AsyncResponse>): Observable<AsyncResponse> => {
+    return new Observable<AsyncResponse>((subscriber) => {
       // Subscribe to the source observable
       const subscription = source
         .pipe(
           switchMap((asyncResponse) => {
             return from(
-              axios.post(
-                `http://${runtimeApi}/2018-06-01/runtime/invocation/${asyncResponse.requestId}/response`,
-                asyncResponse.payload,
-                { signal: abortEvent.signal },
-              ),
+              axios
+                .post(
+                  `http://${runtimeApi}/2018-06-01/runtime/invocation/${asyncResponse.requestId}/response`,
+                  responseStream(asyncResponse.prelude, asyncResponse.payload),
+                  responseStreamOptions(abortEvent, asyncResponse.requestId),
+                )
+                .then((response) => {
+                  return {
+                    ...asyncResponse,
+                    statusCode: response.status,
+                    headers: response.headers,
+                  } as AsyncResponse;
+                }),
             ).pipe(
               catchError((e) => {
                 if (!isAxiosError(e)) {
@@ -70,30 +80,30 @@ export const mapAsyncResponse = (
                 }
 
                 return from(
-                  axios.post(
-                    `http://${runtimeApi}/2018-06-01/runtime/invocation/${asyncResponse.requestId}/response`,
-                    {
-                      statusCode: 500,
-                      body: `${message}\n`,
-                      headers: {
-                        'Content-Type': 'text/plain',
-                      },
-                      isBase64Encoded: false,
-                    },
-                    { signal: abortEvent.signal },
-                  ),
+                  axios
+                    .post(
+                      `http://${runtimeApi}/2018-06-01/runtime/invocation/${asyncResponse.requestId}/response`,
+                      responseStream(
+                        { statusCode: 500, headers: { 'Content-Type': 'text/plain' } },
+                        Readable.from(`${message}\n`),
+                      ),
+                      responseStreamOptions(abortEvent, asyncResponse.requestId),
+                    )
+                    .then((response) => {
+                      return {
+                        ...asyncResponse,
+                        statusCode: response.status,
+                        headers: response.headers,
+                      } as AsyncResponse;
+                    }),
                 );
               }),
             );
           }),
         )
         .subscribe({
-          next(axiosResponse) {
-            subscriber.next({
-              url: axiosResponse.config.url,
-              headers: axiosResponse.headers,
-              statusCode: axiosResponse.status,
-            });
+          next(response) {
+            subscriber.next(response);
           },
           error(err) {
             abortEvent.abort(err);

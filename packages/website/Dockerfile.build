@@ -12,16 +12,16 @@ FROM install-base AS build-base
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
-ENV URL="http://localhost:3000"
-ENV PUBLIC_URL="http://localhost:3000"
+ENV URL="https://s7wcwsanfngscgkeaipiqh3lka0gnucv.lambda-url.us-east-1.on.aws"
+ENV PUBLIC_URL="https://s7wcwsanfngscgkeaipiqh3lka0gnucv.lambda-url.us-east-1.on.aws"
 COPY . /var/task/
 
 FROM install-docusaurus AS build-docusaurus
 WORKDIR /var/task
 ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
-ENV URL="http://localhost:3000"
-ENV PUBLIC_URL="http://localhost:3000"
+ENV URL="https://s7wcwsanfngscgkeaipiqh3lka0gnucv.lambda-url.us-east-1.on.aws"
+ENV PUBLIC_URL="https://s7wcwsanfngscgkeaipiqh3lka0gnucv.lambda-url.us-east-1.on.aws"
 COPY . /var/task/
 RUN docusaurus build
 
@@ -36,10 +36,6 @@ ENV PATH="/var/task:$PATH"
 ENV PATH="/var/task/node_modules/.bin:$PATH"
 COPY --from=build-docusaurus /var/task/package.json /var/task/package.json
 COPY --from=build-docusaurus /var/task/build* /var/task/build
-COPY --from=build-docusaurus /var/task/node_modules* /var/task/node_modules
-COPY --from=build-docusaurus /var/task/.docusaurus* /var/task/.docusaurus
-COPY --from=build-docusaurus /var/task/cache-loader* /var/task/cache-loader
-COPY --from=build-docusaurus /var/task/package-lock.json* /var/task/package-lock.json
 
 FROM install-base AS runtime
 WORKDIR /var/task
@@ -48,9 +44,4 @@ ENV PATH="/var/task/node_modules/.bin:$PATH"
 COPY .entrypoint* /var/task/.entrypoint
 COPY --from=package-docusaurus /var/task/package.json /var/task/package.json
 COPY --from=package-docusaurus /var/task/build /var/task/build
-COPY --from=package-docusaurus /var/task/node_modules* /var/task/node_modules
-COPY --from=package-docusaurus /var/task/build* /var/task/build
-COPY --from=package-docusaurus /var/task/.docusaurus* /var/task/.docusaurus
-COPY --from=package-docusaurus /var/task/cache-loader* /var/task/cache-loader
-COPY --from=package-docusaurus /var/task/package-lock.json* /var/task/package-lock.json
-CMD [ "( docusaurus start )" ]
+CMD [ "( serve build )" ]

@@ -244,7 +244,7 @@ export class LambdaService implements IamConsumer {
             new CreateFunctionUrlConfigCommand({
               FunctionName: status.functionArn,
               AuthType: 'NONE',
-              InvokeMode: 'BUFFERED',
+              InvokeMode: 'RESPONSE_STREAM',
               Qualifier: status.functionQualifier,
             }),
           ),
@@ -253,7 +253,7 @@ export class LambdaService implements IamConsumer {
             new UpdateFunctionUrlConfigCommand({
               FunctionName: status.functionArn,
               AuthType: 'NONE',
-              InvokeMode: 'BUFFERED',
+              InvokeMode: 'RESPONSE_STREAM',
               Qualifier: status.functionQualifier,
             }),
           ),

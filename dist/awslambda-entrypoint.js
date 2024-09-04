@@ -1225,9 +1225,9 @@ var require_Subject = __commonJS({
     var ObjectUnsubscribedError_1 = require_ObjectUnsubscribedError();
     var arrRemove_1 = require_arrRemove();
     var errorContext_1 = require_errorContext();
-    var Subject = function(_super) {
-      __extends2(Subject2, _super);
-      function Subject2() {
+    var Subject2 = function(_super) {
+      __extends2(Subject3, _super);
+      function Subject3() {
         var _this = _super.call(this) || this;
         _this.closed = false;
         _this.currentObservers = null;
@@ -1237,17 +1237,17 @@ var require_Subject = __commonJS({
         _this.thrownError = null;
         return _this;
       }
-      Subject2.prototype.lift = function(operator) {
+      Subject3.prototype.lift = function(operator) {
         var subject = new AnonymousSubject(this, this);
         subject.operator = operator;
         return subject;
       };
-      Subject2.prototype._throwIfClosed = function() {
+      Subject3.prototype._throwIfClosed = function() {
         if (this.closed) {
           throw new ObjectUnsubscribedError_1.ObjectUnsubscribedError();
         }
       };
-      Subject2.prototype.next = function(value) {
+      Subject3.prototype.next = function(value) {
         var _this = this;
         errorContext_1.errorContext(function() {
           var e_1, _a;
@@ -1273,7 +1273,7 @@ var require_Subject = __commonJS({
           }
         });
       };
-      Subject2.prototype.error = function(err) {
+      Subject3.prototype.error = function(err) {
         var _this = this;
         errorContext_1.errorContext(function() {
           _this._throwIfClosed();
@@ -1287,7 +1287,7 @@ var require_Subject = __commonJS({
           }
         });
       };
-      Subject2.prototype.complete = function() {
+      Subject3.prototype.complete = function() {
         var _this = this;
         errorContext_1.errorContext(function() {
           _this._throwIfClosed();
@@ -1300,11 +1300,11 @@ var require_Subject = __commonJS({
           }
         });
       };
-      Subject2.prototype.unsubscribe = function() {
+      Subject3.prototype.unsubscribe = function() {
         this.isStopped = this.closed = true;
         this.observers = this.currentObservers = null;
       };
-      Object.defineProperty(Subject2.prototype, "observed", {
+      Object.defineProperty(Subject3.prototype, "observed", {
         get: function() {
           var _a;
           return ((_a = this.observers) === null || _a === void 0 ? void 0 : _a.length) > 0;
@@ -1312,16 +1312,16 @@ var require_Subject = __commonJS({
         enumerable: false,
         configurable: true
       });
-      Subject2.prototype._trySubscribe = function(subscriber) {
+      Subject3.prototype._trySubscribe = function(subscriber) {
         this._throwIfClosed();
         return _super.prototype._trySubscribe.call(this, subscriber);
       };
-      Subject2.prototype._subscribe = function(subscriber) {
+      Subject3.prototype._subscribe = function(subscriber) {
         this._throwIfClosed();
         this._checkFinalizedStatuses(subscriber);
         return this._innerSubscribe(subscriber);
       };
-      Subject2.prototype._innerSubscribe = function(subscriber) {
+      Subject3.prototype._innerSubscribe = function(subscriber) {
         var _this = this;
         var _a = this, hasError = _a.hasError, isStopped = _a.isStopped, observers = _a.observers;
         if (hasError || isStopped) {
@@ -1334,7 +1334,7 @@ var require_Subject = __commonJS({
           arrRemove_1.arrRemove(observers, subscriber);
         });
       };
-      Subject2.prototype._checkFinalizedStatuses = function(subscriber) {
+      Subject3.prototype._checkFinalizedStatuses = function(subscriber) {
         var _a = this, hasError = _a.hasError, thrownError = _a.thrownError, isStopped = _a.isStopped;
         if (hasError) {
           subscriber.error(thrownError);
@@ -1342,17 +1342,17 @@ var require_Subject = __commonJS({
           subscriber.complete();
         }
       };
-      Subject2.prototype.asObservable = function() {
+      Subject3.prototype.asObservable = function() {
         var observable = new Observable_1.Observable();
         observable.source = this;
         return observable;
       };
-      Subject2.create = function(destination, source) {
+      Subject3.create = function(destination, source) {
         return new AnonymousSubject(destination, source);
       };
-      return Subject2;
+      return Subject3;
     }(Observable_1.Observable);
-    exports2.Subject = Subject;
+    exports2.Subject = Subject2;
     var AnonymousSubject = function(_super) {
       __extends2(AnonymousSubject2, _super);
       function AnonymousSubject2(destination, source) {
@@ -1378,7 +1378,7 @@ var require_Subject = __commonJS({
         return (_b = (_a = this.source) === null || _a === void 0 ? void 0 : _a.subscribe(subscriber)) !== null && _b !== void 0 ? _b : Subscription_1.EMPTY_SUBSCRIPTION;
       };
       return AnonymousSubject2;
-    }(Subject);
+    }(Subject2);
     exports2.AnonymousSubject = AnonymousSubject;
   }
 });
@@ -21057,10 +21057,10 @@ var require_cross_spawn = __commonJS({
 var require_merge_stream = __commonJS({
   "node_modules/merge-stream/index.js"(exports2, module2) {
     "use strict";
-    var { PassThrough } = require("stream");
+    var { PassThrough: PassThrough2 } = require("stream");
     module2.exports = function() {
       var sources = [];
-      var output = new PassThrough({ objectMode: true });
+      var output = new PassThrough2({ objectMode: true });
       output.setMaxListeners(0);
       output.add = add;
       output.isEmpty = isEmpty;
@@ -25405,7 +25405,7 @@ var require_dist_cjs28 = __commonJS({
         reject(Object.assign(new Error(`Connection timed out after ${timeoutInMs} ms`), { name: "TimeoutError" }));
       });
     }, "setSocketTimeout");
-    var import_stream6 = require("stream");
+    var import_stream9 = require("stream");
     var MIN_WAIT_TIME = 1e3;
     async function writeRequestBody(httpRequest, request, maxContinueTimeoutMs = MIN_WAIT_TIME) {
       const headers = request.headers ?? {};
@@ -25436,7 +25436,7 @@ var require_dist_cjs28 = __commonJS({
     }
     __name(writeRequestBody, "writeRequestBody");
     function writeBody(httpRequest, body) {
-      if (body instanceof import_stream6.Readable) {
+      if (body instanceof import_stream9.Readable) {
         body.pipe(httpRequest);
         return;
       }
@@ -25965,7 +25965,7 @@ or increase socketAcquisitionWarningTimeout=(millis) in the NodeHttpHandler conf
     };
     __name(_NodeHttp2Handler, "NodeHttp2Handler");
     var NodeHttp2Handler = _NodeHttp2Handler;
-    var _Collector = class _Collector extends import_stream6.Writable {
+    var _Collector = class _Collector extends import_stream9.Writable {
       constructor() {
         super(...arguments);
         this.bufferedBytes = [];
@@ -26327,11 +26327,11 @@ var require_stream_type_check = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.isReadableStream = void 0;
-    var isReadableStream3 = (stream4) => {
+    var isReadableStream4 = (stream4) => {
       var _a;
       return typeof ReadableStream === "function" && (((_a = stream4 === null || stream4 === void 0 ? void 0 : stream4.constructor) === null || _a === void 0 ? void 0 : _a.name) === ReadableStream.name || stream4 instanceof ReadableStream);
     };
-    exports2.isReadableStream = isReadableStream3;
+    exports2.isReadableStream = isReadableStream4;
   }
 });
 
@@ -35264,7 +35264,7 @@ var require_dist_cjs50 = __commonJS({
         reject(Object.assign(new Error(`Connection timed out after ${timeoutInMs} ms`), { name: "TimeoutError" }));
       });
     }, "setSocketTimeout");
-    var import_stream6 = require("stream");
+    var import_stream9 = require("stream");
     var MIN_WAIT_TIME = 1e3;
     async function writeRequestBody(httpRequest, request, maxContinueTimeoutMs = MIN_WAIT_TIME) {
       const headers = request.headers ?? {};
@@ -35295,7 +35295,7 @@ var require_dist_cjs50 = __commonJS({
     }
     __name(writeRequestBody, "writeRequestBody");
     function writeBody(httpRequest, body) {
-      if (body instanceof import_stream6.Readable) {
+      if (body instanceof import_stream9.Readable) {
         body.pipe(httpRequest);
         return;
       }
@@ -35824,7 +35824,7 @@ or increase socketAcquisitionWarningTimeout=(millis) in the NodeHttpHandler conf
     };
     __name(_NodeHttp2Handler, "NodeHttp2Handler");
     var NodeHttp2Handler = _NodeHttp2Handler;
-    var _Collector = class _Collector extends import_stream6.Writable {
+    var _Collector = class _Collector extends import_stream9.Writable {
       constructor() {
         super(...arguments);
         this.bufferedBytes = [];
@@ -36121,11 +36121,11 @@ var require_stream_type_check2 = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.isReadableStream = void 0;
-    var isReadableStream3 = (stream4) => {
+    var isReadableStream4 = (stream4) => {
       var _a;
       return typeof ReadableStream === "function" && (((_a = stream4 === null || stream4 === void 0 ? void 0 : stream4.constructor) === null || _a === void 0 ? void 0 : _a.name) === ReadableStream.name || stream4 instanceof ReadableStream);
     };
-    exports2.isReadableStream = isReadableStream3;
+    exports2.isReadableStream = isReadableStream4;
   }
 });
 
@@ -43361,7 +43361,7 @@ var require_dist_cjs63 = __commonJS({
     var import_shared_ini_file_loader = require_dist_cjs13();
     var import_property_provider = require_dist_cjs12();
     var import_child_process = require("child_process");
-    var import_util4 = require("util");
+    var import_util5 = require("util");
     var getValidatedProcessCredentials = /* @__PURE__ */ __name((profileName, data) => {
       if (data.Version !== 1) {
         throw Error(`Profile ${profileName} credential_process did not return Version 1.`);
@@ -43389,7 +43389,7 @@ var require_dist_cjs63 = __commonJS({
       if (profiles[profileName]) {
         const credentialProcess = profile["credential_process"];
         if (credentialProcess !== void 0) {
-          const execPromise = (0, import_util4.promisify)(import_child_process.exec);
+          const execPromise = (0, import_util5.promisify)(import_child_process.exec);
           try {
             const { stdout } = await execPromise(credentialProcess);
             let data;
@@ -49635,6 +49635,35 @@ var Commands = class _Commands {
 
 // src/awslambda-entrypoint/util.ts
 var import_path_to_regexp = __toESM(require_dist());
+var import_stream = require("stream");
+var responseStream = (prelude, payload) => {
+  const stream4 = new import_stream.PassThrough();
+  new import_stream.Readable({
+    read() {
+      this.push(Buffer.from(JSON.stringify(prelude)));
+      this.push(Buffer.alloc(8));
+      this.push(null);
+    }
+  }).pipe(stream4, { end: false });
+  payload.pipe(stream4);
+  return stream4;
+};
+var responseStreamOptions = (abortEvent, requestId) => {
+  return {
+    headers: {
+      "Transfer-Encoding": "chunked",
+      "Lambda-Runtime-Function-Response-Mode": "streaming",
+      "Content-Type": "application/vnd.awslambda.http-integration-response",
+      Trailer: ["Lambda-Runtime-Function-Error-Type", "Lambda-Runtime-Function-Error-Body"]
+    },
+    maxBodyLength: Infinity,
+    maxContentLength: Infinity,
+    onUploadProgress: (progress) => {
+      log("Stream progress", { requestId, progress });
+    },
+    signal: abortEvent.signal
+  };
+};
 var findHandler = (routes, rawPath) => {
   if (!rawPath) {
     return void 0;
@@ -50945,10 +50974,10 @@ function fromDataURI(uri, asBlob, options) {
 }
 
 // node_modules/axios/lib/adapters/http.js
-var import_stream4 = __toESM(require("stream"), 1);
+var import_stream5 = __toESM(require("stream"), 1);
 
 // node_modules/axios/lib/helpers/AxiosTransformStream.js
-var import_stream = __toESM(require("stream"), 1);
+var import_stream2 = __toESM(require("stream"), 1);
 
 // node_modules/axios/lib/helpers/throttle.js
 function throttle(fn, freq) {
@@ -51015,7 +51044,7 @@ var speedometer_default = speedometer;
 
 // node_modules/axios/lib/helpers/AxiosTransformStream.js
 var kInternals = Symbol("internals");
-var AxiosTransformStream = class extends import_stream.default.Transform {
+var AxiosTransformStream = class extends import_stream2.default.Transform {
   constructor(options) {
     options = utils_default.toFlatObject(options, {
       maxRate: 0,
@@ -51168,7 +51197,7 @@ var import_events = require("events");
 
 // node_modules/axios/lib/helpers/formDataToStream.js
 var import_util = require("util");
-var import_stream2 = require("stream");
+var import_stream3 = require("stream");
 
 // node_modules/axios/lib/helpers/readBlob.js
 var { asyncIterator } = Symbol;
@@ -51254,7 +51283,7 @@ var formDataToStream = (form, headersHandler, options) => {
     computedHeaders["Content-Length"] = contentLength;
   }
   headersHandler && headersHandler(computedHeaders);
-  return import_stream2.Readable.from(async function* () {
+  return import_stream3.Readable.from(async function* () {
     for (const part of parts) {
       yield boundaryBytes;
       yield* part.encode();
@@ -51265,8 +51294,8 @@ var formDataToStream = (form, headersHandler, options) => {
 var formDataToStream_default = formDataToStream;
 
 // node_modules/axios/lib/helpers/ZlibHeaderTransformStream.js
-var import_stream3 = __toESM(require("stream"), 1);
-var ZlibHeaderTransformStream = class extends import_stream3.default.Transform {
+var import_stream4 = __toESM(require("stream"), 1);
+var ZlibHeaderTransformStream = class extends import_stream4.default.Transform {
   __transform(chunk, encoding, callback) {
     this.push(chunk);
     callback();
@@ -51461,7 +51490,7 @@ var http_default = isHttpAdapterSupported && function httpAdapter(config) {
           convertedData = utils_default.stripBOM(convertedData);
         }
       } else if (responseType === "stream") {
-        convertedData = import_stream4.default.Readable.from(convertedData);
+        convertedData = import_stream5.default.Readable.from(convertedData);
       }
       return settle(resolve, reject, {
         data: convertedData,
@@ -51505,7 +51534,7 @@ var http_default = isHttpAdapterSupported && function httpAdapter(config) {
     } else if (utils_default.isBlob(data)) {
       data.size && headers.setContentType(data.type || "application/octet-stream");
       headers.setContentLength(data.size || 0);
-      data = import_stream4.default.Readable.from(readBlob_default(data));
+      data = import_stream5.default.Readable.from(readBlob_default(data));
     } else if (data && !utils_default.isStream(data)) {
       if (Buffer.isBuffer(data)) {
       } else if (utils_default.isArrayBuffer(data)) {
@@ -51537,9 +51566,9 @@ var http_default = isHttpAdapterSupported && function httpAdapter(config) {
     }
     if (data && (onUploadProgress || maxUploadRate)) {
       if (!utils_default.isStream(data)) {
-        data = import_stream4.default.Readable.from(data, { objectMode: false });
+        data = import_stream5.default.Readable.from(data, { objectMode: false });
       }
-      data = import_stream4.default.pipeline([data, new AxiosTransformStream_default({
+      data = import_stream5.default.pipeline([data, new AxiosTransformStream_default({
         length: contentLength,
         maxRate: utils_default.toFiniteNumber(maxUploadRate)
       })], utils_default.noop);
@@ -51639,7 +51668,7 @@ var http_default = isHttpAdapterSupported && function httpAdapter(config) {
         });
         streams.push(transformStream);
       }
-      let responseStream = res;
+      let responseStream2 = res;
       const lastRequest = res.req || req;
       if (config.decompress !== false && res.headers["content-encoding"]) {
         if (method === "HEAD" || res.statusCode === 204) {
@@ -51665,8 +51694,8 @@ var http_default = isHttpAdapterSupported && function httpAdapter(config) {
             }
         }
       }
-      responseStream = streams.length > 1 ? import_stream4.default.pipeline(streams, utils_default.noop) : streams[0];
-      const offListeners = import_stream4.default.finished(responseStream, () => {
+      responseStream2 = streams.length > 1 ? import_stream5.default.pipeline(streams, utils_default.noop) : streams[0];
+      const offListeners = import_stream5.default.finished(responseStream2, () => {
         offListeners();
         onFinished();
       });
@@ -51678,17 +51707,17 @@ var http_default = isHttpAdapterSupported && function httpAdapter(config) {
         request: lastRequest
       };
       if (responseType === "stream") {
-        response.data = responseStream;
+        response.data = responseStream2;
         settle(resolve, reject, response);
       } else {
         const responseBuffer = [];
         let totalResponseBytes = 0;
-        responseStream.on("data", function handleStreamData(chunk) {
+        responseStream2.on("data", function handleStreamData(chunk) {
           responseBuffer.push(chunk);
           totalResponseBytes += chunk.length;
           if (config.maxContentLength > -1 && totalResponseBytes > config.maxContentLength) {
             rejected = true;
-            responseStream.destroy();
+            responseStream2.destroy();
             reject(new AxiosError_default(
               "maxContentLength size of " + config.maxContentLength + " exceeded",
               AxiosError_default.ERR_BAD_RESPONSE,
@@ -51697,7 +51726,7 @@ var http_default = isHttpAdapterSupported && function httpAdapter(config) {
             ));
           }
         });
-        responseStream.on("aborted", function handlerStreamAborted() {
+        responseStream2.on("aborted", function handlerStreamAborted() {
           if (rejected) {
             return;
           }
@@ -51707,14 +51736,14 @@ var http_default = isHttpAdapterSupported && function httpAdapter(config) {
             config,
             lastRequest
           );
-          responseStream.destroy(err);
+          responseStream2.destroy(err);
           reject(err);
         });
-        responseStream.on("error", function handleStreamError(err) {
+        responseStream2.on("error", function handleStreamError(err) {
           if (req.destroyed) return;
           reject(AxiosError_default.from(err, null, config, lastRequest));
         });
-        responseStream.on("end", function handleStreamEnd() {
+        responseStream2.on("end", function handleStreamEnd() {
           try {
             let responseData = responseBuffer.length === 1 ? responseBuffer[0] : Buffer.concat(responseBuffer);
             if (responseType !== "arraybuffer") {
@@ -51731,9 +51760,9 @@ var http_default = isHttpAdapterSupported && function httpAdapter(config) {
         });
       }
       emitter.once("abort", (err) => {
-        if (!responseStream.destroyed) {
-          responseStream.emit("error", err);
-          responseStream.destroy();
+        if (!responseStream2.destroyed) {
+          responseStream2.emit("error", err);
+          responseStream2.destroy();
         }
       });
     });
@@ -53869,7 +53898,7 @@ var setExitHandler = async (spawned, { cleanup, detached }, timedPromise) => {
 var import_node_fs = require("node:fs");
 var import_node_child_process = require("node:child_process");
 
-// node_modules/is-stream/index.js
+// node_modules/execa/node_modules/is-stream/index.js
 function isStream2(stream4) {
   return stream4 !== null && typeof stream4 === "object" && typeof stream4.pipe === "function";
 }
@@ -54512,6 +54541,7 @@ var $ = create$();
 
 // src/awslambda-entrypoint/mappers.ts
 var import_rxjs = __toESM(require_cjs());
+var import_stream7 = require("stream");
 var mapRuntimeEvent = (abortEvent, routes) => {
   return (source) => {
     return new import_rxjs.Observable((subscriber) => {
@@ -54541,9 +54571,15 @@ var mapAsyncResponse = (abortEvent, runtimeApi) => {
           return (0, import_rxjs.from)(
             axios_default.post(
               `http://${runtimeApi}/2018-06-01/runtime/invocation/${asyncResponse.requestId}/response`,
-              asyncResponse.payload,
-              { signal: abortEvent.signal }
-            )
+              responseStream(asyncResponse.prelude, asyncResponse.payload),
+              responseStreamOptions(abortEvent, asyncResponse.requestId)
+            ).then((response) => {
+              return {
+                ...asyncResponse,
+                statusCode: response.status,
+                headers: response.headers
+              };
+            })
           ).pipe(
             (0, import_rxjs.catchError)((e) => {
               if (!isAxiosError2(e)) {
@@ -54556,28 +54592,26 @@ var mapAsyncResponse = (abortEvent, runtimeApi) => {
               return (0, import_rxjs.from)(
                 axios_default.post(
                   `http://${runtimeApi}/2018-06-01/runtime/invocation/${asyncResponse.requestId}/response`,
-                  {
-                    statusCode: 500,
-                    body: `${message}
-`,
-                    headers: {
-                      "Content-Type": "text/plain"
-                    },
-                    isBase64Encoded: false
-                  },
-                  { signal: abortEvent.signal }
-                )
+                  responseStream(
+                    { statusCode: 500, headers: { "Content-Type": "text/plain" } },
+                    import_stream7.Readable.from(`${message}
+`)
+                  ),
+                  responseStreamOptions(abortEvent, asyncResponse.requestId)
+                ).then((response) => {
+                  return {
+                    ...asyncResponse,
+                    statusCode: response.status,
+                    headers: response.headers
+                  };
+                })
               );
             })
           );
         })
       ).subscribe({
-        next(axiosResponse) {
-          subscriber.next({
-            url: axiosResponse.config.url,
-            headers: axiosResponse.headers,
-            statusCode: axiosResponse.status
-          });
+        next(response) {
+          subscriber.next(response);
         },
         error(err) {
           abortEvent.abort(err);
@@ -54594,7 +54628,16 @@ var mapAsyncResponse = (abortEvent, runtimeApi) => {
   };
 };
 
+// node_modules/is-stream/index.js
+function isStream3(stream4, { checkOpen = true } = {}) {
+  return stream4 !== null && typeof stream4 === "object" && (stream4.writable || stream4.readable || !checkOpen || stream4.writable === void 0 && stream4.readable === void 0) && typeof stream4.pipe === "function";
+}
+function isReadableStream3(stream4, { checkOpen = true } = {}) {
+  return isStream3(stream4, { checkOpen }) && (stream4.readable || !checkOpen) && typeof stream4.read === "function" && typeof stream4.readable === "boolean" && typeof stream4.readableObjectMode === "boolean" && typeof stream4.destroy === "function" && typeof stream4.destroyed === "boolean";
+}
+
 // src/awslambda-entrypoint/observables.ts
+var import_stream8 = require("stream");
 var next$ = (abortEvent, runtimeApi, env) => {
   return (0, import_rxjs2.defer)(() => {
     log("Fetching next event", { runtimeApi });
@@ -54609,7 +54652,14 @@ var next$ = (abortEvent, runtimeApi, env) => {
         if (!isAxiosError2(e)) {
           return (0, import_rxjs2.throwError)(() => new Error(`Unknown error`, { cause: e }));
         }
-        abortEvent.abort(new Error(`Error fetching next event: ${e.code}`, { cause: e }));
+        abortEvent.abort(
+          new Error(
+            `Error fetching next event: ${e.response?.data || e.response?.statusText || e.code}`,
+            {
+              cause: e
+            }
+          )
+        );
         return (0, import_rxjs2.timer)(1e3);
       }
     }),
@@ -54617,15 +54667,18 @@ var next$ = (abortEvent, runtimeApi, env) => {
       log("Received next event", { headers: next.headers, data: next.data });
       const requestId = next.headers["lambda-runtime-aws-request-id"];
       const response$ = new import_rxjs2.AsyncSubject();
+      const completed$ = new import_rxjs2.Subject();
       response$.pipe(mapAsyncResponse(abortEvent, runtimeApi)).subscribe((response) => {
-        log("Response sent to Runtime API", { requestId, response });
+        log("Response sent to Runtime API", { requestId });
+        completed$.next(response);
       });
       return {
         requestId,
         event: next.data,
         deadline: Number.parseInt(next.headers["lambda-runtime-deadline-ms"]),
         env,
-        response$
+        response$,
+        completed$
       };
     })
   );
@@ -54655,12 +54708,14 @@ var shell$ = (abortEvent, runtimeEvent, rawEvent, env) => {
       return {
         requestId: runtimeEvent.requestId,
         response$: runtimeEvent.response$,
-        payload: {
+        completed$: runtimeEvent.completed$,
+        prelude: {
           statusCode: 200,
-          headers: {},
-          body: JSON.stringify(output.all),
-          isBase64Encoded: false
-        }
+          headers: {
+            "Content-Type": "text/plain"
+          }
+        },
+        payload: import_stream8.Readable.from(output.all || "")
       };
     })
   );
@@ -54678,7 +54733,7 @@ var proxy$ = (abortEvent, runtimeEvent, url2, method, headers, data, deadline) =
       transformRequest: (req) => req,
       transformResponse: (res) => res,
       validateStatus: () => true,
-      responseType: "arraybuffer",
+      responseType: "stream",
       signal: abortEvent.signal
     });
   }).pipe(
@@ -54700,20 +54755,21 @@ var proxy$ = (abortEvent, runtimeEvent, url2, method, headers, data, deadline) =
       info("Proxy response", { method, url: url2, status: resp.status });
       log("Proxied response", { headers: resp.headers });
       const { data: responseData, headers: responseHeaders } = resp;
-      if (!Buffer.isBuffer(responseData)) {
-        throw new Error(`Response from ${url2} is not a buffer`);
+      if (!isReadableStream3(responseData)) {
+        throw new Error(`Response from ${method} ${url2} was not a stream`);
       }
+      const prelude = {
+        statusCode: resp.status,
+        headers: transformAxiosResponseHeaders(responseHeaders)
+      };
       return {
         requestId: runtimeEvent.requestId,
         response$: runtimeEvent.response$,
+        completed$: runtimeEvent.completed$,
         method,
         url: url2,
-        payload: {
-          statusCode: resp.status,
-          headers: transformAxiosResponseHeaders(responseHeaders),
-          body: Buffer.from(responseData).toString("base64"),
-          isBase64Encoded: true
-        }
+        prelude,
+        payload: responseData
       };
     })
   );
@@ -54780,8 +54836,12 @@ var asyncResponse$ = (abortEvent, runtimeEvent, routes) => {
 var poll = (abortEvent, runtimeApi, routes, env) => {
   const poll$ = () => {
     return next$(abortEvent, runtimeApi, env).pipe(mapRuntimeEvent(abortEvent, routes)).pipe(
-      (0, import_rxjs2.switchMap)((runtimeEvent) => {
-        return (0, import_rxjs2.of)(runtimeEvent.response$.complete());
+      (0, import_rxjs2.switchMap)((asyncResponse) => {
+        asyncResponse.response$.complete();
+        return asyncResponse.completed$;
+      }),
+      (0, import_rxjs2.switchMap)(() => {
+        return (0, import_rxjs2.of)(void 0);
       })
     );
   };
@@ -54792,7 +54852,7 @@ var poll = (abortEvent, runtimeApi, routes, env) => {
 var AbortEvent = class extends AbortController {
   constructor() {
     super();
-    this.signal.onabort = () => {
+    this.signal.addEventListener("abort", () => {
       const reason = this.signal.reason;
       const { reason: abortReason } = reason;
       const message = abortReason instanceof Error ? abortReason.message : `${abortReason}`;
@@ -54800,7 +54860,7 @@ var AbortEvent = class extends AbortController {
         error(`ABORTING: ${message}`);
         process.exit(-1);
       });
-    };
+    });
   }
   abort(reason) {
     super.abort({ reason });
