@@ -1,8 +1,4 @@
-import {
-  APIGatewayProxyEventHeaders,
-  APIGatewayProxyEventQueryStringParameters,
-  APIGatewayProxyEventV2,
-} from 'aws-lambda';
+import { APIGatewayProxyEventQueryStringParameters, APIGatewayProxyEventV2 } from 'aws-lambda';
 import { HttpServer } from '../../http/http-server';
 import { LambdaRuntimeServer } from './lambda-runtime-server';
 import { v4 as uniqueId } from 'uuid';
@@ -12,22 +8,88 @@ import { first } from 'rxjs';
 import qs from 'qs';
 import { GitService } from '../../../cd/git';
 
-export const convertHeaders = (request: Request): APIGatewayProxyEventHeaders => {
-  return Object.keys(request.headers).reduce((acc, key) => {
-    const value = request.headers[key];
+type ApiGatewayHaders = {
+  [header: string]: string;
+};
+
+// Ref: https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-known-issues.html
+export const REMAP_RESPONSE_HEADERS = [
+  'Authorization',
+  'Connection',
+  'Content-MD5',
+  'Date',
+  'Max-Forwards',
+  'Server',
+  'User-Agent',
+  'WWW-Authenticate',
+];
+
+export const DROP_RESPONSE_HEADERS = [
+  'Expect',
+  'Host',
+  'Proxy-Authenticate',
+  'TE',
+  'Transfer-Encoding',
+  'Trailer',
+  'Upgrade',
+  'Via',
+];
+
+export const convertHeaders = (
+  headers?: Record<string, unknown>,
+  requestId?: string,
+): ApiGatewayHaders => {
+  const converted: ApiGatewayHaders = {};
+
+  if (requestId) {
+    converted['x-amzn-requestid'] = requestId;
+  }
+
+  if (!headers) {
+    return converted;
+  }
+
+  return Object.keys(headers).reduce((acc, key) => {
+    const value = headers[key];
+
+    if (!value) {
+      return acc;
+    }
+
+    const newKey = key.toLowerCase();
+    let newValue: string | undefined = undefined;
 
     if (Array.isArray(value)) {
-      acc[key] = value.join(', ');
+      newValue = value.join(', ');
     } else if (
       typeof value === 'string' ||
       typeof value === 'number' ||
       typeof value === 'boolean'
     ) {
-      acc[key] = value;
+      newValue = `${value}`;
+    }
+
+    if (!newValue) {
+      return acc;
+    }
+
+    if (!requestId) {
+      acc[newKey] = newValue;
+      return acc;
+    }
+
+    // If requestId is set, we are converting response headers
+    if (DROP_RESPONSE_HEADERS.includes(newKey)) {
+      return acc;
+    }
+
+    if (REMAP_RESPONSE_HEADERS.includes(newKey)) {
+      acc[`X-Amzn-Remapped-${newKey}`] = newValue;
+      return acc;
     }
 
     return acc;
-  }, {} as APIGatewayProxyEventHeaders);
+  }, converted as ApiGatewayHaders);
 };
 
 export const convertQueryString = (request: Request): APIGatewayProxyEventQueryStringParameters => {
@@ -104,7 +166,7 @@ export class FunctionUrlServer extends HttpServer {
         routeKey: '$default',
         rawPath: req.path,
         rawQueryString: qs.stringify(req.query),
-        headers: convertHeaders(req),
+        headers: convertHeaders(req.headers),
         queryStringParameters: convertQueryString(req),
         requestContext: {
           // TODO: Account ID

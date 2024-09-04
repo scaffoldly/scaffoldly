@@ -12,7 +12,7 @@ import { Routes } from '../config';
 import { asyncResponse$ } from './observables';
 import axios, { isAxiosError } from 'axios';
 import { Readable } from 'stream';
-import { responseStream, responseStreamOptions } from './util';
+import { intoResponseStream, intoResponseStreamOptions } from './util';
 
 export const mapRuntimeEvent = (
   abortEvent: AbortEvent,
@@ -58,8 +58,8 @@ export const mapAsyncResponse = (
               axios
                 .post(
                   `http://${runtimeApi}/2018-06-01/runtime/invocation/${asyncResponse.requestId}/response`,
-                  responseStream(asyncResponse.prelude, asyncResponse.payload),
-                  responseStreamOptions(abortEvent, asyncResponse.requestId),
+                  intoResponseStream(asyncResponse.prelude, asyncResponse.payload),
+                  intoResponseStreamOptions(abortEvent, asyncResponse.requestId),
                 )
                 .then((response) => {
                   return {
@@ -83,11 +83,11 @@ export const mapAsyncResponse = (
                   axios
                     .post(
                       `http://${runtimeApi}/2018-06-01/runtime/invocation/${asyncResponse.requestId}/response`,
-                      responseStream(
+                      intoResponseStream(
                         { statusCode: 500, headers: { 'Content-Type': 'text/plain' } },
                         Readable.from(`${message}\n`),
                       ),
-                      responseStreamOptions(abortEvent, asyncResponse.requestId),
+                      intoResponseStreamOptions(abortEvent, asyncResponse.requestId),
                     )
                     .then((response) => {
                       return {

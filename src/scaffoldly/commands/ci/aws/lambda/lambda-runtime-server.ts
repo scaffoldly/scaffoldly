@@ -13,6 +13,13 @@ import {
 import { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda';
 import { ContainerPool } from '../../docker/container-pool';
 import { GitService } from '../../../cd/git';
+import { buffer } from 'stream/consumers';
+import {
+  fromResponseStream,
+  RESPONSE_STREAM_HEADERS,
+} from '../../../../../awslambda-entrypoint/util';
+import { convertHeaders } from './function-url-server';
+import { Readable } from 'stream';
 
 export const RUNTIME_SERVER_PORT = 9001;
 
@@ -95,18 +102,47 @@ export class LambdaRuntimeServer extends HttpServer {
     // Add the return route
     this.app.post(
       `/2018-06-01/runtime/invocation/${nextInvocation.requestId}/response`, // TODO: remove on completion?
-      (responseReq, responseRes) => {
+      async (responseReq, responseRes, responseNext) => {
         this.log(`END RequestId: ${nextInvocation.requestId}`);
         const end = new Date().getTime();
         const duration = end - start;
 
-        nextInvocation.response$.next(responseReq.body);
-        nextInvocation.response$.complete();
-        responseRes.status(202).send('');
-        // TODO Init duration
-        this.log(
-          `REPORT RequestId: ${nextInvocation.requestId} Duration: ${duration}.00 ms Billed Duration: ${duration} ms Memory Size: 0 MB Max Memory Used: 0 MB`,
-        );
+        try {
+          const { headers } = responseReq;
+          Object.entries(RESPONSE_STREAM_HEADERS).forEach(([key, value]) => {
+            if (Array.isArray(value)) {
+              value = value.join(', ');
+            }
+
+            const headerValue = headers[key.toLowerCase()];
+
+            if (headerValue !== value) {
+              throw new Error(`Invalid header: ${key}, got ${headerValue}, expected ${value}`);
+            }
+          });
+
+          const { prelude, payload } = await fromResponseStream(new Readable().wrap(responseReq));
+          const body = (await buffer(payload)).toString('base64');
+          const isBase64Encoded = true;
+
+          // TODO: Cookies
+          nextInvocation.response$.next({
+            statusCode: prelude.statusCode,
+            headers: convertHeaders(prelude.headers, nextInvocation.requestId),
+            body,
+            isBase64Encoded,
+          });
+
+          nextInvocation.response$.complete();
+
+          this.log(
+            `REPORT RequestId: ${nextInvocation.requestId} Duration: ${duration}.00 ms Billed Duration: ${duration} ms Memory Size: 0 MB Max Memory Used: 0 MB`,
+          );
+
+          responseRes.status(202).send('');
+        } catch (e) {
+          return responseNext(e);
+        }
       },
     );
 

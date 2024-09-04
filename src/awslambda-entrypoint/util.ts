@@ -1,4 +1,5 @@
 import { pathToRegexp } from 'path-to-regexp';
+import binarySplit from 'binary-split';
 import { Routes } from '../config';
 import { ALBEventQueryStringParameters } from 'aws-lambda';
 import {
@@ -13,7 +14,14 @@ import { PassThrough, Readable } from 'stream';
 import { AbortEvent, AsyncPrelude } from './types';
 import { log } from './log';
 
-export const responseStream = (prelude: AsyncPrelude, payload: Readable): Readable => {
+export const RESPONSE_STREAM_HEADERS = {
+  'Transfer-Encoding': 'chunked',
+  'Lambda-Runtime-Function-Response-Mode': 'streaming',
+  'Content-Type': 'application/vnd.awslambda.http-integration-response',
+  Trailer: ['Lambda-Runtime-Function-Error-Type', 'Lambda-Runtime-Function-Error-Body'],
+};
+
+export const intoResponseStream = (prelude: AsyncPrelude, payload: Readable): Readable => {
   const stream = new PassThrough();
 
   // Add the application/vnd.awslambda.http-integration-response prelude
@@ -31,17 +39,41 @@ export const responseStream = (prelude: AsyncPrelude, payload: Readable): Readab
   return stream;
 };
 
-export const responseStreamOptions = (
+export const fromResponseStream = (
+  stream: Readable,
+): Promise<{ prelude: AsyncPrelude; payload: Readable }> => {
+  const delimiter = Buffer.alloc(8); // 8-byte delimiter (all zeros)
+  const payloadStream = new PassThrough();
+
+  return new Promise((resolve, reject) => {
+    const parts = stream.pipe(binarySplit(delimiter));
+    let prelude: AsyncPrelude | undefined;
+
+    parts.on('data', (chunk: Buffer) => {
+      if (!prelude) {
+        prelude = JSON.parse(chunk.toString('utf8'));
+        stream.pipe(payloadStream);
+        parts.end();
+      }
+    });
+
+    parts.on('end', () => {
+      if (!prelude) {
+        return reject(new Error('Prelude not found'));
+      }
+      resolve({ prelude, payload: payloadStream });
+    });
+
+    parts.on('error', reject);
+  });
+};
+
+export const intoResponseStreamOptions = (
   abortEvent: AbortEvent,
   requestId?: string,
 ): AxiosRequestConfig<Readable> => {
   return {
-    headers: {
-      'Transfer-Encoding': 'chunked',
-      'Lambda-Runtime-Function-Response-Mode': 'streaming',
-      'Content-Type': 'application/vnd.awslambda.http-integration-response',
-      Trailer: ['Lambda-Runtime-Function-Error-Type', 'Lambda-Runtime-Function-Error-Body'],
-    },
+    headers: RESPONSE_STREAM_HEADERS,
     maxBodyLength: Infinity,
     maxContentLength: Infinity,
     onUploadProgress: (progress) => {
