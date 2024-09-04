@@ -3,7 +3,7 @@ import { Server } from 'http';
 import { DevServer } from '../server/dev-server';
 
 export type HttpServerOptions = {
-  timeout: number;
+  timeout?: number;
 };
 
 export abstract class HttpServer extends DevServer {
@@ -15,9 +15,7 @@ export abstract class HttpServer extends DevServer {
     name: string,
     public readonly port: number,
     abortController: AbortController,
-    protected readonly options: HttpServerOptions = {
-      timeout: 30,
-    },
+    protected readonly options: HttpServerOptions = {},
   ) {
     super(name, abortController);
     this.app = express();
@@ -35,7 +33,11 @@ export abstract class HttpServer extends DevServer {
         this.server = this.app.listen(this.port, '::', () => {
           resolve();
         });
-        this.server.setTimeout(this.options.timeout * 1000);
+
+        if (this.options.timeout) {
+          this.server.setTimeout(this.options.timeout * 1000);
+        }
+
         this.server.on('close', () => {
           this.abortController.abort();
         });

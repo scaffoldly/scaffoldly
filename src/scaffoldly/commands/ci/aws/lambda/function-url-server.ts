@@ -14,25 +14,27 @@ type ApiGatewayHaders = {
 
 // Ref: https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-known-issues.html
 export const REMAP_RESPONSE_HEADERS = [
-  'Authorization',
-  'Connection',
-  'Content-MD5',
-  'Date',
-  'Max-Forwards',
-  'Server',
-  'User-Agent',
-  'WWW-Authenticate',
+  'authorization',
+  'connection',
+  'content-md5',
+  'date',
+  'max-forwards',
+  'server',
+  'user-agent',
+  'www-authenticate',
 ];
 
 export const DROP_RESPONSE_HEADERS = [
-  'Expect',
-  'Host',
-  'Proxy-Authenticate',
-  'TE',
-  'Transfer-Encoding',
-  'Trailer',
-  'Upgrade',
-  'Via',
+  'x-powered-by',
+  'keep-alive',
+  'expect',
+  'host',
+  'proxy-authenticate',
+  'te',
+  'transfer-encoding',
+  'trailer',
+  'upgrade',
+  'via',
 ];
 
 export const convertHeaders = (
@@ -42,7 +44,7 @@ export const convertHeaders = (
   const converted: ApiGatewayHaders = {};
 
   if (requestId) {
-    converted['x-amzn-requestid'] = requestId;
+    converted['x-amzn-RequestId'] = requestId;
   }
 
   if (!headers) {
@@ -84,9 +86,11 @@ export const convertHeaders = (
     }
 
     if (REMAP_RESPONSE_HEADERS.includes(newKey)) {
-      acc[`X-Amzn-Remapped-${newKey}`] = newValue;
+      acc[`x-amzn-Remapped-${newKey}`] = newValue;
       return acc;
     }
+
+    acc[newKey] = newValue;
 
     return acc;
   }, converted as ApiGatewayHaders);
@@ -158,6 +162,22 @@ export class FunctionUrlServer extends HttpServer {
   }
 
   async registerHandlers(): Promise<void> {
+    this.app.disable('x-powered-by');
+
+    this.app.use((_req, res, next) => {
+      res.set('Connection', 'keep-alive');
+
+      // Override the `header` method to remove the `Keep-Alive` header
+      const originalSetHeader = res.setHeader;
+      res.setHeader = (name: string, value: number | string | readonly string[]) => {
+        if (name.toLowerCase() === 'keep-alive') {
+          return res;
+        }
+        return originalSetHeader.call(res, name, value);
+      };
+      next();
+    });
+
     this.app.use((req, res) => {
       req.setTimeout(this.gitService.config.timeout * 1000);
       const now = new Date();
@@ -202,18 +222,16 @@ export class FunctionUrlServer extends HttpServer {
         .emit(event)
         .pipe(first())
         .subscribe((response) => {
-          if (response && response.statusCode) {
+          if (response?.statusCode) {
             res.status(response.statusCode);
           }
-          if (response && response.headers) {
+          if (response?.headers) {
             res.header(response.headers);
           }
-          if (response && response.body) {
-            if (response.isBase64Encoded) {
-              res.send(Buffer.from(response.body, 'base64'));
-            } else {
-              res.send(response.body);
-            }
+          if (response?.isBase64Encoded && Buffer.isBuffer(response.body)) {
+            res.send(response.body.toString('base64'));
+          } else {
+            res.send(response?.body);
           }
         });
     });
