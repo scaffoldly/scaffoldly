@@ -229,9 +229,6 @@ export class FunctionUrlServer extends HttpServer {
             res.header(response.headers);
           }
 
-          console.log('!!! response.isBase64Encoded', response?.isBase64Encoded);
-          console.log('!!! Buffer.isBuffer(response.body)', Buffer.isBuffer(response?.body));
-
           if (response?.isBase64Encoded && response?.body) {
             res.send(Buffer.from(response.body, 'base64'));
           } else {

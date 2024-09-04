@@ -66,7 +66,7 @@ export class ContainerPool extends DevServer {
     private gitService: GitService,
     dockerService: DockerService,
     private envService: EnvService,
-    protected readonly options = { lifetime: 30 },
+    protected readonly options = { lifetime: 900 },
   ) {
     super('Container Pool', abortController);
     this.docker = dockerService.docker;

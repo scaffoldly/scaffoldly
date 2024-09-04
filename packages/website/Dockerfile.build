@@ -53,4 +53,4 @@ COPY --from=package-docusaurus /var/task/build* /var/task/build
 COPY --from=package-docusaurus /var/task/.docusaurus* /var/task/.docusaurus
 COPY --from=package-docusaurus /var/task/cache-loader* /var/task/cache-loader
 COPY --from=package-docusaurus /var/task/package-lock.json* /var/task/package-lock.json
-CMD [ "( serve build )" ]
+CMD [ "( docusaurus start )" ]
