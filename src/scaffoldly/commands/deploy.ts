@@ -54,9 +54,7 @@ export class DeployCommand extends CdCommand<DeployCommand> {
     this.gitService.setConfig(this.config);
 
     if (options.dev) {
-      this.dockerService.dockerCiService.withBuildFiles(
-        this.config.buildFiles.filter((f) => f.startsWith('!')).map((f) => f.slice(1)),
-      );
+      this.dockerService.dockerCiService.withIgnoredFiles(this.config.ignoredFiles);
     }
 
     await this.gitService.predeploy(status, options);

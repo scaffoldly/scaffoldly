@@ -18,7 +18,6 @@ export class NextJsPreset {
       packageJson.scaffoldly = {
         runtime: `node:${process.version.split('v')[1]}-alpine`,
         handler: 'localhost:3000',
-        buildFiles: ['!node_modules'],
         packages,
         bin,
         services: [
@@ -37,7 +36,7 @@ export class NextJsPreset {
       if (isDebug()) {
         console.log(`Using NextJS preset config:`, JSON.stringify(packageJson.scaffoldly, null, 2));
       }
-      return new ScaffoldlyConfig({ packageJson }, this.mode);
+      return new ScaffoldlyConfig(this.cwd, { packageJson }, this.mode);
     });
   }
 

@@ -60,12 +60,9 @@
       "npm",
       "npm:serve@14"
     ],
-    "buildFiles": [
-      "!node_modules",
-      "!build",
-      "!.docusaurus",
-      "!cache-loader",
-      "!package-lock.json"
+    "generatedFiles": [
+      ".docusaurus",
+      ".cache-loader"
     ],
     "services": [
       {

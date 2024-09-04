@@ -1,5 +1,7 @@
 import { base58 } from '@scure/base';
-import { join, sep } from 'path';
+import { join, relative, sep } from 'path';
+import ignore from 'ignore';
+import { existsSync, readdirSync, readFileSync } from 'fs';
 export const DEFAULT_SRC_ROOT = `.`;
 export const DEFAULT_ROUTE = '/*';
 
@@ -107,7 +109,6 @@ export interface IScaffoldlyConfig extends IServiceConfig {
 
   // Top level configuration only:
   get version(): string;
-  get buildFiles(): string[]; // Get copied to workdir/{file} during build
   get workdir(): string; // Defaults to /var/task
   get services(): Partial<IServiceConfig>[];
   get routes(): Routes;
@@ -165,11 +166,10 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
 
   private _files: string[];
 
-  private _buildFiles: string[];
-
   private _packages: string[];
 
   constructor(
+    private cwd: string,
     configs: {
       packageJson?: PackageJson;
       serviceConfig?: IServiceConfig;
@@ -198,7 +198,6 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
       this._version = version;
       this._bin = { ...(packageJson.bin || {}), ...(scaffoldly.bin || {}) };
       this._files = [...(packageJson.files || []), ...(scaffoldly.files || [])];
-      this._buildFiles = scaffoldly.buildFiles || [];
       this._packages = scaffoldly.packages || [];
 
       if (serviceConfig) {
@@ -290,11 +289,6 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
     return [...new Set(files)];
   }
 
-  get buildFiles(): string[] {
-    const { _buildFiles: buildFiles = [] } = this;
-    return [...new Set(buildFiles)];
-  }
-
   get src(): string {
     const { src = DEFAULT_SRC_ROOT } = this.serviceConfig || this.scaffoldly;
     return src;
@@ -314,6 +308,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
     const { services = [] } = this.scaffoldly;
     return services.map((service, ix) => {
       return new ScaffoldlyConfig(
+        this.cwd,
         {
           packageJson: this.packageJson,
           serviceConfig: {
@@ -452,5 +447,26 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
   get memorySize(): number {
     const { memorySize = 1024 } = this.scaffoldly;
     return memorySize;
+  }
+
+  get ignoreFilter(): (pathname: string) => boolean {
+    const ig = ignore();
+    ['.gitignore', '.dockerignore'].map((filename) => {
+      const file = join(this.cwd, this.src, filename);
+      if (existsSync(file)) {
+        ig.add(readFileSync(file).toString());
+      }
+    });
+
+    return ig.createFilter();
+  }
+
+  get ignoredFiles(): string[] {
+    const src = join(this.cwd, this.src);
+    const files = readdirSync(src).filter((path) => {
+      const relativePath = relative(this.cwd, path);
+      return !this.ignoreFilter(relativePath);
+    });
+    return files;
   }
 }

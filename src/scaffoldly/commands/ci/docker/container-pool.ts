@@ -8,9 +8,6 @@ import { uniqueId } from 'lodash';
 import { DevServer, Lifecycle } from '../server/dev-server';
 import { join } from 'path';
 import { readdirSync } from 'fs';
-import micromatch from 'micromatch';
-import { isDebug } from '../../../ui';
-import { ui } from '../../../command';
 
 export type ContainerRef = {
   name: string;
@@ -234,19 +231,13 @@ export class ContainerPool extends DevServer {
   }
 
   private get mounts(): Promise<Dockerode.MountSettings[]> {
-    const { src, buildFiles } = this.gitService.config;
+    const { src, ignoreFilter } = this.gitService.config;
     const dir = join(this.gitService.cwd, src);
+
     const files = readdirSync(dir).filter((file) => {
-      const exclude = buildFiles.some((buildFile) => {
-        return !micromatch.isMatch(file, buildFile, { contains: true });
-      });
-      if (exclude && isDebug()) {
-        ui.updateBottomBarSubtext(`Excluding ${file} from mounts`);
-      }
-      return !exclude;
+      return ignoreFilter(file);
     });
-    // TODO: consider .gitignore?
-    // TODO: push buildfiles into runtime container
+
     return Promise.resolve(
       files.map((file) => {
         const settings: Dockerode.MountSettings = {

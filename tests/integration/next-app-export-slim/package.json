@@ -32,10 +32,6 @@
       "npm",
       "npm:serve@14"
     ],
-    "buildFiles": [
-      "!node_modules",
-      "!package-lock.json"
-    ],
     "services": [
       {
         "name": "next",

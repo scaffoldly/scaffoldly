@@ -14,7 +14,6 @@ import { ui } from '../../../command';
 import { isDebug } from '../../../ui';
 import { Platform } from '../../cd/docker';
 import { PackageService } from './packages';
-import micromatch from 'micromatch';
 import { decodeTrace } from './protobuf/moby';
 
 export type BuildInfo = {
@@ -125,14 +124,14 @@ export class DockerService {
 
   private _platform?: Platform;
 
-  private _withBuildFiles?: string[];
+  private _withIgnoredFiles?: string[];
 
   constructor(private cwd: string) {
     this.docker = new Docker({ version: 'v1.45' });
   }
 
-  withBuildFiles(buildFiles: string[]): DockerService {
-    this._withBuildFiles = buildFiles;
+  withIgnoredFiles(files: string[]): DockerService {
+    this._withIgnoredFiles = files;
     return this;
   }
 
@@ -224,16 +223,7 @@ export class DockerService {
     const stream = tar.pack(this.cwd, {
       filter: (path) => {
         const relativePath = relative(this.cwd, path);
-
-        const exclude = config.buildFiles.some((buildFile) => {
-          return !micromatch.isMatch(relativePath, buildFile, { contains: true });
-        });
-
-        if (exclude && isDebug()) {
-          ui.updateBottomBarSubtext(`Excluding ${relativePath} from tarball`);
-        }
-
-        return exclude;
+        return !config.ignoreFilter(relativePath);
       },
     });
 
@@ -457,8 +447,7 @@ export class DockerService {
       });
 
       if (name !== 'base') {
-        const withBuildFiles = this._withBuildFiles || [];
-        withBuildFiles.forEach((file) => {
+        (this._withIgnoredFiles || []).forEach((file) => {
           copy.push({
             from: fromStage?.as,
             src: `${file}*`,

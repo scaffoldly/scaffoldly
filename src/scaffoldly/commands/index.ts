@@ -49,7 +49,11 @@ export abstract class Command<T> {
   get config(): ScaffoldlyConfig {
     if (!this._config && this.packageJson) {
       try {
-        this._config = new ScaffoldlyConfig({ packageJson: this.packageJson }, this._mode);
+        this._config = new ScaffoldlyConfig(
+          this.cwd,
+          { packageJson: this.packageJson },
+          this._mode,
+        );
       } catch (e) {
         throw new Error('Unable to create a Scaffoldly Config.', {
           cause: e,
