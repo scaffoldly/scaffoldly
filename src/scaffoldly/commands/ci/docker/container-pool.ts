@@ -7,8 +7,7 @@ import { RUNTIME_SERVER_PORT } from '../aws/lambda/lambda-runtime-server';
 import { uniqueId } from 'lodash';
 import { DevServer, Lifecycle } from '../server/dev-server';
 import path, { join } from 'path';
-import { mkdtempSync, readdirSync, stat, statSync } from 'fs';
-import { tmpdir } from 'os';
+import { readdirSync } from 'fs';
 
 export type ContainerRef = {
   name: string;
