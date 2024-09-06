@@ -5,7 +5,7 @@ import { GitService } from '../../cd/git';
 import { EnvService } from '../env';
 import { RUNTIME_SERVER_PORT } from '../aws/lambda/lambda-runtime-server';
 import { uniqueId } from 'lodash';
-import { DevServer, Lifecycle } from '../server/dev-server';
+import { DevServer } from '../server/dev-server';
 import path, { join } from 'path';
 import { readdirSync } from 'fs';
 import promiseRetry from 'promise-retry';
@@ -13,7 +13,6 @@ import promiseRetry from 'promise-retry';
 export type ContainerRef = {
   name: string;
   runtimeApi: string;
-  lifecycle$: BehaviorSubject<Lifecycle>;
   disposed?: boolean;
 };
 
@@ -84,7 +83,6 @@ export class ContainerPool extends DevServer {
           const containerRef: ContainerRef = {
             name: uniqueId(this.gitService.config.name),
             runtimeApi: `host.docker.internal:${RUNTIME_SERVER_PORT}`,
-            lifecycle$: new BehaviorSubject<Lifecycle>('stopped'),
           };
 
           this.pool.set(containerRef.name, containerRef);
@@ -126,7 +124,6 @@ export class ContainerPool extends DevServer {
           .catch(() => this.garbage$.next(containerRef));
       }),
       this.started$.subscribe(async (containerRef) => {
-        containerRef.lifecycle$.next('started');
         this.garbage$.next(containerRef);
         this.setConcurrency();
       }),
