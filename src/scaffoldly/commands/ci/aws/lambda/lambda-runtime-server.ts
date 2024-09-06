@@ -45,8 +45,7 @@ export class LambdaRuntimeServer extends HttpServer {
   constructor(
     private gitService: GitService,
     private containerPool: ContainerPool,
-    protected options: HttpServerOptions & { maxConcurrency: number } = {
-      maxConcurrency: 5,
+    protected options: HttpServerOptions = {
       timeout: 0,
     },
   ) {
@@ -54,7 +53,7 @@ export class LambdaRuntimeServer extends HttpServer {
 
     this.invocations$.subscribe((invocations) => {
       this.log(`Concurrent Invocations: ${invocations.length}`);
-      this.containerPool.setConcurrency(invocations.length, options.maxConcurrency);
+      this.containerPool.setConcurrency(invocations.length);
     });
 
     this.observeInvocations().subscribe({

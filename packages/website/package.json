@@ -62,7 +62,8 @@
     ],
     "generatedFiles": [
       ".docusaurus",
-      ".cache-loader"
+      ".cache-loader",
+      "node_modules/.cache"
     ],
     "services": [
       {

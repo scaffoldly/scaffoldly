@@ -46,4 +46,4 @@ COPY .entrypoint* /var/task/.entrypoint
 COPY --from=package-docusaurus /var/task/package.json /var/task/package.json
 COPY --from=package-docusaurus /var/task/build /var/task/build
 COPY --from=package-docusaurus /var/task/node_modules* /var/task/node_modules
-CMD [ "( serve build )" ]
+CMD [ "( docusaurus start )" ]

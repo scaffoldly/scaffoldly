@@ -116,6 +116,7 @@ export interface IScaffoldlyConfig extends IServiceConfig {
   get resources(): string[];
   get timeout(): number;
   get memorySize(): number;
+  get generatedFiles(): string[];
 }
 
 export type ServiceName = string;
@@ -468,5 +469,10 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
       return !this.ignoreFilter(relativePath);
     });
     return files;
+  }
+
+  get generatedFiles(): string[] {
+    const { generatedFiles = [] } = this.scaffoldly;
+    return generatedFiles;
   }
 }

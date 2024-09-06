@@ -6,8 +6,9 @@ import { EnvService } from '../env';
 import { RUNTIME_SERVER_PORT } from '../aws/lambda/lambda-runtime-server';
 import { uniqueId } from 'lodash';
 import { DevServer, Lifecycle } from '../server/dev-server';
-import { join } from 'path';
-import { readdirSync } from 'fs';
+import path, { join } from 'path';
+import { mkdtempSync, readdirSync, stat, statSync } from 'fs';
+import { tmpdir } from 'os';
 
 export type ContainerRef = {
   name: string;
@@ -63,7 +64,7 @@ export class ContainerPool extends DevServer {
     private gitService: GitService,
     dockerService: DockerService,
     private envService: EnvService,
-    protected readonly options = { lifetime: 900 },
+    protected readonly options = { lifetime: 900, maxConcurrency: 10 },
   ) {
     super('Container Pool', abortController);
     this.docker = dockerService.docker;
@@ -102,13 +103,10 @@ export class ContainerPool extends DevServer {
     this._imageName = name;
   }
 
-  setConcurrency(
-    desired = this.concurrency$.value.desired,
-    max = this.concurrency$.value.max,
-  ): void {
+  setConcurrency(desired = this.concurrency$.value.desired): void {
     const current = this.pool.size;
-    desired = Math.min(desired, max);
-    this.concurrency$.next({ current, desired, max });
+    desired = Math.min(desired, this.options.maxConcurrency);
+    this.concurrency$.next({ current, desired, max: this.options.maxConcurrency });
   }
 
   async start(): Promise<void> {
@@ -231,22 +229,33 @@ export class ContainerPool extends DevServer {
   }
 
   private get mounts(): Promise<Dockerode.MountSettings[]> {
-    const { src, ignoreFilter } = this.gitService.config;
+    const mountSettings: Dockerode.MountSettings[] = [];
+
+    const { src, ignoreFilter, generatedFiles } = this.gitService.config;
     const dir = join(this.gitService.cwd, src);
 
     const files = readdirSync(dir).filter((file) => {
       return ignoreFilter(file);
     });
 
-    return Promise.resolve(
-      files.map((file) => {
-        const settings: Dockerode.MountSettings = {
-          Type: 'bind',
-          Source: join(dir, file),
-          Target: `/var/task/${file}`,
-        };
-        return settings;
-      }),
-    );
+    files.forEach((file) => {
+      const settings: Dockerode.MountSettings = {
+        Type: 'bind',
+        Source: join(dir, file),
+        Target: `/var/task/${file}`,
+      };
+      mountSettings.push(settings);
+    });
+
+    generatedFiles.forEach((file) => {
+      const settings: Dockerode.MountSettings = {
+        Type: 'volume',
+        Source: `${this.imageName.replaceAll(':', '-')}-${file.replaceAll(path.sep, '-')}`,
+        Target: `/var/task/${file}`,
+      };
+      mountSettings.push(settings);
+    });
+
+    return Promise.resolve(mountSettings);
   }
 }
