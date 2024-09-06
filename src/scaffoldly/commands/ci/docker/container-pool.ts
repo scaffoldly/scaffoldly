@@ -8,6 +8,7 @@ import { uniqueId } from 'lodash';
 import { DevServer, Lifecycle } from '../server/dev-server';
 import path, { join } from 'path';
 import { readdirSync } from 'fs';
+import promiseRetry from 'promise-retry';
 
 export type ContainerRef = {
   name: string;
@@ -35,6 +36,10 @@ class DelayedSubject<T extends { disposed?: boolean }> extends Subject<T> {
 export type ContainerPoolMap = Map<string, ContainerRef>;
 
 export class ContainerPool extends DevServer {
+  private dockerAbortController = new AbortController();
+
+  private abortSignal = this.dockerAbortController.signal;
+
   protected readonly docker: Dockerode;
 
   private _imageName?: string;
@@ -137,6 +142,7 @@ export class ContainerPool extends DevServer {
   }
 
   async stop(): Promise<void> {
+    this.dockerAbortController.abort();
     this.subscriptions.forEach((s) => s.unsubscribe());
   }
 
@@ -146,29 +152,39 @@ export class ContainerPool extends DevServer {
       const mounts = await this.mounts;
       env.unshift(`AWS_LAMBDA_RUNTIME_API=${ref.runtimeApi}`);
 
-      const container = await this.docker.createContainer({
-        name: ref.name,
-        Hostname: ref.name,
-        Image: this.imageName,
-        AttachStderr: false, // TODO: Capture output
-        AttachStdout: false, // TODO: Capture output
-        AttachStdin: false,
-        Tty: false,
-        Env: env,
-        Cmd: [], // TODO
-        Entrypoint: ['.entrypoint'],
-        HostConfig: {
-          NetworkMode: 'bridge',
-          AutoRemove: true,
-          Mounts: mounts,
-          // Memory: 1024 * 1024 * 1024, // TODO
-        },
-        abortSignal: this.abortController.signal,
-      });
+      const container = await promiseRetry((retry) =>
+        this.docker
+          .createContainer({
+            name: ref.name,
+            Hostname: ref.name,
+            Image: this.imageName,
+            AttachStderr: false, // TODO: Capture output
+            AttachStdout: false, // TODO: Capture output
+            AttachStdin: false,
+            Tty: false,
+            Env: env,
+            Cmd: [], // TODO
+            Entrypoint: ['.entrypoint'],
+            abortSignal: this.abortSignal,
+            HostConfig: {
+              NetworkMode: 'bridge',
+              // TODO: AutoRemove doesn't seem to be working very well, some containers left unremoved
+              // AutoRemove: true,
+              Mounts: mounts,
+              // Memory: 1024 * 1024 * 1024, // TODO
+            },
+          })
+          .catch(async (e) => {
+            if ('statusCode' in e && e.statusCode === 409) {
+              return this.removeContainer(ref).then(() => retry(e));
+            }
+            throw e;
+          }),
+      );
 
       container.attach(
         {
-          abortSignal: this.abortController.signal,
+          abortSignal: this.abortSignal,
           stream: true,
           stdout: true,
           stderr: true,
@@ -203,7 +219,7 @@ export class ContainerPool extends DevServer {
   private async startContainer(ref: ContainerRef): Promise<ContainerRef> {
     try {
       const container = this.docker.getContainer(ref.name);
-      await container.start({ abortSignal: this.abortController.signal });
+      await container.start({ abortSignal: this.abortSignal });
     } catch (e) {
       this.warn('Unable to start container', { cause: e });
       throw new Error('Unable to start container', { cause: e });
@@ -215,7 +231,7 @@ export class ContainerPool extends DevServer {
   private async removeContainer(ref: ContainerRef): Promise<ContainerRef> {
     try {
       const container = this.docker.getContainer(ref.name);
-      await container.remove({ force: true, v: true, abortSignal: this.abortController.signal });
+      await container.remove({ force: true, v: true, abortSignal: this.abortSignal });
     } catch (e) {
       if ('statusCode' in e && e.statusCode === 409) {
         return ref;
