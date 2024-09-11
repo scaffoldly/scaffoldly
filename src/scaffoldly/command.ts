@@ -1,6 +1,5 @@
 import { hideBin } from 'yargs/helpers';
 import { isAxiosError } from 'axios';
-import { ShowCommand } from './commands/show';
 import inquirer, { Answers, QuestionCollection } from 'inquirer';
 import { NoTokenError } from './stores/scms';
 import { GithubHelper } from './helpers/githubHelper';
@@ -12,7 +11,7 @@ import { outputStream } from '../scaffoldly';
 import { BottomBar, isHeadless } from './ui';
 import Prompt from 'inquirer/lib/ui/prompt';
 import { DevCommand } from './commands/dev';
-import { DeployCommand, Preset } from './commands/deploy';
+import { DeployCommand, Preset, PRESETS } from './commands/deploy';
 import { GitService } from './commands/cd/git';
 
 export const ui = new BottomBar(process.stderr);
@@ -46,67 +45,67 @@ export class Command {
     const yargs = (await import('yargs')).default;
     const ya = yargs()
       .scriptName(this.messagesHelper.processName)
-      .command({
-        command: 'identity',
-        describe: `Show the current user identity`,
-        handler: ({ withToken }) =>
-          this.loginWrapper(
-            async () => {
-              const show = await new ShowCommand(
-                this.apiHelper,
-                this.messagesHelper,
-                this.gitService,
-              )
-                .withSubcommand('identity')
-                .withPreset();
-              return show.handle();
-            },
-            isHeadless(),
-            withToken as string | undefined,
-          ),
-        builder: {
-          withToken: {
-            demand: false,
-            type: 'string',
-            description: 'Use a provided GitHub Token',
-          },
-        },
-      })
-      .command({
-        command: 'dockerfile',
-        describe: `Show the generated dockerfile`,
-        handler: ({ withToken, preset }) =>
-          this.loginWrapper(
-            async () => {
-              const show = await new ShowCommand(
-                this.apiHelper,
-                this.messagesHelper,
-                this.gitService,
-              )
-                .withSubcommand('dockerfile')
+      .command('show', 'Display config, dockerfiles, etc.', (show) => {
+        show
+          .scriptName(this.messagesHelper.processName)
+          .command({
+            command: 'dockerfile',
+            describe: `Show the generated Dockerfile`,
+            handler: async ({ preset, development }) => {
+              const cmd = await new DeployCommand(this.gitService)
+                .withMode(development ? 'development' : undefined)
                 .withPreset(preset);
-              return show.handle();
+              return cmd.handle('dockerfile');
             },
-            isHeadless(),
-            withToken as string | undefined,
-          ),
-        builder: {
-          withToken: {
-            demand: false,
-            type: 'string',
-            description: 'Use a provided GitHub Token',
-          },
-          preset: {
-            demand: false,
-            type: 'string',
-            choices: ['nextjs'],
-            description: 'Use a preset configuration',
-          },
-        },
+            builder: {
+              preset: {
+                demand: false,
+                type: 'string',
+                choices: PRESETS,
+                nargs: 1,
+                description: 'Use a preset configuration',
+              },
+              development: {
+                demand: false,
+                type: 'boolean',
+                default: false,
+                requiresArg: false,
+                description: "Show in development mode. The 'dev' scripts will be used.",
+              },
+            },
+          })
+          .command({
+            command: 'config',
+            describe: `Show the effective configuration`,
+            handler: async ({ preset, development }) => {
+              const cmd = await new DeployCommand(this.gitService)
+                .withMode(development ? 'development' : undefined)
+                .withPreset(preset);
+              return cmd.handle('config');
+            },
+            builder: {
+              preset: {
+                demand: false,
+                type: 'string',
+                choices: PRESETS,
+                nargs: 1,
+                description: 'Use a preset configuration',
+              },
+              development: {
+                demand: false,
+                type: 'boolean',
+                default: false,
+                requiresArg: false,
+                description: "Show in development mode. The 'dev' scripts will be used.",
+              },
+            },
+          })
+          .help()
+          .wrap(null);
       })
       .command({
         command: 'dev',
-        describe: `Launch a development environment`,
+        describe: `[ALPHA FEATURE] Launch a development environment`,
         handler: ({ withToken, production, preset }) =>
           this.loginWrapper(
             async () => {
@@ -122,7 +121,9 @@ export class Command {
           withToken: {
             demand: false,
             type: 'string',
+            nargs: 1,
             description: 'Use a provided GitHub Token',
+            hidden: true,
           },
           production: {
             demand: false,
@@ -134,7 +135,8 @@ export class Command {
           preset: {
             demand: false,
             type: 'string',
-            choices: ['nextjs'],
+            choices: PRESETS,
+            nargs: 1,
             description: 'Use a preset configuration',
           },
         },
@@ -142,22 +144,24 @@ export class Command {
       .command({
         command: 'deploy',
         describe: `Deploy an environment`,
-        handler: ({ withToken, development, preset }) =>
-          this.loginWrapper(
-            async () => {
-              const deploy = await new DeployCommand(this.gitService)
-                .withMode(development ? 'development' : undefined)
-                .withPreset(preset as Preset | undefined);
-              return deploy.handle();
-            },
-            isHeadless(),
-            withToken as string | undefined,
-          ),
+        handler: (args) =>
+          this.loginWrapper(async () => {
+            const development = args.development as boolean | undefined;
+            const preset = args.preset as Preset | undefined;
+            const checkPermissions = args['check-permissions'] as boolean | undefined;
+            const deploy = await new DeployCommand(this.gitService)
+              .withMode(development ? 'development' : undefined)
+              .withOptions({ checkPermissions: checkPermissions || false })
+              .withPreset(preset as Preset | undefined);
+            return deploy.handle();
+          }, isHeadless()),
         builder: {
           withToken: {
             demand: false,
             type: 'string',
-            description: 'Use a provided GitHub token',
+            nargs: 1,
+            description: 'Use a provided GitHub token.',
+            hidden: true,
           },
           development: {
             demand: false,
@@ -169,8 +173,16 @@ export class Command {
           preset: {
             demand: false,
             type: 'string',
-            choices: ['nextjs'],
-            description: 'Use a preset configuration',
+            choices: PRESETS,
+            nargs: 1,
+            description: 'Use a preset configuration.',
+          },
+          'check-permissions': {
+            demand: false,
+            type: 'boolean',
+            default: false,
+            requiresArg: false,
+            description: 'Check permissions only. No changes will be made.',
           },
         },
       })

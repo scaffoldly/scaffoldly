@@ -66,6 +66,13 @@ export class SecretService implements IamConsumer {
               SecretBinary: consumer.secretValue,
             }),
           ),
+        emitPermissions: (aware) => {
+          aware.withPermissions([
+            'secretsmanager:CreateSecret',
+            'secretsmanager:PutSecretValue',
+            'secretsmanager:DescribeSecret',
+          ]);
+        },
       },
       (output) => {
         const arn = output.ARN;

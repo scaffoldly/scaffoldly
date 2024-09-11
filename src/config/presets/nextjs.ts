@@ -85,19 +85,24 @@ export class NextJsPreset {
   }
 
   get files(): Promise<string[]> {
-    const files = ['package.json', '.next', 'public'];
-    return Promise.all([this.nextOutput, this.lockfile]).then(([output, lockfile]) => {
-      if (!output) {
-        files.push('node_modules');
-      }
-      if (output === 'export') {
-        files.push('out');
-      }
-      if (lockfile) {
-        files.push(lockfile);
-      }
-      return files;
-    });
+    const files = ['package.json', '.next'];
+    return Promise.all([this.nextOutput, this.lockfile, this.public]).then(
+      ([output, lockfile, publicDir]) => {
+        if (!output) {
+          files.push('node_modules');
+        }
+        if (output === 'export') {
+          files.push('out');
+        }
+        if (lockfile) {
+          files.push(lockfile);
+        }
+        if (publicDir) {
+          files.push(publicDir);
+        }
+        return files;
+      },
+    );
   }
 
   get lockfile(): Promise<string | undefined> {
@@ -109,6 +114,13 @@ export class NextJsPreset {
     }
     if (existsSync(join(this.cwd, 'package-lock.json'))) {
       return Promise.resolve('package-lock.json');
+    }
+    return Promise.resolve(undefined);
+  }
+
+  get public(): Promise<string | undefined> {
+    if (existsSync(join(this.cwd, 'public'))) {
+      return Promise.resolve('public');
     }
     return Promise.resolve(undefined);
   }

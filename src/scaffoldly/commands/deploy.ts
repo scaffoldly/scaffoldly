@@ -10,6 +10,7 @@ import { filesize } from 'filesize';
 import { Mode } from '../../config';
 
 export type Preset = 'nextjs';
+export const PRESETS: Preset[] = ['nextjs'];
 
 export class DeployCommand extends CdCommand<DeployCommand> {
   envService: EnvService;
@@ -44,27 +45,56 @@ export class DeployCommand extends CdCommand<DeployCommand> {
     return this;
   }
 
-  async handle(): Promise<void> {
-    await this._handle(this.status, this.options);
-  }
-
-  private async _handle(status: DeployStatus, options?: ResourceOptions): Promise<void> {
-    options = options || {};
-
+  async handle(subcommand?: 'dockerfile' | 'config'): Promise<void> {
+    this.options = this.options || {};
+    this.options.permissionsAware = this;
     this.gitService.setConfig(this.config);
 
-    if (options.dev) {
+    if (this.options.dev) {
       this.dockerService.dockerCiService.withIgnoredFiles(this.config.ignoredFiles);
     }
 
-    await this.gitService.predeploy(status, options);
-    await this.awsService.predeploy(status, options);
-    await this.awsService.deploy(status, options);
+    if (subcommand === 'dockerfile') {
+      ui.updateBottomBar('Generating Dockerfile...');
+      const dockerfile = await this.dockerService.dockerCiService.generateDockerfile(
+        this.gitService.config,
+      );
+      ui.updateBottomBar('');
+      return console.log(dockerfile.dockerfile);
+    }
+
+    if (subcommand === 'config') {
+      return console.log(JSON.stringify(this.gitService.config.scaffoldly, null, 2));
+    }
+
+    if (!subcommand) {
+      return this._handle(this.status);
+    }
+  }
+
+  private async _handle(status: DeployStatus): Promise<void> {
+    if (this.options.checkPermissions) {
+      ui.updateBottomBar('Checking Permissions');
+    }
+
+    await this.gitService.predeploy(status, this.options);
+    await this.awsService.predeploy(status, this.options);
+    await this.awsService.deploy(status, this.options);
 
     ui.updateBottomBar('');
     if (isDebug()) {
       console.table(status);
     }
+
+    if (this.options.checkPermissions) {
+      console.log('');
+      console.log('🔐 The following policy is needed for deployment:');
+      console.log('');
+      console.log(JSON.stringify(this.awsPolicyDocument, null, 2));
+      console.log('');
+      return console.log('📖 See: https://scaffoldly.dev/docs/cloud/aws');
+    }
+
     console.log('');
     console.log('🚀 Deployment Complete!');
     console.log(`   📄 Env Files: ${status.envFiles?.join(', ')}`);

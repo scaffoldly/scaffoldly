@@ -152,6 +152,9 @@ export class ScheduleService implements IamConsumer {
             new CreateScheduleGroupCommand({ Name: this.gitService.config.name }),
           );
         },
+        emitPermissions: (aware) => {
+          aware.withPermissions(['scheduler:CreateScheduleGroup', 'scheduler:GetScheduleGroup']);
+        },
       },
       (existing) => {
         return { scheduleGroup: existing.Name };
@@ -243,6 +246,14 @@ export class ScheduleService implements IamConsumer {
               ),
             ),
           ),
+        emitPermissions: (aware) => {
+          aware.withPermissions([
+            'scheduler:ListSchedules',
+            'scheduler:CreateSchedule',
+            'scheduler:UpdateSchedule',
+            'scheduler:DeleteSchedule',
+          ]);
+        },
       },
       (existing) => {
         return {
@@ -329,6 +340,9 @@ export class ScheduleService implements IamConsumer {
                 invokeOutput = parseOutput(response);
                 return invokeOutput;
               }),
+          emitPermissions: (aware) => {
+            aware.withPermissions(['lambda:InvokeFunction']);
+          },
         },
         (output) => output,
       ).manage(options);

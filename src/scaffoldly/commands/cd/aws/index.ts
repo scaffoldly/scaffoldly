@@ -45,10 +45,14 @@ export class AwsService {
   }
 
   async predeploy(status: DeployStatus, options: ResourceOptions): Promise<void> {
-    // TODO Check if auth'd to AWS
+    // Check Identity and Permissions
+    await this.iamService.identity(options);
 
     // Deploy ECR
     await this.ecrService.predeploy(status, options);
+
+    // Deploy Docker
+    await this.dockerService.predeploy(status, this.ecrService, options);
 
     // Deploy Secret
     await this.secretService.predeploy(status, this.gitService.config, options);

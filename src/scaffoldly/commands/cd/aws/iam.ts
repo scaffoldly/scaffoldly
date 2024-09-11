@@ -10,6 +10,12 @@ import {
   // eslint-disable-next-line import/named
   GetRolePolicyCommandOutput,
 } from '@aws-sdk/client-iam';
+import {
+  GetCallerIdentityCommand,
+  // eslint-disable-next-line import/named
+  GetCallerIdentityCommandOutput,
+  STSClient,
+} from '@aws-sdk/client-sts';
 import { CloudResource, ResourceOptions } from '..';
 import { SecretDeployStatus } from './secret';
 import { GitService } from '../git';
@@ -47,6 +53,9 @@ export type PolicyDocument = {
     Effect: 'Allow';
     Action: string[];
     Resource: string[];
+    Condition?: {
+      StringEquals?: Record<string, string | string[]>;
+    };
   }[];
 };
 
@@ -67,8 +76,63 @@ export interface IamConsumer {
 export class IamService {
   iamClient: IAMClient;
 
+  stsClient: STSClient;
+
   constructor(private gitService: GitService) {
     this.iamClient = new IAMClient();
+    this.stsClient = new STSClient();
+  }
+
+  public async identity(options: ResourceOptions): Promise<void> {
+    if (options.checkPermissions) {
+      // Pin to us-east-1 for permission check
+      this.stsClient = new STSClient({ region: 'us-east-1' });
+    }
+
+    await new CloudResource<
+      { account: string; arn: string; userId: string },
+      GetCallerIdentityCommandOutput
+    >(
+      {
+        describe: (resource) => {
+          return { type: 'Identity', label: resource.userId };
+        },
+        read: () =>
+          this.stsClient.send(new GetCallerIdentityCommand({})).catch((e) => {
+            if (!(e instanceof Error)) {
+              throw e;
+            }
+
+            if (options.checkPermissions) {
+              return {
+                $metadata: {},
+                Account: undefined,
+                Arn: undefined,
+                UserId: undefined,
+              };
+            }
+
+            if (e.message === 'Region is missing' || e.name === 'CredentialsProviderError') {
+              throw new Error(`AWS credentials are missing. Please do one of the following:
+- Run 'aws configure' to set the default credentials.
+- Set the AWS_REGION, AWS_ACCESS_KEY_ID, and AWS_SECRET_ACCESS_KEY environment variables.
+- Set the AWS_PROFILE environment variable to select the correct profile.
+
+💡 Add the \`--check-permissions\` option to show the necessary AWS permissions
+
+📖 See: https://scaffoldly.dev/docs/cloud/aws`);
+            }
+            throw new Error('Unable to get identity', { cause: e });
+          }),
+      },
+      (output) => {
+        return {
+          accountId: output.Account,
+          arn: output.Arn,
+          userId: output.UserId,
+        };
+      },
+    ).manage({ ...options, checkPermissions: false });
   }
 
   public async predeploy(
@@ -112,6 +176,9 @@ export class IamService {
               PolicyDocument: JSON.stringify(trustRelationship),
             }),
           ),
+        emitPermissions: (aware) => {
+          aware.withPermissions(['iam:CreateRole', 'iam:GetRole', 'iam:UpdateAssumeRolePolicy']);
+        },
       },
       (output) => {
         return {
@@ -150,6 +217,9 @@ export class IamService {
               PolicyDocument: JSON.stringify(policyDocument),
             }),
           ),
+        emitPermissions: (aware) => {
+          aware.withPermissions(['iam:PutRolePolicy', 'iam:GetRolePolicy']);
+        },
       },
       (output) => {
         return {

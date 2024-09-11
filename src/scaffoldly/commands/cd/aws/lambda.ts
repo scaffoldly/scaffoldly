@@ -99,14 +99,7 @@ export class LambdaService implements IamConsumer {
       },
     };
 
-    let { repositoryUri, imageDigest } = status;
-    if (!repositoryUri || !imageDigest) {
-      // Use the Hello World Image if either is unknown, it's the initial deploy
-      // TODO: multi-platform builds for hello world
-      // TODO: Ship a better hello world image
-      repositoryUri = '557208059266.dkr.ecr.us-east-1.amazonaws.com/scaffoldly-hello-world';
-      imageDigest = 'sha256:3b5a30e673defa489f2bbb0ed36b558dd22ecc866eaa37a1b81713e32d55560c';
-    }
+    const { repositoryUri, imageDigest } = status;
 
     const configuration = await new CloudResource<FunctionConfiguration, GetFunctionCommandOutput>(
       {
@@ -153,6 +146,13 @@ export class LambdaService implements IamConsumer {
               Environment: desired.Configuration?.Environment,
             }),
           ),
+        emitPermissions: (aware) => {
+          aware.withPermissions([
+            'lambda:CreateFunction',
+            'lambda:GetFunction',
+            'lambda:UpdateFunctionConfiguration',
+          ]);
+        },
       },
       (output) => output?.Configuration,
     ).manage(
@@ -212,6 +212,9 @@ export class LambdaService implements IamConsumer {
             }),
           );
         },
+        emitPermissions: (aware) => {
+          aware.withPermissions(['lambda:CreateAlias', 'lambda:GetAlias', 'lambda:UpdateAlias']);
+        },
       },
       (output) => output,
     ).manage(options);
@@ -257,6 +260,13 @@ export class LambdaService implements IamConsumer {
               Qualifier: status.functionQualifier,
             }),
           ),
+        emitPermissions: (aware) => {
+          aware.withPermissions([
+            'lambda:CreateFunctionUrlConfig',
+            'lambda:GetFunctionUrlConfig',
+            'lambda:UpdateFunctionUrlConfig',
+          ]);
+        },
       },
       (output) => {
         return { functionUrl: new URL(output.FunctionUrl || '').origin };
@@ -317,6 +327,9 @@ export class LambdaService implements IamConsumer {
               .map((request) => this.lambdaClient.send(new AddPermissionCommand(request))),
           );
         },
+        emitPermissions: (aware) => {
+          aware.withPermissions(['lambda:AddPermission', 'lambda:GetPolicy']);
+        },
       },
       (output) => {
         return { policy: JSON.parse(output.Policy || '{}') };
@@ -333,13 +346,10 @@ export class LambdaService implements IamConsumer {
     }
 
     const { imageDigest } = status;
-    if (!imageDigest) {
-      throw new Error('Missing image digest');
-    }
 
     const desired: Partial<GetFunctionCommandOutput> = {
       Code: {
-        ImageUri: `${status.repositoryUri}@${imageDigest}`,
+        ImageUri: `${status.repositoryUri}@${imageDigest || 'latest'}`,
       },
       Configuration: {
         LastUpdateStatus: 'Successful',
@@ -376,6 +386,9 @@ export class LambdaService implements IamConsumer {
               status.functionVersion = response.Version;
               return response;
             }),
+        emitPermissions: (aware) => {
+          aware.withPermissions(['lambda:UpdateFunctionCode', 'lambda:GetFunction']);
+        },
       },
       (output) => {
         return {

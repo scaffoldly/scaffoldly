@@ -21,6 +21,15 @@ export class DockerService {
     return this.dockerCiService.platform;
   }
 
+  public async predeploy(
+    status: EcrDeployStatus & DockerDeployStatus,
+    consumer: RegistryAuthConsumer,
+    options: ResourceOptions,
+  ): Promise<void> {
+    // Do an initial push to get a valid image digest
+    await this.push(status, consumer, options);
+  }
+
   public async deploy(
     status: DockerDeployStatus & EcrDeployStatus & EnvDeployStatus & LambdaDeployStatus,
     consumer: RegistryAuthConsumer,
@@ -57,14 +66,10 @@ export class DockerService {
     status.imageTag = imageTag;
     status.imageName = imageName;
     status.imageSize = imageSize;
-
-    if (!imageName) {
-      throw new Error('Missing image name');
-    }
   }
 
   async push(
-    status: DockerDeployStatus,
+    status: DockerDeployStatus & EcrDeployStatus,
     consumer: RegistryAuthConsumer,
     options: ResourceOptions,
   ): Promise<void> {
@@ -80,10 +85,15 @@ export class DockerService {
           return { type: 'Image Digest', label: resource.imageDigest };
         },
         read: () => {
-          return this.dockerCiService.describePush();
+          return this.dockerCiService.describePush(this.gitService.config);
         },
         update: (resource) => {
-          return this.dockerCiService.push(resource.imageName, authConfig);
+          return this.dockerCiService.push(
+            this.gitService.config,
+            status.repositoryUri,
+            resource.imageName,
+            authConfig,
+          );
         },
       },
       (existing) => existing,

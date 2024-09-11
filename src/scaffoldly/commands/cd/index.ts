@@ -35,6 +35,9 @@ export type ResourceOptions = {
   retries?: number;
   notify?: (message: string, level?: 'notice' | 'error') => void;
   dev?: boolean;
+  checkPermissions?: boolean;
+  dryRun?: boolean;
+  permissionsAware?: PermissionAware;
 };
 
 export type ResourceExtractor<Resource, ReadCommandOutput> = (
@@ -53,6 +56,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
       create?: () => Promise<unknown>;
       update?: (resource: Partial<Resource>) => Promise<unknown>;
       dispose?: (resource: Partial<Resource>) => Promise<unknown>;
+      emitPermissions?: (aware: PermissionAware) => void;
     },
     private readonly resourceExtractor: ResourceExtractor<Resource, ReadCommandOutput>,
   ) {}
@@ -81,6 +85,15 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
     options: ResourceOptions,
     desired?: Partial<ReadCommandOutput>,
   ): Promise<Partial<Resource>> {
+    const { emitPermissions } = this.requests;
+    if (emitPermissions && options.permissionsAware) {
+      emitPermissions(options.permissionsAware);
+    }
+
+    if (options.checkPermissions) {
+      return {} as Partial<Resource>;
+    }
+
     this.logResource('Reading', {}, options);
     let existing = await this.read(options);
 
@@ -111,6 +124,10 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
 
   public async dispose(): Promise<Partial<Resource>> {
     const existing = await this;
+
+    if (this.options.checkPermissions) {
+      return {} as Partial<Resource>;
+    }
 
     if (!existing) {
       return {} as Partial<Resource>;
@@ -346,4 +363,10 @@ export abstract class CdCommand<T> extends Command<T> {
   constructor(public readonly cwd: string, mode: Mode) {
     super(cwd, mode);
   }
+}
+
+export interface PermissionAware {
+  withPermissions(permissions: string[]): void;
+
+  get permissions(): string[];
 }

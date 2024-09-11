@@ -88,16 +88,19 @@ export class GitService {
         return remotes.find((r) => r.name === 'origin');
       })
       .then((remote) =>
-        this.git.remote(['show', remote?.name || 'origin']).then((show) => {
-          if (!show) {
-            return undefined;
-          }
-          const details = show.match(/HEAD branch: (.+)/);
-          if (!details || details.length < 2) {
-            return undefined;
-          }
-          return details[1].trim();
-        }),
+        this.git
+          .remote(['show', remote?.name || 'origin'])
+          .then((show) => {
+            if (!show) {
+              return undefined;
+            }
+            const details = show.match(/HEAD branch: (.+)/);
+            if (!details || details.length < 2) {
+              return undefined;
+            }
+            return details[1].trim();
+          })
+          .catch(() => undefined),
       );
   }
 

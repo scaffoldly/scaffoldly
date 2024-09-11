@@ -3,15 +3,19 @@ import { Mode, PackageJson, ScaffoldlyConfig } from '../../config';
 import { readFileSync } from 'fs';
 import { Preset } from './deploy';
 import { NextJsPreset } from '../../config/presets/nextjs';
+import { PermissionAware } from './cd';
+import { PolicyDocument } from './cd/aws/iam';
 
 export type Cwd = string;
 
-export abstract class Command<T> {
+export abstract class Command<T> implements PermissionAware {
   private _config?: ScaffoldlyConfig;
+
+  private _permissions: string[] = [];
 
   constructor(public readonly cwd: string, private _mode: Mode) {}
 
-  abstract handle(): Promise<void>;
+  abstract handle(subcommand?: string): Promise<void>;
 
   get packageJson(): PackageJson | undefined {
     try {
@@ -55,7 +59,7 @@ export abstract class Command<T> {
           this._mode,
         );
       } catch (e) {
-        throw new Error('Unable to create a Scaffoldly Config.', {
+        throw new Error('Unable to locate scaffoldly configuration', {
           cause: e,
         });
       }
@@ -64,5 +68,36 @@ export abstract class Command<T> {
       throw new Error('No Scaffoldly Config Found');
     }
     return this._config;
+  }
+
+  withPermissions(permissions: string[]): void {
+    this._permissions = [...this._permissions, ...permissions];
+  }
+
+  get permissions(): string[] {
+    return [...new Set(this._permissions)].sort();
+  }
+
+  get awsPolicyDocument(): PolicyDocument {
+    return {
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Effect: 'Allow',
+          Action: ['iam:PassRole'],
+          Resource: ['*'],
+          Condition: {
+            StringEquals: {
+              'iam:PassedToService': ['lambda.amazonaws.com', 'scheduler.amazonaws.com'],
+            },
+          },
+        },
+        {
+          Effect: 'Allow',
+          Action: this.permissions,
+          Resource: ['*'],
+        },
+      ],
+    };
   }
 }

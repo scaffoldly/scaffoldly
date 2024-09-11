@@ -44,6 +44,22 @@ export class EcrService implements RegistryAuthConsumer {
         read: () =>
           this.ecrClient.send(new DescribeRepositoriesCommand({ repositoryNames: [name] })),
         create: () => this.ecrClient.send(new CreateRepositoryCommand({ repositoryName: name })),
+        emitPermissions: (aware) => {
+          aware.withPermissions([
+            'ecr:CreateRepository',
+            'ecr:DescribeRepositories',
+            'ecr:GetAuthorizationToken',
+            'ecr:InitiateLayerUpload',
+            'ecr:UploadLayerPart',
+            'ecr:CompleteLayerUpload',
+            'ecr:DescribeImages',
+            'ecr:PutImage',
+            'ecr:ListImages',
+            'ecr:BatchCheckLayerAvailability',
+            'ecr:BatchGetImage',
+            'ecr:GetDownloadUrlForLayer',
+          ]);
+        },
       },
       (output) => {
         return (output.repositories || []).find((r) => r.repositoryName === name);
@@ -54,34 +70,45 @@ export class EcrService implements RegistryAuthConsumer {
   }
 
   get authConfig(): Promise<AuthConfig> {
-    return this.ecrClient.send(new GetAuthorizationTokenCommand({})).then((response) => {
-      if (!response.authorizationData || response.authorizationData.length === 0) {
-        throw new NotFoundException('Repository not found');
-      }
+    return this.ecrClient
+      .send(new GetAuthorizationTokenCommand({}))
+      .then((response) => {
+        if (!response.authorizationData || response.authorizationData.length === 0) {
+          throw new NotFoundException('Repository not found');
+        }
 
-      const [authorizationData] = response.authorizationData;
-      if (!authorizationData) {
-        throw new NotFoundException('Unable to get authorization data from ECR');
-      }
+        const [authorizationData] = response.authorizationData;
+        if (!authorizationData) {
+          throw new NotFoundException('Unable to get authorization data from ECR');
+        }
 
-      const { authorizationToken, proxyEndpoint } = authorizationData;
-      if (!authorizationToken) {
-        throw new NotFoundException('Unable to get authorization token from ECR');
-      }
+        const { authorizationToken, proxyEndpoint } = authorizationData;
+        if (!authorizationToken) {
+          throw new NotFoundException('Unable to get authorization token from ECR');
+        }
 
-      if (!proxyEndpoint) {
-        throw new NotFoundException('Unable to get proxy endpoint from ECR');
-      }
+        if (!proxyEndpoint) {
+          throw new NotFoundException('Unable to get proxy endpoint from ECR');
+        }
 
-      const [username, password] = Buffer.from(authorizationToken, 'base64')
-        .toString('utf-8')
-        .split(':');
+        const [username, password] = Buffer.from(authorizationToken, 'base64')
+          .toString('utf-8')
+          .split(':');
 
-      return {
-        username,
-        password,
-        serveraddress: proxyEndpoint,
-      };
-    });
+        return {
+          username,
+          password,
+          serveraddress: proxyEndpoint,
+        };
+      })
+      .catch((e) => {
+        if (!(e instanceof Error)) {
+          throw e;
+        }
+        if (e.message === 'Region is missing' || e.name === 'CredentialsProviderError') {
+          return {};
+        }
+        throw e;
+      });
   }
 }

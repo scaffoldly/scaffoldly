@@ -192,7 +192,9 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
         throw new Error('Missing `version` in package.json');
       }
       if (!scaffoldly) {
-        throw new Error('Missing `scaffoldly` in package.json');
+        throw new Error(
+          'Missing `scaffoldly` in package.json.\n\nTry using the `--preset` option for a common configuration.\n\n📖 See: https://scaffoldly.dev/docs/config/presets',
+        );
       }
       this.scaffoldly = scaffoldly;
       this._name = name;

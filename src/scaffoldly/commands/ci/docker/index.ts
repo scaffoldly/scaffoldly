@@ -190,6 +190,7 @@ export class DockerService {
     config: ScaffoldlyConfig,
     env?: Record<string, string>,
   ): Promise<{ dockerfile: string; stages: DockerStages }> {
+    this._platform = await this.getPlatform(config.runtimes, 'match-host');
     const stages = await this.createStages(config, env);
 
     if (isDebug()) {
@@ -678,13 +679,25 @@ export class DockerService {
     return dockerfile;
   };
 
-  public async describePush(): Promise<PushInfo> {
+  public async describePush(config: ScaffoldlyConfig): Promise<PushInfo> {
+    if (!this._platform) {
+      this._platform = await this.getPlatform(config.runtimes, 'match-host');
+    }
     return { imageName: this.imageName, imageDigest: this.imageDigest };
   }
 
-  public async push(imageName?: string, authConfig?: AuthConfig): Promise<{ imageDigest: string }> {
+  public async push(
+    config: ScaffoldlyConfig,
+    repositoryUri?: string,
+    imageName?: string,
+    authConfig?: AuthConfig,
+  ): Promise<{ imageDigest?: string }> {
     if (!imageName) {
-      throw new Error('Missing image name');
+      // Image name isn't set yet, likely because we're in predeploy
+      // Grab runtimes[0] and set that as the image name
+      const image = this.docker.getImage(config.runtimes[0]);
+      await image.tag({ repo: repositoryUri || config.name, tag: 'predeploy' });
+      imageName = `${repositoryUri || config.name}:predeploy`;
     }
 
     const image = this.docker.getImage(imageName);
