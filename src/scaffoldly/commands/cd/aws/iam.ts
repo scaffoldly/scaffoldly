@@ -95,7 +95,7 @@ export class IamService {
     >(
       {
         describe: (resource) => {
-          return { type: 'Identity', label: resource.userId };
+          return { type: 'Identity', label: resource.arn || 'known after read' };
         },
         read: () =>
           this.stsClient.send(new GetCallerIdentityCommand({})).catch((e) => {
@@ -147,7 +147,7 @@ export class IamService {
     const { name } = this.gitService.config;
     const { uniqueId } = status;
 
-    const roleName = `${name}-${uniqueId}`;
+    const roleName = `${name}-${uniqueId || '[computed]'}`;
 
     const trustRelationship = mergeTrustRelationships(
       consumers.map((consumer) => consumer.trustRelationship),
@@ -159,7 +159,7 @@ export class IamService {
     >(
       {
         describe: (resource) => {
-          return { type: 'IAM Role', label: resource.roleName };
+          return { type: 'IAM Role', label: resource.roleName || roleName };
         },
         read: () => this.iamClient.send(new GetRoleCommand({ RoleName: roleName })),
         create: () =>
@@ -197,7 +197,7 @@ export class IamService {
     await new CloudResource<{ roleName: string; policyName: string }, GetRolePolicyCommandOutput>(
       {
         describe: (resource) => {
-          return { type: 'IAM Role Policy', label: resource.policyName };
+          return { type: 'IAM Role Policy', label: resource.policyName || name };
         },
         read: () =>
           this.iamClient.send(new GetRolePolicyCommand({ RoleName: roleName, PolicyName: name })),

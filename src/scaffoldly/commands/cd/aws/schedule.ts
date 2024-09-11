@@ -138,7 +138,10 @@ export class ScheduleService implements IamConsumer {
     >(
       {
         describe: (resource) => {
-          return { type: 'Schedule Group', label: resource.scheduleGroup };
+          return {
+            type: 'Schedule Group',
+            label: resource.scheduleGroup || this.gitService.config.name,
+          };
         },
         read: () =>
           this.schedulerClient.send(
@@ -187,7 +190,13 @@ export class ScheduleService implements IamConsumer {
     await new CloudResource<{ schedules: string[] }, ListSchedulesCommandOutput>(
       {
         describe: (resource) => {
-          return { type: 'Schedules', label: resource.schedules?.join(', ') };
+          return {
+            type: 'Schedules',
+            label:
+              resource.schedules?.join(', ') ||
+              desiredSchedules.map(([schedule]) => schedule).join(', ') ||
+              'None',
+          };
         },
         read: () =>
           this.schedulerClient.send(new ListSchedulesCommand({ GroupName: status.scheduleGroup })),
@@ -317,9 +326,9 @@ export class ScheduleService implements IamConsumer {
             const type = 'Invocation for @immediately';
             if (resource.failed) {
               // Don't show lines they will be in the error when it's outputted
-              return { type };
+              return { type, label: '' };
             }
-            return { type, label: resource.lines?.join('\n') };
+            return { type, label: resource.lines?.join('\n') || '' };
           },
           read: () => {
             if (!invokeOutput) {

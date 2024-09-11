@@ -51,7 +51,7 @@ export class SecretService implements IamConsumer {
     >(
       {
         describe: (resource) => {
-          return { type: 'Secret', label: resource.secretId };
+          return { type: 'Secret', label: resource.secretId || secretName };
         },
         read: () =>
           this.secretsManagerClient.send(new DescribeSecretCommand({ SecretId: secretName })),

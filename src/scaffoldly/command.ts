@@ -149,9 +149,10 @@ export class Command {
             const development = args.development as boolean | undefined;
             const preset = args.preset as Preset | undefined;
             const checkPermissions = args['check-permissions'] as boolean | undefined;
+            const dryrun = args.dryrun as boolean | undefined;
             const deploy = await new DeployCommand(this.gitService)
               .withMode(development ? 'development' : undefined)
-              .withOptions({ checkPermissions: checkPermissions || false })
+              .withOptions({ checkPermissions: checkPermissions || false, dryRun: dryrun || false })
               .withPreset(preset as Preset | undefined);
             return deploy.handle();
           }, isHeadless()),
@@ -183,6 +184,13 @@ export class Command {
             default: false,
             requiresArg: false,
             description: 'Check permissions only. No changes will be made.',
+          },
+          dryrun: {
+            demand: false,
+            type: 'boolean',
+            default: false,
+            requiresArg: false,
+            description: 'Dry run mode. Propsed changes will be displayed.',
           },
         },
       })

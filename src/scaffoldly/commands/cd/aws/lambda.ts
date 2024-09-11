@@ -182,7 +182,7 @@ export class LambdaService implements IamConsumer {
         describe: (resource) => {
           return {
             type: 'Function Alias',
-            label: `${alias} (version: ${resource.FunctionVersion})`,
+            label: `${alias} (version: ${resource.FunctionVersion || '[computed]'})`,
           };
         },
         read: () =>
@@ -233,7 +233,10 @@ export class LambdaService implements IamConsumer {
     >(
       {
         describe: (resource) => {
-          return { type: 'Function URL', label: resource.functionUrl };
+          return {
+            type: 'Function URL',
+            label: resource.functionUrl || '[computed]',
+          };
         },
         read: () =>
           this.lambdaClient.send(
@@ -300,7 +303,9 @@ export class LambdaService implements IamConsumer {
         describe: (resource) => {
           return {
             type: 'Function Policies',
-            label: `${resource.policy?.Statement?.map((s) => s.Sid)}`,
+            label: (
+              resource.policy?.Statement?.map((s) => s.Sid) || requests.map((r) => r.StatementId)
+            ).join(', '),
           };
         },
         read: () =>
@@ -363,7 +368,10 @@ export class LambdaService implements IamConsumer {
     >(
       {
         describe: (resource) => {
-          return { type: 'Function Code', label: resource.imageUri?.split('/').pop() };
+          return {
+            type: 'Function Code',
+            label: resource.imageUri?.split('/').pop() || '[computed]',
+          };
         },
         read: () =>
           this.lambdaClient.send(

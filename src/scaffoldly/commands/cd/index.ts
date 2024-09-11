@@ -51,7 +51,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
 
   constructor(
     public readonly requests: {
-      describe: (resource: Partial<Resource>) => { type: string; label?: string };
+      describe: (resource: Partial<Resource>) => { type: string; label: string };
       read: () => Promise<ReadCommandOutput>;
       create?: () => Promise<unknown>;
       update?: (resource: Partial<Resource>) => Promise<unknown>;
@@ -116,6 +116,9 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
     }
 
     if (!existing) {
+      if (options.dryRun) {
+        return {} as Partial<Resource>;
+      }
       throw new Error('Failed to manage resource');
     }
 
@@ -184,6 +187,9 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
 
           return resource;
         } catch (e) {
+          if (options.dryRun) {
+            return undefined;
+          }
           if (e instanceof NotFoundException) {
             return undefined;
           }
@@ -224,10 +230,28 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
       return undefined;
     }
 
-    const created = await promiseRetry((retry) => create().catch(retry), {
-      retries: options.retries !== Infinity ? options.retries || 0 : 0,
-      forever: options.retries === Infinity,
-    });
+    if (options.dryRun) {
+      return undefined;
+    }
+
+    const created = await promiseRetry(
+      (retry) =>
+        create().catch((e) => {
+          if (
+            '$metadata' in e &&
+            'httpStatusCode' in e.$metadata &&
+            (e.$metadata.httpStatusCode === 403 || e.$metadata.httpStatusCode === 401)
+          ) {
+            throw e;
+          }
+
+          return retry(e);
+        }),
+      {
+        retries: options.retries !== Infinity ? options.retries || 0 : 0,
+        forever: options.retries === Infinity,
+      },
+    );
 
     if (isDebug() && created) {
       console.log(`   --> [CREATED]`, created);
@@ -248,10 +272,28 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
       return existing;
     }
 
-    const updated = await promiseRetry((retry) => update(existing).catch(retry), {
-      retries: options.retries !== Infinity ? options.retries || 0 : 0,
-      forever: options.retries === Infinity,
-    });
+    if (options.dryRun) {
+      return existing;
+    }
+
+    const updated = await promiseRetry(
+      (retry) =>
+        update(existing).catch((e) => {
+          if (
+            '$metadata' in e &&
+            'httpStatusCode' in e.$metadata &&
+            (e.$metadata.httpStatusCode === 403 || e.$metadata.httpStatusCode === 401)
+          ) {
+            throw e;
+          }
+
+          return retry(e);
+        }),
+      {
+        retries: options.retries !== Infinity ? options.retries || 0 : 0,
+        forever: options.retries === Infinity,
+      },
+    );
 
     if (isDebug() && updated) {
       console.log(`   --> [UPDATED]`, updated);
@@ -268,6 +310,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
     options: ResourceOptions,
   ): void {
     let verb:
+      | '✨'
       | 'Reading'
       | 'Creating'
       | 'Created'
@@ -310,17 +353,36 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
       label = description.label;
     }
 
+    if (options.dryRun) {
+      switch (action) {
+        case 'Created':
+        case 'Updated':
+          verb = '✨';
+          emoji = '';
+          break;
+      }
+    }
+
     const message = `${verb} ${type}`;
     let resourceMessage = '';
 
-    if (!resource) {
-      resourceMessage = 'Unknown Resource';
-    } else if (typeof resource === 'string') {
+    if (typeof resource === 'string') {
       resourceMessage = resource;
     } else if (resource instanceof Error) {
       resourceMessage = resource.message;
     } else if (label) {
       resourceMessage = label;
+    }
+
+    if (options.dryRun) {
+      switch (action) {
+        case 'Created':
+          resourceMessage = `${resourceMessage} (would be created)`;
+          break;
+        case 'Updated':
+          resourceMessage = `${resourceMessage} (would be updated)`;
+          break;
+      }
     }
 
     let messageOutput = message;
@@ -336,6 +398,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
     }
 
     switch (verb) {
+      case '✨':
       case 'Created':
       case 'Updated':
       case 'Failed to Create':
@@ -354,7 +417,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
     }
 
     if (resource instanceof Error) {
-      throw new Error(messageOutput, { cause: resource });
+      throw new Error('Unable to manage resource', { cause: resource });
     }
   }
 }

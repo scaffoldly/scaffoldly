@@ -39,7 +39,7 @@ export class EcrService implements RegistryAuthConsumer {
     const repository = await new CloudResource<Repository, DescribeRepositoriesCommandOutput>(
       {
         describe: (resource) => {
-          return { type: 'ECR Repository', label: resource.repositoryName };
+          return { type: 'ECR Repository', label: resource.repositoryName || name };
         },
         read: () =>
           this.ecrClient.send(new DescribeRepositoriesCommand({ repositoryNames: [name] })),
@@ -58,6 +58,9 @@ export class EcrService implements RegistryAuthConsumer {
             'ecr:BatchCheckLayerAvailability',
             'ecr:BatchGetImage',
             'ecr:GetDownloadUrlForLayer',
+            'ecr:DescribeRegistry',
+            'ecr:GetRepositoryPolicy',
+            'ecr:SetRepositoryPolicy',
           ]);
         },
       },

@@ -46,7 +46,7 @@ export class DockerService {
     const { imageName, imageTag, imageSize } = await new CloudResource<BuildInfo, BuildInfo>(
       {
         describe: (resource) => {
-          return { type: 'Image', label: resource.imageName };
+          return { type: 'Local Image', label: resource.imageName || '[computed]' };
         },
         read: () => {
           return this.dockerCiService.describeBuild(this.gitService.config);
@@ -82,7 +82,10 @@ export class DockerService {
     const { imageDigest } = await new CloudResource<PushInfo, PushInfo>(
       {
         describe: (resource) => {
-          return { type: 'Image Digest', label: resource.imageDigest };
+          return {
+            type: 'Local Image Digest',
+            label: resource.imageDigest || 'sha256:[computed]',
+          };
         },
         read: () => {
           return this.dockerCiService.describePush(this.gitService.config);
