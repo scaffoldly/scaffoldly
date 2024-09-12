@@ -100,6 +100,33 @@ export class Command {
               },
             },
           })
+          .command({
+            command: 'permissions',
+            describe: `Show the necessary permissions`,
+            handler: async ({ preset, development }) => {
+              const cmd = await new DeployCommand(this.gitService)
+                .withMode(development ? 'development' : undefined)
+                .withOptions({ checkPermissions: true })
+                .withPreset(preset);
+              return cmd.handle();
+            },
+            builder: {
+              preset: {
+                demand: false,
+                type: 'string',
+                choices: PRESETS,
+                nargs: 1,
+                description: 'Use a preset configuration',
+              },
+              development: {
+                demand: false,
+                type: 'boolean',
+                default: false,
+                requiresArg: false,
+                description: "Show in development mode. The 'dev' scripts will be used.",
+              },
+            },
+          })
           .help()
           .wrap(null);
       })
