@@ -11,7 +11,7 @@ import { outputStream } from '../scaffoldly';
 import { BottomBar, isHeadless } from './ui';
 import Prompt from 'inquirer/lib/ui/prompt';
 import { DevCommand } from './commands/dev';
-import { DeployCommand, Preset, PRESETS } from './commands/deploy';
+import { DeployCommand, PresetType, PRESETS } from './commands/deploy';
 import { GitService } from './commands/cd/git';
 
 export const ui = new BottomBar(process.stderr);
@@ -77,11 +77,12 @@ export class Command {
           .command({
             command: 'config',
             describe: `Show the effective configuration`,
-            handler: async ({ preset, development }) => {
-              const cmd = await new DeployCommand(this.gitService)
-                .withMode(development ? 'development' : undefined)
-                .withPreset(preset);
-              return cmd.handle('config');
+            handler: async ({ preset, save }) => {
+              const cmd = await new DeployCommand(this.gitService).withPreset(preset);
+              if (save) {
+                return cmd.handle('save-config');
+              }
+              return cmd.handle('show-config');
             },
             builder: {
               preset: {
@@ -91,12 +92,12 @@ export class Command {
                 nargs: 1,
                 description: 'Use a preset configuration',
               },
-              development: {
+              save: {
                 demand: false,
                 type: 'boolean',
                 default: false,
                 requiresArg: false,
-                description: "Show in development mode. The 'dev' scripts will be used.",
+                description: 'Save the preset configuration.',
               },
             },
           })
@@ -138,7 +139,7 @@ export class Command {
             async () => {
               const dev = await new DevCommand(this.gitService)
                 .withMode(production ? 'production' : undefined)
-                .withPreset(preset as Preset | undefined);
+                .withPreset(preset as PresetType | undefined);
               return dev.handle();
             },
             isHeadless(),
@@ -174,13 +175,13 @@ export class Command {
         handler: (args) =>
           this.loginWrapper(async () => {
             const development = args.development as boolean | undefined;
-            const preset = args.preset as Preset | undefined;
+            const preset = args.preset as PresetType | undefined;
             const checkPermissions = args['check-permissions'] as boolean | undefined;
             const dryrun = args.dryrun as boolean | undefined;
             const deploy = await new DeployCommand(this.gitService)
               .withMode(development ? 'development' : undefined)
               .withOptions({ checkPermissions: checkPermissions || false, dryRun: dryrun || false })
-              .withPreset(preset as Preset | undefined);
+              .withPreset(preset as PresetType | undefined);
             return deploy.handle();
           }, isHeadless()),
         builder: {

@@ -1,15 +1,18 @@
 import { join } from 'path';
 import { Mode, PackageJson, ScaffoldlyConfig } from '../../config';
 import { readFileSync } from 'fs';
-import { Preset } from './deploy';
 import { NextJsPreset } from '../../config/presets/nextjs';
 import { PermissionAware } from './cd';
 import { PolicyDocument } from './cd/aws/iam';
+import { Preset } from '../../config/presets';
+import { PresetType } from './deploy';
 
 export type Cwd = string;
 
 export abstract class Command<T> implements PermissionAware {
   private _config?: ScaffoldlyConfig;
+
+  private _preset?: Preset;
 
   private _permissions: string[] = [];
 
@@ -27,10 +30,10 @@ export abstract class Command<T> implements PermissionAware {
     }
   }
 
-  async withPreset(preset?: Preset): Promise<Command<T>> {
+  async withPreset(preset?: PresetType): Promise<Command<T>> {
     if (preset === 'nextjs') {
-      const nextJsPreset = new NextJsPreset(this.cwd, this._mode);
-      this._config = await nextJsPreset.config;
+      this._preset = new NextJsPreset(this.cwd, this._mode);
+      this._config = await this._preset.config;
     }
     return this;
   }
@@ -48,6 +51,10 @@ export abstract class Command<T> implements PermissionAware {
       throw new Error('No Mode Found');
     }
     return this._mode;
+  }
+
+  get preset(): Preset | undefined {
+    return this._preset;
   }
 
   get config(): ScaffoldlyConfig {

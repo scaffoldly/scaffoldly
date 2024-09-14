@@ -2,9 +2,16 @@ import { join } from 'path';
 import { Mode, PackageJson, PackageJsonBin, ScaffoldlyConfig } from '..';
 import { existsSync, readFileSync } from 'fs';
 import { isDebug } from '../../scaffoldly/ui';
+import { Preset } from '.';
 
-export class NextJsPreset {
-  constructor(private cwd: string, private mode?: Mode) {}
+export class NextJsPreset extends Preset {
+  constructor(cwd: string, private mode?: Mode) {
+    super(cwd);
+  }
+
+  get configPath(): string {
+    return join(this.cwd, 'package.json');
+  }
 
   get config(): Promise<ScaffoldlyConfig> {
     return Promise.all([
@@ -42,9 +49,7 @@ export class NextJsPreset {
 
   get packageJson(): Promise<PackageJson> {
     try {
-      const packageJson = JSON.parse(
-        readFileSync(join(this.cwd, 'package.json'), 'utf8'),
-      ) as PackageJson;
+      const packageJson = JSON.parse(readFileSync(this.configPath, 'utf8')) as PackageJson;
       return Promise.resolve(packageJson);
     } catch (e) {
       throw new Error(`Couldn't find package.json in ${this.cwd}`, { cause: e });

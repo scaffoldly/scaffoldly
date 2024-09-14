@@ -9,8 +9,8 @@ import { DockerService } from './cd/docker';
 import { filesize } from 'filesize';
 import { Mode } from '../../config';
 
-export type Preset = 'nextjs';
-export const PRESETS: Preset[] = ['nextjs'];
+export type PresetType = 'nextjs';
+export const PRESETS: PresetType[] = ['nextjs'];
 
 export class DeployCommand extends CdCommand<DeployCommand> {
   envService: EnvService;
@@ -45,7 +45,7 @@ export class DeployCommand extends CdCommand<DeployCommand> {
     return this;
   }
 
-  async handle(subcommand?: 'dockerfile' | 'config'): Promise<void> {
+  async handle(subcommand?: 'dockerfile' | 'show-config' | 'save-config'): Promise<void> {
     this.options = this.options || {};
     this.options.permissionsAware = this;
     this.gitService.setConfig(this.config);
@@ -63,8 +63,16 @@ export class DeployCommand extends CdCommand<DeployCommand> {
       return console.log(dockerfile.dockerfile);
     }
 
-    if (subcommand === 'config') {
+    if (subcommand === 'show-config') {
       return console.log(JSON.stringify(this.gitService.config.scaffoldly, null, 2));
+    }
+
+    if (subcommand === 'save-config') {
+      const { preset } = this;
+      if (!preset) {
+        throw new Error('No preset found');
+      }
+      await preset.save();
     }
 
     if (!subcommand) {

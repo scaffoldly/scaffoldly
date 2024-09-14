@@ -145,16 +145,22 @@ export class Action {
       },
     });
 
-    try {
-      await deployCommand.handle();
-    } catch (e) {
-      if (!(e instanceof Error)) {
-        throw e;
-      }
+    switch (this.operation) {
+      case 'deploy':
+        try {
+          await deployCommand.handle();
+        } catch (e) {
+          if (!(e instanceof Error)) {
+            throw e;
+          }
 
-      status.failed = true;
-      status.shortMessage = e.message;
-      status.longMessage = 'TODO: Implement long message';
+          status.failed = true;
+          status.shortMessage = e.message;
+          status.longMessage = 'TODO: Implement long message';
+        }
+        break;
+      default:
+        throw new Error(`Invalid operation: ${this.operation}`);
     }
 
     return status;
@@ -226,6 +232,20 @@ export class Action {
     }
 
     return cwd;
+  }
+
+  get operation(): 'deploy' | undefined {
+    const operation = getInput('operation') as string | null;
+
+    if (!operation) {
+      return undefined;
+    }
+
+    if (!['deploy'].includes(operation)) {
+      throw new Error(`Invalid operation: ${operation}. Expected 'deploy'.`);
+    }
+
+    return operation as 'deploy' | undefined;
   }
 
   get token(): string {

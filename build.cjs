@@ -90,6 +90,7 @@ const build = async (ts, tsOptions) => {
       sourcemap: false,
       platform: 'node',
       target: ['node18'],
+      resolveExtensions: ['.ts', '.js', '.json'],
       external: [
         '*.node', // This line tells esbuild to treat .node files as external
       ],
