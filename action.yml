@@ -1,4 +1,4 @@
-ame: Scaffoldly GitHub Action
+name: Scaffoldly GitHub Action
 description: Deploy a Scaffoldly Application
 branding:
   icon: 'arrow-up-circle'
