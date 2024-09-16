@@ -113,7 +113,6 @@ export class IamService {
             }
 
             if (e.message === 'Region is missing' || e.name === 'CredentialsProviderError') {
-              console.log('!!! e', e);
               throw new Error(
                 `AWS credentials are missing. Please do one of the following:
 - Run 'aws configure' to set the default credentials,
