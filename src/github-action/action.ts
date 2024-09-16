@@ -53,6 +53,16 @@ export class Action {
     status.owner = this.owner;
     status.repo = this.repo;
 
+    let region: string | undefined;
+    if (process.env.AWS_DEFAULT_REGION) {
+      region = process.env.AWS_DEFAULT_REGION;
+    } else {
+      warning('AWS_DEFAULT_REGION environment variable is not set. Defaulting to us-east-1.');
+      region = 'us-east-1';
+      process.env.AWS_DEFAULT_REGION = region;
+      exportVariable('AWS_DEFAULT_REGION', region);
+    }
+
     if (
       !(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) &&
       !process.env.AWS_ROLE_ARN
@@ -80,7 +90,6 @@ export class Action {
       exportVariable('AWS_ROLE_SESSION_NAME', process.env.AWS_ROLE_SESSION_NAME);
     }
 
-    const region = process.env.AWS_DEFAULT_REGION || 'us-east-1';
     const client = new STSClient({ region });
 
     try {
