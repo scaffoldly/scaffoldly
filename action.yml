@@ -17,8 +17,9 @@ inputs:
     required: false
     default: '.'
   secrets:
-    description: The secrets to use for deployment. (Use `${{ secrets }}` to pass all secrets, see https://scaffoldly.dev/docs/gha#secrets)
+    description: Secrets to pass to the deployment, in JSON form. See https://scaffoldly.dev/docs/gha#secrets
     required: false
+    default: '{}'
 outputs:
   origin:
     description: The URL of the deployed application

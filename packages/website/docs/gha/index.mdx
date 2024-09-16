@@ -54,6 +54,8 @@ To use Scaffoldly in your GitHub Actions workflow, you need to create a workflow
 
             - name: Deploy
               uses: scaffoldly/scaffoldly@v1
+              with:
+                secrets: ${{ toJSON(secrets) }}
       ```
 
   </TabItem>
@@ -95,6 +97,8 @@ To use Scaffoldly in your GitHub Actions workflow, you need to create a workflow
 
             - name: Deploy
               uses: scaffoldly/scaffoldly@v1
+              with:
+                secrets: ${{ toJSON(secrets) }}
       ```
 
   </TabItem>
