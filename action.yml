@@ -19,7 +19,7 @@ inputs:
   secrets:
     description: The secrets to use for deployment
     required: false
-    default: ${{ toJSON(secrets) }}
+    default: ${{ secrets }}
 outputs:
   origin:
     description: The URL of the deployed application
