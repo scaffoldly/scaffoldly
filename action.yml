@@ -19,7 +19,7 @@ inputs:
   secrets:
     description: The secrets to use for deployment
     required: false
-    default: ${{ secrets }}
+    default: ${{ github.secrets }}
 outputs:
   origin:
     description: The URL of the deployed application
