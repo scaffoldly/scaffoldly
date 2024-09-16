@@ -91,7 +91,7 @@ jobs:
       # TODO Remove install and pull entrypoint from another container
       - run: npm install
         working-directory: packages/website
+
       - uses: scaffoldly/scaffoldly@main
         with:
-          aws-role: 'arn:aws:iam::557208059266:role/github'
           working-directory: packages/website
