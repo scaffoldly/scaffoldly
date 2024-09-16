@@ -1,18 +1,16 @@
 import { debug, getIDToken, exportVariable, notice, getInput, error, warning } from '@actions/core';
 import { context, getOctokit } from '@actions/github';
-import {
-  STSClient,
-  AssumeRoleWithWebIdentityCommand,
-  GetCallerIdentityCommand,
-} from '@aws-sdk/client-sts';
-import { deployedMarkdown, failedMarkdown, roleSetupMoreInfo } from './messages';
+import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
+import { deployedMarkdown, failedMarkdown } from './messages';
 import { Status } from './status';
 import { GitService } from '../scaffoldly/commands/cd/git';
 import { DeployCommand } from '../scaffoldly/commands/deploy';
-import path from 'path';
+import path, { join } from 'path';
 import { ApiHelper } from '../scaffoldly/helpers/apiHelper';
 import { MessagesHelper } from '../scaffoldly/helpers/messagesHelper';
 import { Scms } from '../scaffoldly/stores/scms';
+import { tmpdir } from 'os';
+import { writeFileSync } from 'fs';
 
 const { GITHUB_RUN_ATTEMPT } = process.env;
 
@@ -55,72 +53,52 @@ export class Action {
     status.owner = this.owner;
     status.repo = this.repo;
 
-    const region =
-      getInput('aws-region') ||
-      process.env.AWS_DEFAULT_REGION ||
-      process.env.AWS_REGION ||
-      'us-east-1';
-    const role = getInput('aws-role') || process.env.SCAFFOLDLY_AWS_ROLE;
+    if (
+      !process.env.AWS_ACCESS_KEY_ID ||
+      !process.env.AWS_SECRET_ACCESS_KEY ||
+      !process.env.AWS_ROLE_ARN
+    ) {
+      throw new Error(
+        'AWS credentials are not set. Please ensure that AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY (or AWS_ROLE_ARN) environment variables are set.',
+      );
+    }
 
-    const idToken = await this.idToken;
+    if (process.env.AWS_ROLE_ARN) {
+      const idToken = await this.idToken;
+
+      // Set up AWS environment variables
+      process.env.AWS_WEB_IDENTITY_TOKEN_FILE = join(
+        process.env.RUNNER_TEMP || tmpdir(),
+        'id_token',
+      );
+      process.env.AWS_ROLE_SESSION_NAME = `scaffoldly-${context.runNumber}-${context.runId}`;
+
+      // Save the ID token to a file
+      writeFileSync(process.env.AWS_WEB_IDENTITY_TOKEN_FILE, idToken);
+
+      // Export AWS environment variables
+      exportVariable('AWS_WEB_IDENTITY_TOKEN_FILE', process.env.AWS_WEB_IDENTITY_TOKEN_FILE);
+      exportVariable('AWS_ROLE_SESSION_NAME', process.env.AWS_ROLE_SESSION_NAME);
+    }
+
+    const region = process.env.AWS_DEFAULT_REGION || 'us-east-1';
+    const client = new STSClient({ region });
 
     try {
-      if (!role || !role.trim()) {
-        throw new Error(
-          `Unknown or missing role. Please make sure SCAFFOLDLY_AWS_ROLE is set in GitHub Actions Variables.`,
-        );
-      }
-
-      let client = new STSClient({ region });
-      const assumeResponse = await client.send(
-        new AssumeRoleWithWebIdentityCommand({
-          WebIdentityToken: idToken,
-          RoleArn: role,
-          RoleSessionName: `gha-${context.runNumber}-${context.runId}`,
-        }),
-      );
-
-      const {
-        AccessKeyId: accessKeyId,
-        SecretAccessKey: secretAccessKey,
-        SessionToken: sessionToken,
-      } = assumeResponse.Credentials || {};
-
-      if (!accessKeyId || !secretAccessKey || !sessionToken) {
-        throw new Error('Unable to assume role');
-      }
-
-      exportVariable('AWS_DEFAULT_REGION', region);
-      exportVariable('AWS_REGION', region);
-      exportVariable('AWS_ACCESS_KEY_ID', accessKeyId);
-      exportVariable('AWS_SECRET_ACCESS_KEY', secretAccessKey);
-      exportVariable('AWS_SESSION_TOKEN', sessionToken);
-
-      client = new STSClient({
-        region,
-        credentials: {
-          accessKeyId,
-          secretAccessKey,
-          sessionToken,
-        },
-      });
-
       const callerIdentity = await client.send(new GetCallerIdentityCommand({}));
 
-      notice(`Deploying as ${callerIdentity.Arn} using ${role}...`);
+      notice(`Deploying as ${callerIdentity.Arn} using ${callerIdentity.Arn}...`);
     } catch (e) {
       if (!(e instanceof Error)) {
         throw e;
       }
 
-      error(`Failed to assume role: ${e.message}`);
+      error(`Failed to get AWS Identity: ${e.message}`);
       debug(`Error: ${e}`);
-
-      const newLongMessage = await roleSetupMoreInfo(status);
 
       status.failed = true;
       status.shortMessage = e.message;
-      status.longMessage = newLongMessage;
+      status.longMessage = `Failed to get AWS Identity: ${e.message}.\n\nPlease ensure \`AWS_ACCESS_KEY_ID\` and \`AWS_SECRET_ACCESS_KEY\` (or \`AWS_ROLE_ARN\`) environment variables are set correctly.`;
     }
 
     return status;

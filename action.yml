@@ -1,5 +1,5 @@
-name: Scaffoldly GitHub Action
-description: Deploy a Scaffoldly Application
+name: Scaffoldly
+description: Build, Test, and Deploy an application with Scaffoldly
 branding:
   icon: 'arrow-up-circle'
   color: 'gray-dark'
@@ -16,13 +16,6 @@ inputs:
     description: The working directory to deploy from
     required: false
     default: '.'
-  aws-role:
-    description: The AWS Role to use for deployment
-    required: true
-  aws-region:
-    description: The AWS Region to deploy to
-    required: true
-    default: 'us-east-1'
 outputs:
   origin:
     description: The URL of the deployed application
