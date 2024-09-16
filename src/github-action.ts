@@ -65,6 +65,7 @@ export const run = async (mode: Mode): Promise<void> => {
       debug(`${e}`);
       if (e.cause && e.cause instanceof Error) {
         error(`Error: ${e.message}:\n  ${e.cause.message}`);
+        debug(`Cause: ${e.cause}`);
       } else {
         error(`Error: ${e.message}`);
       }

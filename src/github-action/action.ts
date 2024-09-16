@@ -86,7 +86,7 @@ export class Action {
     try {
       const callerIdentity = await client.send(new GetCallerIdentityCommand({}));
 
-      notice(`Deploying as ${callerIdentity.Arn} using ${callerIdentity.Arn}...`);
+      notice(`Deploying as ${callerIdentity.Arn}...`);
     } catch (e) {
       if (!(e instanceof Error)) {
         throw e;
