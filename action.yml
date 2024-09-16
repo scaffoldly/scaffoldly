@@ -1,8 +1,8 @@
 name: Scaffoldly
 description: Build, Test, and Deploy an application with Scaffoldly
 branding:
-  icon: 'arrow-up-circle'
-  color: 'gray-dark'
+  icon: upload-cloud
+  color: gray-dark
 inputs:
   operation:
     description: The operation to perform (deploy)
@@ -13,9 +13,13 @@ inputs:
     required: false
     default: ${{ github.token }}
   working-directory:
-    description: The working directory to deploy from
+    description: The working directory from which to deploy
     required: false
     default: '.'
+  secrets:
+    description: The secrets to use for deployment
+    required: false
+    default: ${{ toJSON(secrets) }}
 outputs:
   origin:
     description: The URL of the deployed application

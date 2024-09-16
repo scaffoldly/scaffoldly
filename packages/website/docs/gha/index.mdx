@@ -3,3 +3,99 @@ sidebar_position: 4
 ---
 
 # GitHub Action Reference
+
+```mdx-code-block
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+```
+
+Scaffoldly provides a seamless integration with GitHub Actions, allowing you to automate your deployment workflows. This guide will walk you through the process of setting up GitHub Actions for your Scaffoldly projects.
+
+Scaffoldly is available on the [GitHub Actions Marketplace](https://github.com/marketplace/actions/scaffoldly).
+
+## Usage
+
+To use Scaffoldly in your GitHub Actions workflow, you need to create a workflow file in your repository. Follow these steps:
+
+<Tabs groupId="aws-access">
+  <TabItem value="role-assumption" label="AWS IAM Role (Recommended)">
+    1. Create a new [IAM role](/docs/cloud/aws#iam-role) in AWS with the necessary permissions for your deployment.
+
+    :::tip
+
+    Run `npx scaffoldly show permissions` to see the necessary permissions.
+
+    :::
+
+    1. Create new [Repository Variable](https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/store-information-in-variables) in your GitHub repository named `AWS_ROLE_ARN` for the desired IAM Role.
+
+    1. Add the following YAML configuration to your `.github/workflows/scaffoldly.yml` file:
+      ```yaml title=".github/workflows/scaffoldly.yml"
+      name: Scaffoldly
+
+      on:
+        workflow_dispatch:
+        push:
+
+      permissions:
+        id-token: write
+        contents: read
+
+      env:
+        # AWS_REGION: us-east-1 # Optional, defaults to us-east-1
+        AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+
+      jobs:
+        deploy:
+          runs-on: ubuntu-latest
+          steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Deploy
+              uses: scaffoldly/scaffoldly@v1
+      ```
+
+  </TabItem>
+  <TabItem value="access-keys" label="AWS Access Keys">
+    1. Create a new [IAM user](/docs/cloud/aws#access-keys) in AWS with the necessary permissions for your deployment.
+        
+    :::tip
+
+    Run `npx scaffoldly show permissions` to see the necessary permissions.
+
+    :::
+
+    1. Create new [Repository Secrets](https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions) in your GitHub repository named `AWS_ACCESS_KEY_ID` and
+    `AWS_SECRET_ACCESS_KEY` for the desired IAM User.
+
+    1. Add the following YAML configuration to your `.github/workflows/scaffoldly.yml` file:
+      ```yaml title=".github/workflows/scaffoldly.yml"
+      name: Scaffoldly
+
+      on:
+        workflow_dispatch:
+        push:
+
+      permissions:
+        id-token: write
+        contents: read
+
+      env:
+        # AWS_REGION: us-east-1 # Optional, defaults to us-east-1
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      jobs:
+        deploy:
+          runs-on: ubuntu-latest
+          steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Deploy
+              uses: scaffoldly/scaffoldly@v1
+      ```
+
+  </TabItem>
+</Tabs>
