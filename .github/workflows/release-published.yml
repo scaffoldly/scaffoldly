@@ -36,6 +36,8 @@ jobs:
   deploy-website:
     runs-on: ubuntu-latest
     needs: publish
+    env:
+      AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -49,5 +51,4 @@ jobs:
         working-directory: packages/website
       - uses: scaffoldly/scaffoldly@v1
         with:
-          aws-role: 'arn:aws:iam::557208059266:role/github'
           working-directory: packages/website
