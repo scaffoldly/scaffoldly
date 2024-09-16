@@ -10,6 +10,4 @@
 
 Thanks for being on the lookout! Please don't publicly report issues.
 
-Send a report of the vulnerability to cli@saml.to and we will discuss it
-through email, and you will be provided with the details of the fix/patch
-process.
+Security Advisories can be submitted [on GitHub](https://github.com/scaffoldly/scaffoldly/security/advisories/new).
