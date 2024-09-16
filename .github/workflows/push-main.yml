@@ -49,6 +49,7 @@ jobs:
       - uses: scaffoldly/scaffoldly@main
         with:
           working-directory: packages/website
+          secrets: ${{ secrets }}
 
   deploy-docker:
     runs-on: ubuntu-latest
