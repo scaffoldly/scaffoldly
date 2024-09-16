@@ -1,8 +1,5 @@
 # Scaffoldly
 
-> [!WARNING]
-> This framework is currently in active development and should be considered alpha.
-
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/scaffoldly/scaffoldly?label=version) ![GitHub issues](https://img.shields.io/github/issues/scaffoldly/scaffoldly)
 
 - Website: https://scaffoldly.dev
@@ -17,9 +14,13 @@ This is the [Scaffoldly](https://scaffoldly.dev) toolhain. The following package
 - [Scaffoldly GitHub Action](https://scaffoldly.dev/docs/gha)
 - [Scaffoldly Website](https://scaffoldly.dev)
 
+## Tutorials
+
+- NextJS: [Deploy a NextJS application to AWS lambda in 5 minutes](https://scaffoldly.dev/docs/tutorials/nextjs)
+
 ## CLI Reference
 
-The Scaffoldly CLI is a developer friendly tool build and host applications on AWS Lambda with ease. This guide will provide you with an overview of the available commands and their usage.
+The Scaffoldly CLI is a developer friendly tool build and host applications on AWS Lambda with ease.
 
 _**See**_: [Scaffoldly CLI Documentation](https://scaffoldly.dev/docs/cli)
 
@@ -46,7 +47,7 @@ Options:
 
 ## GitHub Action Reference
 
-Scaffoldly provides a seamless integration with GitHub Actions, allowing you to automate your deployment workflows. This guide will walk you through the process of setting up GitHub Actions for your Scaffoldly projects.
+Scaffoldly provides a seamless integration with GitHub Actions, allowing you to deploy your applications using GitHub.
 
 Scaffoldly is available on the [GitHub Actions Marketplace](https://github.com/marketplace/actions/scaffoldly).
 
@@ -70,7 +71,7 @@ jobs:
 
 Please [Open a New Issue](https://github.com/scaffoldly/cli/issues/new/choose) in GitHub if an issue is found with this tool.
 
-Please see [SECURITY.md](SECURITY.md) to report a Security Vulnerability.
+Please see the [Security Policy](SECURITY.md) to report a Security Vulnerability.
 
 ## Maintainers
 
