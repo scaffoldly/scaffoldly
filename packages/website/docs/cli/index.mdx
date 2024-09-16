@@ -3,3 +3,134 @@ sidebar_position: 3
 ---
 
 # CLI Reference
+
+The Scaffoldly CLI is a developer friendly tool build and host applications on AWS Lambda with ease. This guide will provide you with an overview of the available commands and their usage.
+
+## Installation
+
+To run the Scaffoldly CLI, you can use `npx`:
+
+```bash
+npx scaffoldly [command]
+```
+
+```
+npx scaffoldly [command]
+
+Commands:
+  npx scaffoldly show    Display config, dockerfiles, etc.
+  npx scaffoldly dev     [ALPHA FEATURE] Launch a development environment
+  npx scaffoldly deploy  Deploy an environment
+
+Options:
+  --help     Show help  [boolean]
+  --version  Show version number  [boolean]
+```
+
+## `scaffoldly deploy`
+
+The `scaffoldly deploy` command is used to deploy your application to AWS Lambda. It automatically handles the packaging and configuration of your application.
+
+During deployment, `scaffoldly` will:
+
+- Generate a Dockerfile and create a Docker image for your application.
+- Create necessary AWS resources such as Lambda functions, IAM roles, and Function URL endpoints.
+
+### Usage
+
+```bash
+npx scaffoldly deploy [command]
+```
+
+```
+npx scaffoldly deploy
+
+Deploy an environment
+
+Options:
+  --help               Show help  [boolean]
+  --version            Show version number  [boolean]
+  --development        Deploy in development mode. The 'dev' scripts will be used.  [boolean] [default: false]
+  --preset             Use a preset configuration.  [string] [choices: "nextjs"]
+  --check-permissions  Check permissions only. No changes will be made.  [boolean] [default: false]
+  --dryrun             Dry run mode. Propsed changes will be displayed.  [boolean] [default: false]
+```
+
+### Options
+
+- `--preset <preset>`: Specify a preset configuration for your application (e.g., `nextjs`, `express`).
+- `--dryrun`: Run the command without making any changes, useful for observing what will happen during deployment. No changes are made if this is set.
+- `--check-permissions`: An alias for `npx scaffoldly show permissions`. No changes are made if this is set.
+
+## `scaffoldly show`
+
+The `scaffoldly show` command is used to display various configurations and settings related to your application.
+
+### Usage
+
+```bash
+npx scaffoldly show [command]
+```
+
+```
+npx scaffoldly show
+
+Display config, dockerfiles, etc.
+
+Commands:
+  npx scaffoldly show dockerfile   Show the generated Dockerfile
+  npx scaffoldly show config       Show the effective configuration
+  npx scaffoldly show permissions  Show the necessary permissions for deployment
+
+Options:
+  --version  Show version number  [boolean]
+  --help     Show help  [boolean]
+```
+
+### `dockerfile` Command
+
+Displays the generated Dockerfile for your application.
+
+```
+npx scaffoldly show dockerfile
+
+Show the generated Dockerfile
+
+Options:
+  --version      Show version number  [boolean]
+  --help         Show help  [boolean]
+  --preset       Use a preset configuration  [string] [choices: "nextjs"]
+  --development  Show in development mode. The 'dev' scripts will be used.  [boolean] [default: false]
+```
+
+### `config` Command
+
+Displays the effective configuration for your application.
+
+```
+npx scaffoldly show config
+
+Show the effective configuration
+
+Options:
+  --version  Show version number  [boolean]
+  --help     Show help  [boolean]
+  --preset   Use a preset configuration  [string] [choices: "nextjs"]
+  --save     Save the preset configuration.  [boolean] [default: false]
+```
+
+### `permissions` Command
+
+Displays the necessary permissions for deployment. This is useful for setting up IAM roles and policies in AWS.
+
+```
+npx scaffoldly show permissions
+
+Show the necessary permissions for deployment
+
+Options:
+  --version      Show version number  [boolean]
+  --help         Show help  [boolean]
+  --preset       Use a preset configuration  [string] [choices: "nextjs"]
+  --development  Show in development mode. The 'dev' scripts will be used.  [boolean] [default: false]
+```

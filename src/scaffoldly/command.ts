@@ -103,7 +103,7 @@ export class Command {
           })
           .command({
             command: 'permissions',
-            describe: `Show the necessary permissions`,
+            describe: `Show the necessary permissions for deployment`,
             handler: async ({ preset, development }) => {
               const cmd = await new DeployCommand(this.gitService)
                 .withMode(development ? 'development' : undefined)

@@ -3,89 +3,74 @@
 > [!WARNING]
 > This framework is currently in active development and should be considered alpha.
 
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/scaffoldly/scaffoldly?label=version) ![GitHub issues](https://img.shields.io/github/issues/scaffoldly/scaffoldly) ![Acceptance Tests](https://img.shields.io/github/actions/workflow/status/scaffoldly/scaffoldly/acceptance-tests.yml?branch=main)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/scaffoldly/scaffoldly?label=version) ![GitHub issues](https://img.shields.io/github/issues/scaffoldly/scaffoldly)
 
-- Website: https://scaffold.ly
+- Website: https://scaffoldly.dev
 - Forums: https://github.com/scaffoldly/scaffoldly/discussions
-- Documentation: https://docs.scaffold.ly
+- Documentation: https://scaffoldly.dev/docs
 
 ## Introduction
 
-This is the [Scaffoldly](https://scaffold.ly) toolhain. The following packages are provided:
+This is the [Scaffoldly](https://scaffoldly.dev) toolhain. The following packages are provided:
 
-- Scaffoldly CLI
-- Scaffoldly GitHub Action
-- AWS Lambda Entrypoint
+- [Scaffoldly CLI](https://scaffoldly.dev/docs/cli)
+- [Scaffoldly GitHub Action](https://scaffoldly.dev/docs/gha)
+- [Scaffoldly Website](https://scaffoldly.dev)
 
-### CLI
+## CLI Reference
+
+The Scaffoldly CLI is a developer friendly tool build and host applications on AWS Lambda with ease. This guide will provide you with an overview of the available commands and their usage.
+
+_**See**_: [Scaffoldly CLI Documentation](https://scaffoldly.dev/docs/cli)
+
+### Installation
+
+To run the Scaffoldly CLI, you can use `npx`:
+
+```bash
+npx scaffoldly [command]
+```
 
 ```
-scaffoldly [command]
+npx scaffoldly [command]
 
 Commands:
-  scaffoldly identity  Show the current user identity
-  scaffoldly login     Login to Scaffoldly
+  npx scaffoldly show    Display config, dockerfiles, etc.
+  npx scaffoldly dev     [ALPHA FEATURE] Launch a development environment
+  npx scaffoldly deploy  Deploy an environment
 
 Options:
   --help     Show help  [boolean]
   --version  Show version number  [boolean]
 ```
 
-## Installation
+## GitHub Action Reference
 
-Please make sure the following is installed:
+Scaffoldly provides a seamless integration with GitHub Actions, allowing you to automate your deployment workflows. This guide will walk you through the process of setting up GitHub Actions for your Scaffoldly projects.
 
-- NodeJS v18+
-- `npm` or `yarn` or `npx` avaliable on the `$PATH`
-- (MacOS Alternative) Homebrew available on the `$PATH`
+Scaffoldly is available on the [GitHub Actions Marketplace](https://github.com/marketplace/actions/scaffoldly).
 
-### Using `npm` or `yarn` or `npx`
+_**See**_: [Scaffoldly GitHub Action Documentation](https://scaffoldly.dev/docs/gha)
 
-**`npm`**:
+```yaml
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-```bash
-npm install -g scaffoldly
-scaffoldly login # or sly login
-```
-
-**`yarn`**:
-
-```bash
-yarn global add scaffoldly
-scaffoldly login # or sly login
-```
-
-**`npx`**:
-
-```bash
-npx scaffoldly login
-```
-
-### Using Homebrew (MacOS)
-
-```bash
-brew tap scaffoldly/tap
-brew install scaffoldly
-scaffoldly login # or sly login
-```
-
-## Getting Started
-
-Once [the CLI is installed](#installation), run the following commands to login and assume roles:
-
-```bash
-# Saves a GitHub token to ~/.scaffoldly/github-token.json
-scaffoldly login # or sly login
-```
-
-```bash
-# Show the current identities
-scaffoldly identity # or sly identity
+      - name: Deploy
+        uses: scaffoldly/scaffoldly@v1
+        with:
+          secrets: ${{ toJSON(secrets) }}
 ```
 
 ## Reporting Issues
 
 Please [Open a New Issue](https://github.com/scaffoldly/cli/issues/new/choose) in GitHub if an issue is found with this tool.
+
+Please see [SECURITY.md](SECURITY.md) to report a Security Vulnerability.
 
 ## Maintainers
 
@@ -97,7 +82,7 @@ Please [Open a New Issue](https://github.com/scaffoldly/cli/issues/new/choose) i
 If you do not want to be included in Anonymous Usage Metrics, ensure an environment variable named `SCAFFOLDLY_DNT` is set:
 
 ```bash
-SAML_TO_DNT=1 npx scaffoldly
+SCAFFOLDLY_DNT=1 npx scaffoldly
 ```
 
 ## License
