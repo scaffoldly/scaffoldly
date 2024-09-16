@@ -54,13 +54,17 @@ export class Action {
     status.repo = this.repo;
 
     let region: string | undefined;
-    if (process.env.AWS_DEFAULT_REGION) {
-      region = process.env.AWS_DEFAULT_REGION;
+    if (process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION) {
+      region = process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION;
     } else {
-      warning('AWS_DEFAULT_REGION environment variable is not set. Defaulting to us-east-1.');
+      warning(
+        'AWS_DEFAULT_REGION (or AWS_REGION) environment variable is not set. Defaulting to us-east-1.',
+      );
       region = 'us-east-1';
       process.env.AWS_DEFAULT_REGION = region;
+      process.env.AWS_REGION = region;
       exportVariable('AWS_DEFAULT_REGION', region);
+      exportVariable('AWS_REGION', region);
     }
 
     if (
