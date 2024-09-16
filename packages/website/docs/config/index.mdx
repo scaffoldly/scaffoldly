@@ -4,4 +4,65 @@ sidebar_position: 5
 
 # Configuration Reference
 
-## Package JSON
+Scaffoldly's configuration is designed to be in-line with your project setup, allowing you to easily manage your deployment settings.
+
+The configuration is stored in the `package.json` file of your project, making it easy to version control and share with your team.
+
+## Using `package.json`
+
+```json title="package.json"
+{
+  "name": "my-app",
+  "version": "1.0.0",
+  // other package.json configuration....
+  "scaffoldly": {
+    "runtime": "node:22-alpine",
+    "handler": "localhost:3000",
+    "services": [
+      {
+        "name": "next",
+        "files": ["package.json", "build", "node_modules", "package-lock.json"],
+        "scripts": {
+          "install": "npm install",
+          "dev": "npm run dev",
+          "build": "npm run build",
+          "start": "npm run start"
+        }
+      }
+    ]
+  }
+}
+```
+
+## `runtime`
+
+This is the base image used for your application. You can specify any valid Docker image. In the example above, we are using `node:22-alpine`, which is a lightweight Node.js image.
+
+## `handler`
+
+The handler specifies the entry point for your application. This is typically the URL or path where your application is served. In the example, it is set to `localhost:3000`, which is where a NodeJS application runs during development.
+
+## `services`
+
+The services array allows you to define multiple services that your application may consist of. Each service can have its own configuration, including:
+
+- `name`: The name of the service.
+- `files`: An array of files or directories to include in the deployment package.
+- `scripts`: Scripts to run for the service, such as installation, development, build, and start commands.
+
+### `name`
+
+The name of the service. This is used to identify the service during deployment.
+
+### `files`
+
+An array of files or directories to include in the deployment package. This allows you to specify exactly what should be packaged and deployed.
+
+### `scripts`
+
+Scripts that are executed during different stages of the application lifecycle. Common scripts include:
+
+- `install`: Command to install dependencies.
+- `dev`: Command to start the application in development mode.
+- `build`: Command to build the application for production.
+- `start`: Command to start the application in production mode.

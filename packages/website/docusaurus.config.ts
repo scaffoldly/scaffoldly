@@ -37,7 +37,7 @@ const config: Config = {
           remarkPlugins: [[require('@docusaurus/remark-plugin-npm2yarn'), { sync: true }]],
           rehypePlugins: [],
           sidebarPath: './sidebars.ts',
-          editUrl: 'https://github.com/scaffoldly/scaffoldly/tree/main/packages/website/docs/',
+          editUrl: 'https://github.com/scaffoldly/scaffoldly/tree/main/packages/website/',
         },
         blog: {
           remarkPlugins: [[require('@docusaurus/remark-plugin-npm2yarn'), { sync: true }]],
