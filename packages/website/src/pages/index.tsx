@@ -18,7 +18,7 @@ function HomepageHeader() {
         <p className="hero__subtitle">{siteConfig.tagline}</p>
         <div className={styles.buttons}>
           <Link className="button button--secondary button--lg" to="/docs/tutorials/nextjs">
-            NextJS on AWS Lambda Tutorial - 5min ⏱️
+            Next.js on AWS Lambda Tutorial - 5min ⏱️
           </Link>
         </div>
       </div>

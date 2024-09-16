@@ -1,6 +1,214 @@
-# NextJS
+# Next.js
 
-Hello Next JS
+```mdx-code-block
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+```
 
-## Output Modes
+Packaging a Next.js application for deployment can be done using Scaffoldly, which simplifies the process by providing a preset specifically designed for Next.js applications. Below is a detailed guide on how to configure and deploy your Next.js application using Scaffoldly.
 
+## Background
+
+Next.js is a popular React framework that enables server-side rendering, static site generation, and API routes. Deploying a Next.js application to AWS Lambda allows you to take advantage of serverless architecture, scaling, and reduced operational costs.
+
+Typically, deploying a Next.js application involves creating a Docker image, configuring AWS resources, and managing permissions. Scaffoldly automates these steps, making it easier for developers to focus on building their applications.
+
+Using minimal configuration in your `package.json`, you can define the runtime and scripts to build and deploy a Next.js application.
+
+- When running `next build`, the application is compiled and optimized for running in production. The resulting build artifacts are then packaged and deployed to AWS Lambda.
+- When running `next start`, the application is served in production mode, allowing it to handle incoming requests.
+
+The `next build` command outputs the necessary files to the `.next` directory, which is included in the deployment package. Depending on `output` mode in Next.js config, the application can be served as a server-rendered app or as a static site.
+
+Scaffoldly supports all 3 output modes (the default, `standalone`, and `export`) for Next.js.
+
+Scaffoldly takes care of:
+
+- generating the necessary Dockerfile and AWS resources
+- generating a Dockerfile
+- building the application and packaging the Dockerfile
+- configuring IAM roles and permissions
+- deploying the application to AWS Lambda
+- providing a publicly accessible URL for your application
+
+## Preset Next.js Configuration
+
+1. Navigate into the directory for your Next.js application.
+1. Run `npx scaffoldly show config --preset nextjs` to view the default configuration for the Next.js preset.
+
+Scaffoldly will look for `next.config.mjs` in your project root to determine the output mode and the files and directories to include in the final container. The output mode can be set to one of the following:
+
+- **`default`** (empty/unset): The application will be served as a server-rendered app.
+- **`standalone`**: The application will be packaged as a standalone server.
+- **`export`**: The application will be exported as a static site.
+
+Running the following `scaffoldly` command will output configuration based on the selected output mode:
+
+```bash title="Show Config Command"
+npx scaffoldly show config --preset nextjs
+```
+
+<Tabs groupId="output-mode">
+  <TabItem value="default" label="Default (empty/unset)">
+```javascript title="next.config.mjs"
+const nextConfig = {
+  // No output mode specified
+};
+```
+
+```json title="Scaffoldly Config"
+{
+  "runtime": "node:22.4.0-alpine",
+  "handler": "localhost:3000",
+  "services": [
+    {
+      "name": "next",
+      "files": ["package.json", ".next", "node_modules", "package-lock.json"],
+      "scripts": {
+        "install": "npm ci",
+        "dev": "next dev",
+        "build": "next build",
+        "start": "next start"
+      }
+    }
+  ]
+}
+```
+
+    Explanation:
+    - The `runtime` is set to `node:22-alpine`, which is a lightweight Node.js image. It is inferred from the version of Node.js on your system.
+    - The `handler` is set to `localhost:3000`, which is the default port for a Next.js application.
+    - The `files` array includes the necessary files for deployment, such as `package.json`, `.next`, and `node_modules`.
+      - `node_modules` is included so that the `next` command can be executed.
+
+    (See [Configuration Reference](/docs/config) for more information)
+
+  </TabItem>
+  <TabItem value="standalone" label="Standalone">
+```javascript title="next.config.mjs"
+const nextConfig = {
+  output: 'standalone',
+};
+```
+
+```json title="Scaffoldly Config"
+{
+  "runtime": "node:22.4.0-alpine",
+  "handler": "localhost:3000",
+  "bin": {
+    "server.js": "next:.next/standalone/server.js"
+  },
+  "services": [
+    {
+      "name": "next",
+      "files": ["package.json", ".next", "package-lock.json"],
+      "scripts": {
+        "install": "npm ci",
+        "dev": "next dev",
+        "build": "next build",
+        "start": "node server.js"
+      }
+    }
+  ]
+}
+```
+
+    Explanation:
+     - The `runtime` and `handler` are the same as in the default configuration.
+     - The `bin` property specifies the entry point for the standalone server.
+       - When `output` is set to `standalone`, Next.js generates a `server.js` file that can be used to run the application.
+       - The syntax `"server.js": "next:.next/standalone/server.js"` indicates:
+         - Copy `.next/standalone/server.js` from the `next` service to the root of the container as `server.js`.
+     - The `files` array excludes `node_modules` since it is not needed in the standalone build.
+     - The `start` script is updated to run `server.js`.
+
+     (See [Configuration Reference](/docs/config) for more information)
+
+  </TabItem>
+  <TabItem value="export" label="Export">
+
+```javascript title="next.config.mjs"
+const nextConfig = {
+  output: 'export',
+};
+```
+
+```json title="Scaffoldly Config"
+{
+  "runtime": "node:22.4.0-alpine",
+  "handler": "localhost:3000",
+  "packages": ["npm:serve"],
+  "services": [
+    {
+      "name": "next",
+      "files": ["package.json", ".next", "out", "package-lock.json"],
+      "scripts": {
+        "install": "npm ci",
+        "dev": "next dev",
+        "build": "next build",
+        "start": "serve out"
+      }
+    }
+  ]
+}
+```
+
+    Explanation:
+    - The `runtime` and `handler` are the same as in the previous configurations.
+    - The `packages` property specifies additional packages needed for the exported site.
+      - In this case, an `npm install serve` command is used to install the `serve` package, which is a static file server.
+    - The `files` array includes the `out` directory, which is generated when the application is exported.
+    - The `start` script is updated to run `serve out`, which runs `serve` to serve the static files from the `out` directory.
+
+    (See [Configuration Reference](/docs/config) for more information)
+
+  </TabItem>
+</Tabs>
+
+### Generated Dockerfile
+
+To see the resultant Dockerfile that will be used, run the following command:
+
+```bash title="Show the  Dockerfile"
+npx scaffoldly show dockerfile --preset nextjs
+```
+
+## Deploying with a Preset Configuration
+
+Once you have configured your Next.js application, you can deploy it using the following command:
+
+<Tabs>
+  <TabItem value="default" label="Scaffoldly Deploy">
+
+```bash title="Deploy Command"
+npx scaffoldly deploy --preset nextjs
+```
+
+  </TabItem>
+  <TabItem value="dryrun" label="Scaffoldly Deploy (Dryrun)">
+
+```bash title="Deploy Command"
+npx scaffoldly deploy --preset nextjs --dryrun
+```
+
+  </TabItem>
+</Tabs>
+
+Explanation:
+
+- The `deploy` command will generate a Dockerfile, build the application, and deploy it to AWS Lambda.
+- The (optional) `--dryrun` option allows you to see what changes will be made without actually deploying the application.
+
+## Saving the Preset Configuration
+
+You can save the preset configuration in your `package.json` file under the `scaffoldly` key. This allows you to easily manage and version control your deployment settings.
+
+```bash title="Save Config Command"
+npx scaffoldly show config --preset nextjs --save
+```
+
+After running this command, you no longer need to specify the `--preset nextjs` option when running `scaffoldly` commands, as the configuration will be automatically picked up from your `package.json`.
+
+## Conclusion
+
+Using Scaffoldly Preset Configurations, deploying a Next.js application to AWS Lambda becomes a streamlined process. By following the steps outlined in this guide, you can easily set up your application, configure the necessary permissions, and deploy it with minimal effort. Enjoy the benefits of serverless architecture and focus on building your application!

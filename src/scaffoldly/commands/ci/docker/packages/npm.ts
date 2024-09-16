@@ -44,7 +44,7 @@ export class NpmPackageService {
       paths.push(join(this.config.workdir, this.config.src, 'node_modules', '.bin'));
     }
 
-    if (paths.length > 0) {
+    if (paths.length > 0 && this.config.files.includes('node_modules')) {
       this._hasNode = true;
     }
 

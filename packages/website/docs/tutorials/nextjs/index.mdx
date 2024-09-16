@@ -2,11 +2,11 @@
 sidebar_position: 1
 ---
 
-# NextJS Tutorial
+# Next.js Tutorial
 
-## Deploying a New NextJS Application to AWS Lambda
+## Deploying a New Next.js Application to AWS Lambda
 
-In this guide, we'll go through the steps to deploy a new NextJS application to AWS Lambda using the `scaffoldly` CLI. You'll have a fully functional, serverless NextJS app running on AWS in no time!
+In this guide, we'll go through the steps to deploy a new Next.js application to AWS Lambda using the `scaffoldly` CLI. You'll have a fully functional, serverless Next.js app running on AWS in no time!
 
 ## Prerequisites
 
@@ -14,6 +14,12 @@ In this guide, we'll go through the steps to deploy a new NextJS application to 
 - Node.js and `npx` installed.
 - Docker installed (for building images).
 - Scaffoldly CLI, which can be run with `npx scaffoldly`.
+
+:::info
+
+Detailed information can be found in Scaffoldly's [Next.js Preset](/docs/config/presets/nextjs) documentation.
+
+:::
 
 ## Step 1: Setting Up AWS Permissions
 
@@ -30,7 +36,7 @@ This will output the necessary IAM policy that you need to attach to your AWS us
 3. Copy the permissions output from the Scaffoldly command and paste it into a new policy attached to your user.
 4. Run `aws configure` to set up your AWS credentials.
 
-Once you've set up the permissions, you're ready to deploy your NextJS app.
+Once you've set up the permissions, you're ready to deploy your Next.js app.
 
 :::tip
 
@@ -38,9 +44,9 @@ Scaffoldly supports methods other than IAM Users, such as IAM Roles and Profiles
 
 :::
 
-## Step 2: Deploying Your NextJS Application
+## Step 2: Deploying Your Next.js Application
 
-With permissions set up, it's time to deploy your NextJS application using Scaffoldly. If you don't already have a NextJS app, you can create one by running:
+With permissions set up, it's time to deploy your Next.js application using Scaffoldly. If you don't already have a Next.js app, you can create one by running:
 
 ```bash
 npx create-next-app my-next-app
@@ -53,7 +59,7 @@ To deploy your app to AWS Lambda using Scaffoldly, run the following command:
 npx scaffoldly deploy --preset nextjs
 ```
 
-This command will automatically package and deploy your NextJS app, taking care of all AWS configurations such as Lambda functions, IAM roles, and a publicly accessible Function URL. The `--preset nextjs` option configures the deployment [specifically for a NextJS application](/docs/config/presets/nextjs).
+This command will automatically package and deploy your Next.js app, taking care of all AWS configurations such as Lambda functions, IAM roles, and a publicly accessible Function URL. The `--preset nextjs` option configures the deployment [specifically for a Next.js application](/docs/config/presets/nextjs).
 
 <details>
   <summary>Example Output</summary>
@@ -88,20 +94,20 @@ Here's an example output of the deployment process:
 
 ## Step 3: Verifying the Deployment
 
-Once the deployment is complete, Scaffoldly will provide a **Function URL** where your NextJS app is hosted. To verify that your application is live, simply open the provided URL in your browser:
+Once the deployment is complete, Scaffoldly will provide a **Function URL** where your Next.js app is hosted. To verify that your application is live, simply open the provided URL in your browser:
 
 ```bash
 🌎 Function URL: https://2dapk4ireswcwkyxcas6uvbk2a0zgphr.lambda-url.us-east-1.on.aws
 ```
 
-This URL will take you to your newly deployed NextJS application running on AWS Lambda.
+This URL will take you to your newly deployed Next.js application running on AWS Lambda.
 
 ### Additional Information
 
 - **Environment Files:** Scaffoldly generates `.env.main` and `.env` files containing environment variables for your deployment.
 - **Image Size:** Scaffoldly provides the size of the Docker image used for your deployment.
 
-## (Optional) Step 4: Save Configuration
+## (Recommended) Step 4: Save Configuration
 
 Now that the deployment is complete, you may want to save your Scaffoldly configuration for future deployments. You can do this by running:
 
@@ -119,7 +125,7 @@ See the [Configuration Reference](/docs/config) for more details on the `scaffol
 
 ## Conclusion
 
-Congratulations! You've successfully deployed a NextJS application to AWS Lambda using Scaffoldly. With just a few commands, you've managed to set up a fully serverless architecture, leveraging AWS services efficiently.
+Congratulations! You've successfully deployed a Next.js application to AWS Lambda using Scaffoldly. With just a few commands, you've managed to set up a fully serverless architecture, leveraging AWS services efficiently.
 
 ## What's Next?
 
