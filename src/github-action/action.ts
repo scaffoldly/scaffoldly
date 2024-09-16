@@ -54,8 +54,7 @@ export class Action {
     status.repo = this.repo;
 
     if (
-      !process.env.AWS_ACCESS_KEY_ID ||
-      !process.env.AWS_SECRET_ACCESS_KEY ||
+      !(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) &&
       !process.env.AWS_ROLE_ARN
     ) {
       throw new Error(
