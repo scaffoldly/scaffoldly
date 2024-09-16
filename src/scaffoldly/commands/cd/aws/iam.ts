@@ -113,15 +113,18 @@ export class IamService {
             }
 
             if (e.message === 'Region is missing' || e.name === 'CredentialsProviderError') {
-              throw new Error(`AWS credentials are missing. Please do one of the following:
+              throw new Error(
+                `AWS credentials are missing. Please do one of the following:
 - Run 'aws configure' to set the default credentials,
-- or, set the AWS_DEFAULT_REGION, AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables,
-- or, set the AWS_PROFILE environment variable to select the correct profile,
-- or, set the AWS_ROLE_ARN, AWS_ROLE_SESSION_NAME, and AWS_WEB_IDENTITY_TOKEN_FILE environment variables.
+- or: set the AWS_DEFAULT_REGION, AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables,
+- or: set the AWS_PROFILE environment variable to select the correct profile,
+- or: set the AWS_ROLE_ARN, AWS_ROLE_SESSION_NAME, and AWS_WEB_IDENTITY_TOKEN_FILE environment variables.
 
 💡 Add the \`--check-permissions\` option to show the necessary AWS permissions
 
-📖 See: https://scaffoldly.dev/docs/cloud/aws`);
+📖 See: https://scaffoldly.dev/docs/cloud/aws`,
+                { cause: e },
+              );
             }
             throw new Error('Unable to get identity', { cause: e });
           }),
