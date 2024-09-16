@@ -74,6 +74,7 @@ export class DevCommand extends CiCommand<DevCommand> {
       {
         describe: () => ({
           type: 'Lambda Runtime Server',
+          label: `localhost:${this.lambdaRuntimeServer.port}`,
         }),
         read: () => this.lambdaRuntimeServer.get(),
         create: () => this.lambdaRuntimeServer.create(),
@@ -94,6 +95,7 @@ export class DevCommand extends CiCommand<DevCommand> {
       {
         describe: () => ({
           type: 'Function URL Server',
+          label: `localhost:${this.functionUrlServer.port}`,
         }),
         read: () => this.functionUrlServer.get(),
         create: () => this.functionUrlServer.create(),
@@ -115,6 +117,7 @@ export class DevCommand extends CiCommand<DevCommand> {
       {
         describe: () => ({
           type: 'Container Pool',
+          label: '',
         }),
         read: () => this.containerPool.get(),
         create: () => this.containerPool.create(),

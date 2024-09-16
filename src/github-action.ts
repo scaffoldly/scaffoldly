@@ -10,6 +10,7 @@ import {
   summary,
   error,
   info,
+  setOutput,
 } from '@actions/core';
 
 onExit((code, signal) => {
@@ -55,7 +56,7 @@ export const run = async (mode: Mode): Promise<void> => {
     }
 
     saveState('status', encode(status));
-    // setOutput('TODO', 'TODO');
+    setOutput('url', status.url);
 
     if (status.failed) {
       throw new Error(`${mode} step failed: ${status.shortMessage}`);

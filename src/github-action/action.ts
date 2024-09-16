@@ -53,9 +53,6 @@ export class Action {
     status.owner = this.owner;
     status.repo = this.repo;
 
-    const secrets = getInput('secrets', { required: false });
-    console.log('!!! secrets', secrets);
-
     let region: string | undefined;
     if (process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION) {
       region = process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION;
@@ -149,7 +146,7 @@ export class Action {
 
           status.failed = true;
           status.shortMessage = e.message;
-          status.longMessage = 'TODO: Implement long message';
+          status.longMessage = '';
         }
         break;
       default:

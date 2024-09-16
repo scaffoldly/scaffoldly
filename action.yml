@@ -21,14 +21,8 @@ inputs:
     required: false
     default: '{}'
 outputs:
-  origin:
-    description: The URL of the deployed application
-  stage:
-    description: The inferred stage from the branch or PR name
-  deployed:
-    description: If the stack was deployed.
-  destroyed:
-    description: If the stack was destroyed.
+  url:
+    description: The URL of the deployed application.
 runs:
   using: 'node20'
   pre: scripts/github-action-pre.cjs
