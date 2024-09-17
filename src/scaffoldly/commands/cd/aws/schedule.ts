@@ -25,6 +25,9 @@ import {
 import { NotFoundException, SkipAction } from '../errors';
 import { LambdaDeployStatus } from './lambda';
 import { GitService } from '../git';
+import { fromResponseStream } from '../../../../awslambda-entrypoint/util';
+import { Readable } from 'stream';
+import { buffer } from 'stream/consumers';
 
 export type ScheduleDeployStatus = {
   scheduleGroup?: string;
@@ -175,8 +178,6 @@ export class ScheduleService implements IamConsumer {
       return;
     }
 
-    const { name } = this.gitService.config;
-
     const schedules = mapSchedules(this.gitService.config);
 
     const desiredSchedules = Object.entries(schedules).filter(
@@ -286,7 +287,7 @@ export class ScheduleService implements IamConsumer {
 
       const outputPrefix = '   ==> ';
 
-      const parseOutput = (output: Partial<InvokeCommandOutput>): InvokeOutput => {
+      const parseOutput = async (output: Partial<InvokeCommandOutput>): Promise<InvokeOutput> => {
         if (!output) {
           return { commands: schedules['@immediately'] };
         }
@@ -299,16 +300,15 @@ export class ScheduleService implements IamConsumer {
           return { commands: schedules['@immediately'], failed, lines: [] };
         }
 
-        const payload = JSON.parse(Buffer.from(Payload).toString('utf-8'));
-        if ('statusCode' in payload && payload.statusCode === 200) {
+        const { prelude, payload } = await fromResponseStream(
+          new Readable().wrap(Readable.from(Buffer.from(Payload))),
+        );
+
+        if ('statusCode' in prelude && prelude.statusCode === 200) {
           failed = false;
         }
 
-        if ('body' in payload && typeof payload.body === 'string') {
-          body = JSON.parse(payload.body);
-        } else {
-          body = JSON.stringify(payload);
-        }
+        body = (await buffer(payload)).toString('utf8');
 
         const lines = body.split('\n').map((line) => `${outputPrefix}${line}`);
         lines.unshift(''); // Add a blank line at the beginning
@@ -340,13 +340,14 @@ export class ScheduleService implements IamConsumer {
             this.lambdaClient
               .send(
                 new InvokeCommand({
-                  FunctionName: name,
+                  FunctionName: status.functionArn,
                   InvocationType: 'RequestResponse',
+                  Qualifier: status.functionVersion,
                   Payload: JSON.stringify(schedules['@immediately'].encode()),
                 }),
               )
-              .then((response) => {
-                invokeOutput = parseOutput(response);
+              .then(async (response) => {
+                invokeOutput = await parseOutput(response);
                 return invokeOutput;
               }),
           emitPermissions: (aware) => {

@@ -43,7 +43,7 @@ export const run = async (abortEvent: AbortEvent): Promise<void> => {
           string,
           string
         >;
-        log(`Secrets fetched`, { SLY_SECRET, entries: Object.keys(obj).length });
+        log(`Secrets fetched`, { SLY_SECRET, entries: Object.keys(obj) });
 
         return obj;
       })

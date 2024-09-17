@@ -5,11 +5,11 @@ import { ScaffoldlyConfig } from '../../../../../config';
 export class NpmPackageService {
   packages: string[];
 
-  _hasNode = false;
+  _hasScaffoldly = false;
 
   constructor(private config: ScaffoldlyConfig) {
     const packages = (config.packages || [])
-      .filter((p) => p.startsWith('npm:'))
+      .filter((p) => p.startsWith('npm:') || p.startsWith('package.json:'))
       .map((p) => {
         const dependency = p.split(':')[1];
 
@@ -21,6 +21,13 @@ export class NpmPackageService {
           return [dependency];
         }
 
+        if (p.startsWith('package.json:')) {
+          const version = this.dependencies[dependency];
+          if (version) {
+            return [`${dependency}@${version}`];
+          }
+        }
+
         return [undefined];
       })
       .flat()
@@ -29,8 +36,15 @@ export class NpmPackageService {
     this.packages = packages;
   }
 
-  get hasNode(): boolean {
-    return this._hasNode;
+  get dependencies(): Record<string, string> {
+    const packageJson = this.config.packageJson;
+    const dependencies = packageJson?.dependencies || {};
+    const devDependencies = packageJson?.devDependencies || {};
+    return { ...dependencies, ...devDependencies };
+  }
+
+  get hasScaffoldly(): boolean {
+    return this._hasScaffoldly;
   }
 
   get paths(): Promise<string[]> {
@@ -44,9 +58,7 @@ export class NpmPackageService {
       paths.push(join(this.config.workdir, this.config.src, 'node_modules', '.bin'));
     }
 
-    if (paths.length > 0 && this.config.files.includes('node_modules')) {
-      this._hasNode = true;
-    }
+    this._hasScaffoldly = !!this.dependencies.scaffoldly;
 
     return Promise.resolve(paths);
   }

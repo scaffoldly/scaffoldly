@@ -211,9 +211,10 @@ export const asyncResponse$ = (
   const rawEvent = JSON.parse(runtimeEvent.event) as Partial<
     APIGatewayProxyEventV2 | ALBEvent | string
   >;
+
   const deadline = runtimeEvent.deadline - 1000; // Subtract 1 second to allow errors to propagate
 
-  if (typeof rawEvent === 'string' && rawEvent.startsWith(`${CONFIG_SIGNATURE}@`)) {
+  if (typeof rawEvent === 'string' && rawEvent.startsWith(`${CONFIG_SIGNATURE}:`)) {
     return shell$(abortEvent, runtimeEvent, rawEvent, runtimeEvent.env);
   }
 

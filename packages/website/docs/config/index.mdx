@@ -18,21 +18,45 @@ The configuration is stored in the `package.json` file of your project, making i
   "scaffoldly": {
     "runtime": "node:22-alpine",
     "handler": "localhost:3000",
+    "packages": ["curl", "npm:nodemon", "package.json:react", "package.json:react-dom"],
+    "secrets": ["USER"],
+    "bin": {
+      "server.js": "app:.next/standalone/server.js"
+    },
     "services": [
       {
-        "name": "next",
-        "files": ["package.json", "build", "node_modules", "package-lock.json"],
+        "name": "app",
+        "files": [".next", "package.json", "package-lock.json"],
         "scripts": {
           "install": "npm install",
-          "dev": "npm run dev",
-          "build": "npm run build",
-          "start": "npm run start"
+          "dev": "next dev",
+          "build": "next build",
+          "start": "node server.js"
+        },
+        "schedules": {
+          "@immediately": "node -e 'console.log(`Hello, ${process.env.USER}!`)'",
+          "@hourly": "curl http://localhost:3000/index.html"
         }
       }
     ]
   }
 }
 ```
+
+The following configuration can be read as the following:
+
+- Run `node server.js` in a `node:22-alpine` Docker container.
+  - `server.js` is copied from `.next/standalone/server.js` in the `app` service.
+- Route all incoming traffic to `localhost:3000`.
+- Install `curl` from `apk`, `nodemon` from `npm`, `react`, and `react-dom` as dependencies.
+  - `react` and `react-dom` versions will be inferred from the`package.json` file.
+- Copy the `USER` environment variable as a secret.
+- On deploy run `npm install` and `next build` to prepare the application for production.
+- Include the following files in the deployment package:
+  - `.next`, `package.json`, and `package-lock.json`
+- Schedule tasks to run:
+  - Immediately log a greeting message with the `USER` environment variable.
+  - Every hour, make a request to `http://localhost:3000/index.html`.
 
 ## `runtime`
 
@@ -41,6 +65,62 @@ This is the base image used for your application. You can specify any valid Dock
 ## `handler`
 
 The handler specifies the entry point for your application. This is typically the URL or path where your application is served. In the example, it is set to `localhost:3000`, which is where a NodeJS application runs during development.
+
+## `packages` (Alpha Feature)
+
+The packages array allows you to specify additional packages that should be installed in the Docker image. You can include system packages, npm packages, or specific packages from your `package.json` file.
+
+Supported prefixes include:
+
+- `some-package`: A system package (e.g. `curl`)
+- `npm:some-package`: An npm package (e.g. `npm:nodemon`)
+- `package.json:some-package`: A specific package from `dependencies` or `devDependencies` from your `package.json` file (e.g. `package.json:react`)
+
+Example: `["curl", "npm:nodemon", "package.json:react", "package.json:react-dom"]`
+
+- `curl`: A system package. Note: Scaffoldly will infer the package manager from `runtime` (e.g. `apt`, `apk`, `dnf`, `yum`, etc.).
+- `npm:nodemon`: An npm package that will be installed using npm.
+- `package.json:react`, `package.json:react-dom` : A specific package and version from your `package.json` file.
+
+To see the install commands, observe the `install-base` stage in the generated Dockerfile:
+
+```bash
+npx scaffoldly show dockerfile
+```
+
+## `secrets`
+
+The secrets array allows you to specify environment variables that should be treated as secrets. These will be securely managed and not exposed in logs or error messages. You can reference these secrets in your application code.
+
+These secrets are copied from your local environment to the Secret Store created for the application.
+
+They are re-injected as environment variables during the runtime of your application.
+
+Example: `["USER"]`
+
+- This will copy the Environment Variable named `USER` from your local environment to the Secret Store.
+
+_**See**_:
+
+- [Secrets](/docs/config/secrets)
+- [Environment Variables](/docs/config/environment)
+
+## `bin` (Alpha Feature)
+
+The bin property allows you to specify custom entry points for your application. This is useful when you want to run a specific script or command as the main entry point.
+
+Example:
+
+```json
+"bin": {
+  "server.js": "app:.next/standalone/server.js"
+}
+```
+
+- This specifies that the `server.js` file generated as part of `next build` in the `.next/standalone` directory should be used as the entry point for the application.
+- `app:` indicates that the file is part of the `app` service.
+- All files and directories in `.next/standalone/*` will be copied to `/var/task` in the Docker container.
+- `server.js` will be the name of the file in `/var/task` in the Docker container.
 
 ## `services`
 
@@ -66,3 +146,12 @@ Scripts that are executed during different stages of the application lifecycle. 
 - `dev`: Command to start the application in development mode.
 - `build`: Command to build the application for production.
 - `start`: Command to start the application in production mode.
+
+### `schedules` (Alpha Feature)
+
+The schedules property allows you to define scheduled tasks for your service. You can specify cron-like schedules for tasks that should run at specific intervals.
+
+- `@immediately`: Runs the task immediately after deployment.
+- `@frequently`: Runs the task every 5 minutes with a 5-minute sliding window.
+- `@hourly`: Runs the task every hour.
+- `@daily`: Runs the task every day.

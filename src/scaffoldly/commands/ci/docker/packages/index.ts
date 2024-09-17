@@ -15,8 +15,7 @@ export class PackageService {
   }
 
   get entrypoint(): Copy {
-    if (this.npmPackages.hasNode) {
-      // TODO: check that this file exists
+    if (this.npmPackages.hasScaffoldly) {
       return {
         src: join('node_modules', 'scaffoldly', 'dist', 'awslambda-entrypoint.js'),
         dest: `.entrypoint`,

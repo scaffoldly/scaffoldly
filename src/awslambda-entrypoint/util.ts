@@ -43,7 +43,6 @@ export const fromResponseStream = (
   stream: Readable,
 ): Promise<{ prelude: AsyncPrelude; payload: Readable }> => {
   const delimiter = Buffer.alloc(8); // 8-byte delimiter (all zeros)
-  const payloadStream = new PassThrough();
 
   return new Promise((resolve, reject) => {
     const parts = stream.pipe(binarySplit(delimiter));
@@ -51,17 +50,9 @@ export const fromResponseStream = (
 
     parts.on('data', (chunk: Buffer) => {
       if (!prelude) {
-        prelude = JSON.parse(chunk.toString('utf8'));
-        stream.pipe(payloadStream);
-        parts.end();
+        prelude = JSON.parse(chunk.toString('utf8')) as AsyncPrelude;
+        resolve({ prelude, payload: new Readable().wrap(parts) });
       }
-    });
-
-    parts.on('end', () => {
-      if (!prelude) {
-        return reject(new Error('Prelude not found'));
-      }
-      resolve({ prelude, payload: payloadStream });
     });
 
     parts.on('error', reject);

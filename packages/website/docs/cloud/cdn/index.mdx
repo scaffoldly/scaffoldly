@@ -1,1 +1,57 @@
 # CDNs and Custom Domains
+
+A Content Delivery Network (CDN) is a system of distributed servers that deliver web content to a user based on their geographic location. CDNs help improve the performance, reliability, and security of your web applications by caching content closer to users.
+
+Scaffoldly has been tested with the following CDN providers:
+
+- **Cloudflare**: A popular CDN that offers a wide range of features, including DDoS protection, SSL support, and a global network of servers.
+- **AWS CloudFront**: Amazon's CDN service that integrates seamlessly with other AWS services, providing low-latency content delivery.
+
+## Cloudflare
+
+To set up Cloudflare as your CDN, follow these steps:
+
+1. Create a Cloudflare account and add your domain.
+1. Update your domain's DNS settings to point to Cloudflare's nameservers.
+1. Configure your Cloudflare settings, including caching rules, SSL settings, and security features.
+1. Create a new "Worker" in Cloudflare with the following code:
+
+   ```javascript title="Cloudflare Worker"
+   addEventListener('fetch', (event) => {
+     event.respondWith(handleRequest(event.request));
+   });
+
+   async function handleRequest(request) {
+     const url = new URL(request.url);
+     // your Lambda URL goes here
+     url.hostname = '2dapk4ireswcwkyxcas6uvbk2a0zgphr.lambda-url.us-east-1.on.aws';
+     const response = await fetch(url, request);
+     return response;
+   }
+   ```
+
+1. Navigate to `Settings` for the Worker
+1. Add the desired Custom Domain
+1. Set the `Route` to match your desired path (e.g., `example.com/*`).
+
+Please refer to [Cloudflare's documentation](https://developers.cloudflare.com/workers/configuration/routing/) for more details on configuring Workers and other features.
+
+## CloudFront
+
+To set up AWS CloudFront as your CDN, follow these steps:
+
+1. Create a CloudFront distribution in the AWS Management Console.
+1. Set the **Origin Domain Name** to your Lambda function's URL (e.g., `2dapk4ireswcwkyxcas6uvbk2a0zgphr.lambda-url.us-east-1.on.aws`).
+1. Configure the distribution settings, including caching behavior, SSL settings, and custom error pages.
+1. Once the distribution is created, note the **CloudFront URL** provided.
+1. Update your domain's DNS settings to point to the CloudFront distribution.
+   - If you're using Route 53, create an ALIAS record that points to the CloudFront distribution.
+   - If you're using another DNS provider, update the CNAME record to point to the CloudFront URL.
+
+For more information on configuring CloudFront, refer to the [AWS CloudFront documentation](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/GettingStarted.html).
+
+```mdx-code-block
+import Social from '/docs/_common/_social.mdx';
+```
+
+<Social />

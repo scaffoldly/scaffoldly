@@ -56456,7 +56456,7 @@ var addPipeMethods = (spawned) => {
 var import_node_fs2 = require("node:fs");
 var import_promises = require("node:timers/promises");
 
-// node_modules/execa/node_modules/get-stream/source/contents.js
+// node_modules/get-stream/source/contents.js
 var getStreamContents = async (stream4, { init, convertChunk, getSize, truncateChunk, addChunk, getFinalChunk, finalize }, { maxBuffer = Number.POSITIVE_INFINITY } = {}) => {
   if (!isAsyncIterable(stream4)) {
     throw new Error("The first argument must be a Readable, a ReadableStream, or an async iterable.");
@@ -56531,7 +56531,7 @@ var MaxBufferError = class extends Error {
   }
 };
 
-// node_modules/execa/node_modules/get-stream/source/utils.js
+// node_modules/get-stream/source/utils.js
 var identity = (value) => value;
 var noop2 = () => void 0;
 var getContentsProp = ({ contents }) => contents;
@@ -56540,7 +56540,7 @@ var throwObjectStream = (chunk) => {
 };
 var getLengthProp = (convertedChunk) => convertedChunk.length;
 
-// node_modules/execa/node_modules/get-stream/source/array-buffer.js
+// node_modules/get-stream/source/array-buffer.js
 async function getStreamAsArrayBuffer(stream4, options) {
   return getStreamContents(stream4, arrayBufferMethods, options);
 }
@@ -56593,7 +56593,7 @@ var arrayBufferMethods = {
   finalize: finalizeArrayBuffer
 };
 
-// node_modules/execa/node_modules/get-stream/source/buffer.js
+// node_modules/get-stream/source/buffer.js
 async function getStreamAsBuffer(stream4, options) {
   if (!("Buffer" in globalThis)) {
     throw new Error("getStreamAsBuffer() is only supported in Node.js");
@@ -56609,7 +56609,7 @@ async function getStreamAsBuffer(stream4, options) {
 }
 var arrayBufferToNodeBuffer = (arrayBuffer) => globalThis.Buffer.from(arrayBuffer);
 
-// node_modules/execa/node_modules/get-stream/source/string.js
+// node_modules/get-stream/source/string.js
 async function getStreamAsString(stream4, options) {
   return getStreamContents(stream4, stringMethods, options);
 }
@@ -57291,7 +57291,7 @@ var proxy$ = (abortEvent, runtimeEvent, url2, method, headers, data, deadline) =
 var asyncResponse$ = (abortEvent, runtimeEvent, routes) => {
   const rawEvent = JSON.parse(runtimeEvent.event);
   const deadline = runtimeEvent.deadline - 1e3;
-  if (typeof rawEvent === "string" && rawEvent.startsWith(`${CONFIG_SIGNATURE}@`)) {
+  if (typeof rawEvent === "string" && rawEvent.startsWith(`${CONFIG_SIGNATURE}:`)) {
     return shell$(abortEvent, runtimeEvent, rawEvent, runtimeEvent.env);
   }
   if (typeof rawEvent !== "object" || !("requestContext" in rawEvent)) {
@@ -57408,7 +57408,7 @@ var run = async (abortEvent) => {
         throw new Error("Secret does not contain binary data");
       }
       const obj = JSON.parse(Buffer.from(res.SecretBinary).toString("utf-8"));
-      log(`Secrets fetched`, { SLY_SECRET, entries: Object.keys(obj).length });
+      log(`Secrets fetched`, { SLY_SECRET, entries: Object.keys(obj) });
       return obj;
     }).catch((e) => {
       throw new Error(`Unable to fetch secret ${SLY_SECRET}`, { cause: e });
