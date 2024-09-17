@@ -22,7 +22,7 @@ Set up your project, and GitHub Actions in the following way:
   <TabItem value="profile" label="Local Environment">
 
 ```bash title=".profile"
-export SENDGRID_API_KEY="some_shared_sendgrid_api_key" # copied from 1Password
+export SENDGRID_API_KEY_DEV="some_shared_sendgrid_api_key" # copied from 1Password
 ```
 
     Explanation:
@@ -34,8 +34,8 @@ export SENDGRID_API_KEY="some_shared_sendgrid_api_key" # copied from 1Password
   <TabItem value="dotenv" label=".env File">
 
 ```env
-DATABASE_URL="postgres://root:testing@$localhost:5432/mydb"
-SENDGRID_API_KEY="${SENDGRID_API_KEY}" # injected using dotenv-expand
+DATABASE_URL="postgres://root:testing@localhost:5432/mydb"
+SENDGRID_API_KEY="${SENDGRID_API_KEY_DEV}" # injected using dotenv
 ```
 
     Explanation:
@@ -114,7 +114,7 @@ jobs:
   </TabItem>
   <TabItem value="app" label="Your Application">
 
-    Your application _might_ need to add `dotenv` and `dotenv-expand`:
+    Your application **_might_** need to add `dotenv` and `dotenv-expand`:
 
 ```javascript
 const dotenv = require('dotenv');

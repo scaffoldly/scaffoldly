@@ -124,6 +124,9 @@
     "ws": "^8.17.1",
     "yargs": "^17.3.0"
   },
+  "optionalDependencies": {
+    "cpu-features": "*"
+  },
   "nx": {},
   "dependencies": {}
 }
