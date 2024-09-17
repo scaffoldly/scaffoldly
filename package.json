@@ -1,6 +1,6 @@
 {
   "name": "scaffoldly",
-  "version": "1.0.34",
+  "version": "1.0.35-0",
   "description": "Toolchain and libraries for Scaffoldly",
   "repository": "git@github.com:scaffoldly/scaffoldly.git",
   "author": "Scaffoldly",
