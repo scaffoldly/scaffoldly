@@ -39,12 +39,12 @@ const config: Config = {
           sidebarPath: './sidebars.ts',
           editUrl: 'https://github.com/scaffoldly/scaffoldly/tree/main/packages/website/',
         },
-        blog: {
-          remarkPlugins: [[require('@docusaurus/remark-plugin-npm2yarn'), { sync: true }]],
-          rehypePlugins: [],
-          showReadingTime: true,
-          editUrl: 'https://github.com/scaffoldly/scaffoldly/tree/main/packages/website/blog',
-        },
+        // blog: {
+        //   remarkPlugins: [[require('@docusaurus/remark-plugin-npm2yarn'), { sync: true }]],
+        //   rehypePlugins: [],
+        //   showReadingTime: true,
+        //   editUrl: 'https://github.com/scaffoldly/scaffoldly/tree/main/packages/website/blog',
+        // },
         theme: {
           customCss: './src/css/custom.css',
         },
@@ -100,14 +100,6 @@ const config: Config = {
         {
           title: 'Community',
           items: [
-            {
-              label: 'Stack Overflow',
-              href: 'https://stackoverflow.com/questions/tagged/scaffoldly',
-            },
-            {
-              label: 'x.com/scaffoldly',
-              href: 'https://x.com/scaffoldly',
-            },
             {
               label: 'Discussions',
               href: 'https://github.com/scaffoldly/scaffoldly/discussions',
