@@ -19,7 +19,7 @@ To use Scaffoldly in your GitHub Actions workflow, you need to create a workflow
 
 <Tabs groupId="aws-access">
   <TabItem value="role-assumption" label="AWS IAM Role (Recommended)">
-    1. Create a new [IAM role](/docs/cloud/aws#iam-role) in AWS with the necessary permissions for your deployment.
+    1. Create a new [IAM role](/docs/cloud/aws#iam-roles) in AWS with the necessary permissions for your deployment.
 
     :::tip
 
@@ -153,3 +153,7 @@ _**See**_:
 ### `url`
 
 The URL of the deployed application. This output can be used in subsequent steps of your workflow.
+
+### `identity`
+
+The identity created or updated for the deployed application. This output can be used in subsequent steps of your workflow.

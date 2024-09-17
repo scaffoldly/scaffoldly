@@ -1,5 +1,101 @@
 # AWS
 
+## Permissions
+
+There are two aspects to permissions in AWS:
+
+- Deployment Permissions: A broadly scoped set of permissions for the user or role that will be deploying the application.
+- Runtime Permissions: A more granular set of permissions that the deployed application will need to function correctly.
+
+### Deployment Permissions
+
+To deploy your application using Scaffoldly, you need to grant the necessary permissions to the AWS user or role that will be executing the deployment. You can generate the required permissions by running the following command:
+
+```bash
+npx scaffoldly show permissions
+```
+
+### Runtime Permissions
+
+The deployment role will create the necessary resources (like Lambda functions, API Gateway, etc.) with a dedicated role for each application. However, you may need to add additional permissions to your deployed application depending on its functionality. For example, if your application needs to access an S3 bucket or a DynamoDB table, you will need to specify those permissions in your IAM policy.
+
+The IAM role (identity) for the Application that is created is in the output of the deployment command:
+
+```bash
+npx scaffoldly deploy
+
+# ... snip ...
+
+🚀 Deployment Complete!
+   🆔 App Identity: arn:aws:iam::123456789012:role/some-role-name-SomeRandomId
+   ...
+```
+
 ## Authentication Methods
 
-TODO
+Scaffoldly relies exclusively on AWS environment variables for authentication. This ensures a consistent experience with the AWS CLI and other tooling.
+
+Scaffoldly uses the AWS Javascript v3 SDK.
+
+### AWS Config and Credentials File
+
+See also: [Deployment Permissions](#deployment-permissions)
+
+Scaffoldly supports any credentials specified in the `~/.aws/config` and `~/.aws/credentials` files. If you have the AWS CLI installed and configured, Scaffoldly will automatically use the credentials stored in these files.
+
+#### `AWS_PROFILE`
+
+If using multiple AWS profiles, or `aws sso`, you can specify which profile to use by setting the `AWS_PROFILE` environment variable.
+
+### Access Keys
+
+See also: [Deployment Permissions](#deployment-permissions)
+
+Scaffoldly supports the usage `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
+
+These are the most common method for authenticating with AWS. You can set these environment variables in your terminal or CI/CD environment.
+
+### IAM Roles
+
+See also: [Deployment Permissions](#deployment-permissions)
+
+Scaffoldly supports the usage of `AWS_ROLE_ARN`, `AWS_WEB_IDENTITY_TOKEN_FILE`, and `AWS_ROLE_SESSION_NAME` environment variables for IAM roles with web identity federation.
+
+#### Trust Relationships
+
+When using IAM roles, ensure that the trust relationship is correctly configured to allow the necessary services (like GitHub Actions) to assume the role.
+
+##### GitHub Actions
+
+:::info
+
+In the Scaffoldly GitHub Action, `AWS_ROLE_ARN` is the only needed environment variable. The GitHub Action will automatically exchange the `id-token: write` permission for a the `AWS_WEB_IDENTITY_TOKEN_FILE` and `AWS_ROLE_SESSION_NAME` variables if they have not already been provided.
+
+:::
+
+1. See the documentation for [GitHub Authentication to AWS](https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services) for more information on configuring IAM roles for GitHub Actions.
+1. Specify the Role ARN in your GitHub Action with the `AWS_ROLE_ARN` environment variable.
+
+<details>
+  <summary>Example Trust Relationship</summary>
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+   {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringLike": {
+          "token.actions.githubusercontent.com:sub": "repo:your-github-username/your-repo-name:*"
+        }
+      }
+   }
+}
+```
+
+</details>

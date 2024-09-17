@@ -105,8 +105,9 @@ export class DeployCommand extends CdCommand<DeployCommand> {
 
     console.log('');
     console.log('🚀 Deployment Complete!');
+    console.log(`   🆔 App Identity: ${status.roleArn}`);
     console.log(`   📄 Env Files: ${status.envFiles?.join(', ')}`);
     console.log(`   📦 Image Size: ${filesize(status.imageSize || 0)}`);
-    console.log(`   🌎 Function URL: ${status.url}`);
+    console.log(`   🌎 URL: ${status.url}`);
   }
 }

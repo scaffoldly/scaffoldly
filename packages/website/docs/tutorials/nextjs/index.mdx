@@ -8,6 +8,8 @@ sidebar_position: 1
 
 In this guide, we'll go through the steps to deploy a new Next.js application to AWS Lambda using the `scaffoldly` CLI. You'll have a fully functional, serverless Next.js app running on AWS in no time!
 
+To deploy an existing Next.js application, see [Presets](/docs/config/presets/nextjs).
+
 ## Prerequisites
 
 - AWS account with administrative privileges.
@@ -85,9 +87,10 @@ Here's an example output of the deployment process:
 ✅ Updated Function URL: https://2dapk4ireswcwkyxcas6uvbk2a0zgphr.lambda-url.us-east-1.on.aws
 
 🚀 Deployment Complete!
+   🆔 App Identity: arn:aws:iam::123456789012:role/my-next-app-I0l2Eb
    📄 Env Files: .env.main, .env
    📦 Image Size: 641.55 MB
-   🌎 Function URL: https://2dapk4ireswcwkyxcas6uvbk2a0zgphr.lambda-url.us-east-1.on.aws
+   🌎 URL: https://2dapk4ireswcwkyxcas6uvbk2a0zgphr.lambda-url.us-east-1.on.aws
 ```
 
 </details>
@@ -97,7 +100,7 @@ Here's an example output of the deployment process:
 Once the deployment is complete, Scaffoldly will provide a **Function URL** where your Next.js app is hosted. To verify that your application is live, simply open the provided URL in your browser:
 
 ```bash
-🌎 Function URL: https://2dapk4ireswcwkyxcas6uvbk2a0zgphr.lambda-url.us-east-1.on.aws
+🌎 URL: https://2dapk4ireswcwkyxcas6uvbk2a0zgphr.lambda-url.us-east-1.on.aws
 ```
 
 This URL will take you to your newly deployed Next.js application running on AWS Lambda.
