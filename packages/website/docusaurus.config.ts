@@ -51,10 +51,9 @@ const config: Config = {
       } satisfies Preset.Options,
     ],
   ],
-
   themeConfig: {
     // Replace with your project's social card
-    image: 'img/docusaurus-social-card.jpg',
+    image: 'img/social-card.jpg',
     navbar: {
       title: 'Scaffoldly',
       logo: {
@@ -134,6 +133,15 @@ const config: Config = {
         },
       ],
       copyright: `Copyright © ${new Date().getFullYear()} Scaffoldly, LLC.`,
+    },
+    algolia: {
+      appId: 'WR6B7DZF3W',
+      apiKey: '344cbd9ae493d1d819ce297fa99df478',
+      indexName: 'scaffoldly',
+      contextualSearch: true,
+      searchParameters: {},
+      searchPagePath: 'search',
+      insights: true,
     },
     prism: {
       theme: prismThemes.github,
