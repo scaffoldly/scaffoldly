@@ -70,6 +70,12 @@ The handler specifies the entry point for your application. This is typically th
 
 The packages array allows you to specify additional packages that should be installed in the Docker image. You can include system packages, npm packages, or specific packages from your `package.json` file.
 
+:::note
+
+Scaffoldly will pull `node:22-alpine` and automatically determine the package manager (e.g. `apt`, `apk`, `dnf`, `yum`, etc.).
+
+:::
+
 Supported prefixes include:
 
 - `some-package`: A system package (e.g. `curl`)
@@ -78,7 +84,7 @@ Supported prefixes include:
 
 Example: `["curl", "npm:nodemon", "package.json:react", "package.json:react-dom"]`
 
-- `curl`: A system package. Note: Scaffoldly will infer the package manager from `runtime` (e.g. `apt`, `apk`, `dnf`, `yum`, etc.).
+- `curl`: A system package.
 - `npm:nodemon`: An npm package that will be installed using npm.
 - `package.json:react`, `package.json:react-dom` : A specific package and version from your `package.json` file.
 
@@ -87,6 +93,20 @@ To see the install commands, observe the `install-base` stage in the generated D
 ```bash
 npx scaffoldly show dockerfile
 ```
+
+<details>
+  <summary>Dockerfile Output</summary>
+
+```dockerfile
+FROM node:22-alpine AS install-base
+WORKDIR /var/task
+RUN apk update && apk add --no-cache curl && rm -rf /var/cache/apk/*
+RUN npm install -g nodemon react@^18 react-dom@^18 --omit=dev --omit=optional --omit=peer && npm cache clean --force
+
+# ... snip: rest of the Dockerfile
+```
+
+</details>
 
 ## `secrets`
 
@@ -155,3 +175,9 @@ The schedules property allows you to define scheduled tasks for your service. Yo
 - `@frequently`: Runs the task every 5 minutes with a 5-minute sliding window.
 - `@hourly`: Runs the task every hour.
 - `@daily`: Runs the task every day.
+
+```mdx-code-block
+import Social from '/docs/_common/_social.mdx';
+```
+
+<Social />
