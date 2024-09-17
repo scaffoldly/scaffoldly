@@ -1,0 +1,137 @@
+## A Real-World Example
+
+```mdx-code-block
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+```
+
+Let's build out secrets and environment variables for a real-world application that connects to a PostgreSQL database and uses SendGrid for sending emails.
+
+Your application needs:
+
+- A database URL
+  - Developers use `postgresql://root:testing@localhost:5432/mydb` locally
+  - A different Database URL for use in production
+- An API key for SendGrid
+  - Developers get this value from 1Password for their local environment
+  - A different API key for use in production
+
+Set up your project, and GitHub Actions in the following way:
+
+<Tabs>
+  <TabItem value="profile" label="Local Environment">
+
+```bash title=".profile"
+export SENDGRID_API_KEY="some_shared_sendgrid_api_key" # copied from 1Password
+```
+
+    Explanation:
+     - Since `SENDGRID_API_KEY` is sensitive, it should not be stored in your codebase.
+     - `dotenv` will pull it into `.env` at runtime.
+
+  </TabItem>
+
+  <TabItem value="dotenv" label=".env File">
+
+```env
+DATABASE_URL="postgres://root:testing@$localhost:5432/mydb"
+SENDGRID_API_KEY="${SENDGRID_API_KEY}" # injected using dotenv-expand
+```
+
+    Explanation:
+     - The `.env` file contains the "default" local environment variables for local development.
+     - `dotenv` will pull in the `SENDGRID_API_KEY` from your profile.
+
+  </TabItem>
+  <TabItem value="github-secrets" label="Repository Secrets">
+
+    - `DATABASE_URL`
+
+        ```
+        postgres://some-username:some-password@mydbinstance.abcdefghij.us-east-1.rds.amazonaws.com:5432/some-database
+        ```
+
+    - `SENDGRID_API_KEY`:
+
+        ```
+        a_different_sendgrid_api_key`
+        ```
+
+    Explanation:
+     - We're using GitHub as a secret store for sensitive information.
+     - Scaffoldly will automatically upload these secrets into the Secret Store during deployment.
+     - Scaffoldly will inject these secrets as environment variables at runtime.
+
+    See: [GitHub Repository Secrets](https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions)
+
+  </TabItem>
+  <TabItem value="scaffoldly-config" label="Scaffoldly Config">
+
+```json title="package.json"
+{
+  "name": "my-app",
+  // other package.json configuration....
+  "scaffoldly": {
+    "secrets": ["SENDGRID_API_KEY", "DATABASE_URL"]
+    // other scaffoldly configuration...
+  }
+}
+```
+
+    Explanation:
+     - The `secrets` array specifies which match with secrets in GitHub Repository secrets.
+     - Scaffoldly will automatically upload these secrets into the Secret Store during deployment.
+     - Scaffoldly will inject these secrets as environment variables at runtime.
+
+    See: [Secrets](/docs/config/#secrets)
+
+  </TabItem>
+  <TabItem value="github-action" label="GitHub Action">
+
+```yaml title=".github/workflows/scaffoldly.yml"
+name: Scaffoldly
+# other workflow configuration...
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy
+        uses: scaffoldly/scaffoldly@v1
+        with:
+          secrets: ${{ toJSON(secrets) }} # inject repository secrets
+```
+
+    Explanation:
+     - The `secrets` input passes the GitHub repository secrets to the Scaffoldly action.
+     - Scaffoldly will automatically upload these secrets into the Secret Store during deployment.
+     - Scaffoldly will inject these secrets as environment variables at runtime.
+
+    See: [GitHub Action Reference](/docs/gha)
+
+  </TabItem>
+  <TabItem value="app" label="Your Application">
+
+    Your application _might_ need to add `dotenv` and `dotenv-expand`:
+
+```javascript
+const dotenv = require('dotenv');
+const dotenvExpand = require('dotenv-expand');
+
+dotenvExpand(dotenv.config());
+```
+
+```javascript
+const dbUrl = process.env.DATABASE_URL;
+const sendgridApiKey = process.env.SENDGRID_API_KEY;
+```
+
+    Explanation:
+     - Using `dotenv` and `dotenv-expand`, environment variables and secrets can be accessed in your application code.
+     - Secrets are copied from GitHub Actions and re-injected as environment variables during runtime.
+
+  </TabItem>
+
+</Tabs>

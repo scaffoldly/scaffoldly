@@ -1,5 +1,90 @@
 # Environment Variables
 
+Scaffoldly uses [`dotenv`](https://www.npmjs.com/package/dotenv) and [`dotenv-expand`](https://www.npmjs.com/package/dotenv-expand) to manage environment variables in your application. This allows you to define environment variables in a `.env` file and access them in your code seamlessly.
+
+## Creating `.env` Files
+
+:::warning
+
+Do not add secrets sensitive information directly into `.env` files, instead use [Secrets](/docs/config/secrets) for sensitive data.
+
+:::
+
+:::tip
+
+Since Scaffoldly can manage secrets, we **recommend** checking your `.env` files into Source Control. This allows you to easily manage and share your environment variables across your team.
+
+:::
+
+To create a `.env` file, simply create a new file named `.env` in the root of your project and add your environment variables in the following format:
+
+```env
+# .env
+DATABASE_URL="your-database-url"
+```
+
+#### Branch-Specific `.env` Files
+
+If you want to have different environment variables for different branches, you can create branch-specific `.env` files. For example:
+
+- use `.env` and/or `.env.main` file for your `main` branch,
+- a `.env.staging` file for your staging branch, overriding any variables defined in `.env`,
+- a `.env.production` file for your development branch, overriding any variables defined in `.env`.
+
+You can see which `.env` files are used when deploying, and the order of precedence:
+
+```bash
+npx scaffoldly deploy --dryrun
+```
+
+<details>
+  <summary>Example Output</summary>
+
+Here's an example output of the deployment process:
+
+```bash
+🚀 Deployment Complete!
+   ...
+   📄 Env Files: .env.main, .env
+   ...
+```
+
+</details>
+
+### Accessing Environment Variables in Your Code
+
+You can access the environment variables in your code using `process.env`. For example:
+
+```javascript
+const dbUrl = process.env.DATABASE_URL;
+```
+
+### `dotenv-expand` Usage
+
+If you need to reference system-level environment variables within your `.env` file, you can use `dotenv-expand`. For example:
+
+```env title=".env file"
+# .env
+DATABASE_URL="postgres://root:testing@localhost:5432/mydb"
+```
+
+```yaml title="GitHub Actions Override"
+# .github/workflows/scaffoldly.yml
+env:
+  DB_HOST: 'mydbinstance.abcdefghij.us-east-1.rds.amazonaws.com:5432'
+```
+
+```env title=".env.staging file"
+# .env.staging
+DATABASE_URL="postgres://${DB_HOST}/mydb"
+```
+
+```mdx-code-block
+import RealWorld from '/docs/config/environment/_real-world.mdx';
+```
+
+<RealWorld />
+
 ```mdx-code-block
 import Social from '/docs/_common/_social.mdx';
 ```
