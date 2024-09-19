@@ -17,6 +17,8 @@
     "deploy": "scaffoldly deploy"
   },
   "dependencies": {
+    "@amplitude/analytics-browser": "^2.11.6",
+    "@amplitude/analytics-types": "^2.8.2",
     "@docusaurus/core": "^3.5.1",
     "@docusaurus/preset-classic": "^3.5.1",
     "@docusaurus/remark-plugin-npm2yarn": "^3.5.1",

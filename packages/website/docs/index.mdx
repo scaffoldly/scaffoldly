@@ -10,7 +10,11 @@ import Links from '/docs/_common/_links.mdx';
 
 <Links/ >
 
-Scaffoldly is a powerful tool designed to simplify the deployment of serverless applications on AWS Lambda. With its intuitive CLI and flexible configuration options, you can easily manage your applications and streamline your development workflow.
+<br />
+<br />
+Scaffoldly is a **new framework** for **packaging and deploying** applications to AWS.
+
+✨ In fact, **[our documentation site](https://scaffoldly.dev)** is built and deployed **using Scaffoldly**, and hosted on AWS Lambda!
 
 It is a **no-code** solution that allows developers to **focus on building applications** without worrying about the underlying infrastructure or deployments.
 
@@ -19,29 +23,6 @@ It is a **no-code** solution that allows developers to **focus on building appli
 - **Built-in CI/CD Support**: Integrate with GitHub Actions for seamless deployments.
 - **Minimal configuration required**: Get started quickly with sensible defaults.
 - **Built for the Public Cloud**: Deploy applications to AWS Lambda effortlessly. Don't get locked into using Vercel or Netlify.
-
-By adding a [few lines of configuration](/docs/config) to your `package.json`, you can deploy your application to AWS Lambda in minutes:
-
-```json title="package.json"
-{
-  "scaffoldly": {
-    "runtime": "node:22-alpine",
-    "handler": "localhost:3000",
-    "services": [
-      {
-        "name": "next",
-        "files": ["package.json", ".next", "node_modules", "package-lock.json"],
-        "scripts": {
-          "install": "npm ci",
-          "dev": "next dev",
-          "build": "next build",
-          "start": "next start"
-        }
-      }
-    ]
-  }
-}
-```
 
 ## Documentation Structure
 
