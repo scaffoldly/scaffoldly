@@ -25,18 +25,11 @@ It is a **open-source**, **no-code**, **developer-focused** solution that simpli
 
 - Next.js: [Deploy a Next.js application to AWS lambda in 5 minutes](https://scaffoldly.dev/docs/tutorials/nextjs)
 
-## Components
-
-- [Command Line Interface](https://scaffoldly.dev/docs/cli)
-- [GitHub Action](https://scaffoldly.dev/docs/gha)
-- [AWS Lambda Entrypoint](https://asdf)
-- [Docs Website](https://scaffoldly.dev)
-
-## Configuration and Usage
+## Usage
 
 Using a minimal configuration, the `scaffoldly` toolchain can package and deploy an application:
 
-```json title="package.json"
+```jsonc title="package.json"
 {
   "name": "my-app",
   "version": "0.1.0",
@@ -108,7 +101,7 @@ SCAFFOLDLY_DNT=1 npx scaffoldly
 
 ## Documentation
 
-Documentation for the Scaffoldly Toolchain is located at [https://scaffoldly.dev/docs](https://scaffoldly.dev/docs).
+Documentation for the Scaffoldly toolchain is located at [https://scaffoldly.dev/docs](https://scaffoldly.dev/docs).
 
 ## Reporting Issues
 
