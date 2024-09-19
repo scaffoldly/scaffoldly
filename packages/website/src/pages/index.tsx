@@ -1,18 +1,11 @@
 import clsx from 'clsx';
-// eslint-disable-next-line import/no-unresolved
 import Link from '@docusaurus/Link';
-// eslint-disable-next-line import/no-unresolved
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
-// eslint-disable-next-line import/no-unresolved
 import Layout from '@theme/Layout';
-// eslint-disable-next-line import/no-unresolved
 import HomepageFeatures from '@site/src/components/HomepageFeatures';
-// eslint-disable-next-line import/no-unresolved
 import Heading from '@theme/Heading';
-import * as amplitude from '@amplitude/analytics-browser';
 
 import styles from './index.module.css';
-import { useEffect } from 'react';
 
 function HomepageHeader() {
   const { siteConfig } = useDocusaurusContext();
@@ -34,10 +27,6 @@ function HomepageHeader() {
 }
 
 export default function Home(): JSX.Element {
-  useEffect(() => {
-    amplitude.init('2b55d9164cccff808f518a990c1fefb7');
-  });
-
   const { siteConfig } = useDocusaurusContext();
   return (
     <Layout
