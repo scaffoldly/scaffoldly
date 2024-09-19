@@ -4,20 +4,13 @@ It is a **open-source**, **no-code**, **developer-focused** solution that simpli
 
 ### Key Features
 
-- **Automatic Docker Image Generation**
-  - No need to write Dockerfiles manually.
-- **Infrastructure Automation**
-  - Automatically create and manage AWS resources.
-- **Built-in CI/CD Support**
-  - Integrate with GitHub Actions for seamless deployments.
-- **Environment Variables and Secrets**
-  - Dotenv and GitHub Secrets are built-in.
-- **Minimal configuration required**
-  - Get started quickly with sensible defaults.
-- **Built for the Public Cloud**
-  - Deploy applications to AWS Lambda effortlessly. Don't get locked into using Vercel or Netlify.
-- **Cost Effective**
-  - Only pay for what you use with AWS Lambda.
+- **Automatic Docker Image Generation**: No need to write Dockerfiles manually.
+- **Infrastructure Automation**: Automatically create and manage AWS resources.
+- **Built-in CI/CD Support**: Integrate with GitHub Actions for seamless deployments.
+- **Environment Variables and Secrets**: Dotenv and GitHub Secrets are built-in.
+- **Minimal configuration required**: Get started quickly with sensible defaults.
+- **Built for the Public Cloud**: Deploy applications to AWS Lambda effortlessly. Don't get locked into using Vercel or Netlify.
+- **Cost Effective**: Only pay for what you use with AWS Lambda.
 
 ✨ Our **[documentation site](https://scaffoldly.dev)** is built and deployed **using Scaffoldly**, which uses the **Docusaurus Framework**, and is hosted on **AWS Lambda**! [_Learn More_](/about).
 
