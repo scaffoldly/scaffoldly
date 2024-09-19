@@ -52,7 +52,14 @@ const config: Config = {
     ],
   ],
   themeConfig: {
-    // Replace with your project's social card
+    // announcementBar: {
+    //   id: 'support_us',
+    //   content:
+    //     '<h5>⭐️ Please give us a star on <a target="_blank" rel="noopener noreferrer" href="https://github.com/scaffoldly/scaffoldly">GitHub</a>! ⭐️</h5>',
+    //   backgroundColor: '#fafbfc',
+    //   textColor: '#091E42',
+    //   isCloseable: true,
+    // },
     image: 'img/social-card.jpg',
     navbar: {
       title: 'Scaffoldly',

@@ -4,4 +4,86 @@ sidebar_position: 1
 
 # Introduction
 
-Hello world
+```mdx-code-block
+import Links from '/docs/_common/_links.mdx';
+```
+
+<Links/ >
+
+Scaffoldly is a powerful tool designed to simplify the deployment of serverless applications on AWS Lambda. With its intuitive CLI and flexible configuration options, you can easily manage your applications and streamline your development workflow.
+
+It is a **no-code** solution that allows developers to **focus on building applications** without worrying about the underlying infrastructure or deployments.
+
+- **Automatic Docker Image Generation**: No need to write Dockerfiles manually.
+- **Infrastructure Automation**: Automatically create and manage AWS resources.
+- **Built-in CI/CD Support**: Integrate with GitHub Actions for seamless deployments.
+- **Minimal configuration required**: Get started quickly with sensible defaults.
+- **Built for the Public Cloud**: Deploy applications to AWS Lambda effortlessly. Don't get locked into using Vercel or Netlify.
+
+By adding a [few lines of configuration](/docs/config) to your `package.json`, you can deploy your application to AWS Lambda in minutes:
+
+```json title="package.json"
+{
+  "scaffoldly": {
+    "runtime": "node:22-alpine",
+    "handler": "localhost:3000",
+    "services": [
+      {
+        "name": "next",
+        "files": ["package.json", ".next", "node_modules", "package-lock.json"],
+        "scripts": {
+          "install": "npm ci",
+          "dev": "next dev",
+          "build": "next build",
+          "start": "next start"
+        }
+      }
+    ]
+  }
+}
+```
+
+## Documentation Structure
+
+### Key Sections
+
+- **CLI Documentation**: Discover [CLI commands](/docs/cli) to automate and manage deployments.
+- **Configuration**: Learn how to configure Scaffoldly through [presets, environments, and secrets](/docs/config).
+- **Cloud Integrations**: Explore cloud integrations with [AWS](/docs/cloud/aws), [CDNs and Custom Domains](/docs/cloud/cdn), and more.
+- **GitHub Actions**: Set up CI/CD with [GitHub Actions](/docs/gha) for seamless deployments.
+
+### Tutorials and Guides
+
+- Next.js: Follow our step-by-step guide to [deploy a Next.js application](/docs/tutorials/nextjs) to AWS Lambda in minutes.
+
+:::info
+
+We've focused on streamlining the deployment process for Next.js for now, but more frameworks will be supported soon!
+
+Join the [Discussions](https://github.com/scaffoldly/scaffoldly/discussions) to share your thoughts and suggestions.
+
+:::
+
+## Why Scaffoldly?
+
+- **Serverless**: Full AWS Lambda support for Next.js applications.
+- **Customizable**: Tailor deployments to suit your needs with powerful configuration options.
+- **Efficient**: Quickly spin up environments for seamless development and testing.
+- **Open Source**: Contribute to the project and help shape its future.
+- **Large Bundle Sizes**: Handle large applications with ease.
+
+## Why not the traditional approach?
+
+- **Serverless Framework**: Built on CloudFormation, which can be complex and cumbersome.
+- **Terraform**: Requires extensive configuration and management of infrastructure.
+- **Vercel/Netlify**: Vendor lock-in with limited flexibility.
+- **Manual Deployments**: Time-consuming and error-prone.
+- **Dockerfiles**: Need to be written and maintained manually.
+
+Check out the full documentation for in-depth guides, best practices, and advanced topics!
+
+```mdx-code-block
+import Social from '/docs/_common/_social.mdx';
+```
+
+<Social />
