@@ -11,12 +11,15 @@ import { MessagesHelper } from '../scaffoldly/helpers/messagesHelper';
 import { Scms } from '../scaffoldly/stores/scms';
 import { tmpdir } from 'os';
 import { writeFileSync } from 'fs';
+import { EventService } from '../scaffoldly/event';
 
 const { GITHUB_RUN_ATTEMPT } = process.env;
 
 export type Mode = 'pre' | 'main' | 'post';
 
 export class Action {
+  eventService: EventService;
+
   gitService: GitService;
 
   apiHelper: ApiHelper;
@@ -31,8 +34,9 @@ export class Action {
 
   _branch?: string;
 
-  constructor(private mode: Mode) {
-    this.gitService = new GitService(this.cwd);
+  constructor(private mode: Mode, version?: string) {
+    this.eventService = new EventService('Gha', version, false);
+    this.gitService = new GitService(this.eventService, this.cwd);
     this.apiHelper = new ApiHelper(process.argv);
     this.messagesHelper = new MessagesHelper(process.argv);
     this.scms = new Scms(this.apiHelper, this.messagesHelper, this.gitService);
@@ -48,6 +52,8 @@ export class Action {
   }
 
   async pre(status: Status): Promise<Status> {
+    status.sessionId = this.eventService.withSessionId(status.sessionId).sessionId;
+
     status.deployLogsUrl = await this.logsUrl;
     status.commitSha = this.commitSha;
     status.owner = this.owner;
@@ -117,6 +123,10 @@ export class Action {
   }
 
   async main(status: Status): Promise<Status> {
+    status.sessionId = this.eventService
+      .withArgs({ mode: 'main' })
+      .withSessionId(status.sessionId).sessionId;
+
     debug(`status: ${JSON.stringify(status)}`);
 
     if (status.failed) {
@@ -167,6 +177,8 @@ export class Action {
   }
 
   async post(status: Status): Promise<Status> {
+    status.sessionId = this.eventService.withSessionId(status.sessionId).sessionId;
+
     debug(`status: ${JSON.stringify(status)}`);
 
     if (!status.failed) {
@@ -179,6 +191,7 @@ export class Action {
       status.longMessage = longMessage;
     }
 
+    this.eventService.end();
     return status;
   }
 

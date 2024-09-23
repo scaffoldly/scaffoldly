@@ -13,6 +13,7 @@ import Prompt from 'inquirer/lib/ui/prompt';
 import { DevCommand } from './commands/dev';
 import { DeployCommand, PresetType, PRESETS } from './commands/deploy';
 import { GitService } from './commands/cd/git';
+import { EventService } from './event';
 
 export const ui = new BottomBar(process.stderr);
 
@@ -35,10 +36,15 @@ export class Command {
 
   private gitService: GitService;
 
+  private eventService: EventService;
+
   constructor(argv: string[], private version?: string) {
+    this.eventService = new EventService('Cli', this.version, true)
+      .withArgs(argv.slice(2))
+      .withSessionId(undefined);
     this.apiHelper = new ApiHelper(argv);
     this.messagesHelper = new MessagesHelper(argv);
-    this.gitService = new GitService(process.cwd());
+    this.gitService = new GitService(this.eventService, process.cwd());
   }
 
   public async run(argv: string[]): Promise<void> {

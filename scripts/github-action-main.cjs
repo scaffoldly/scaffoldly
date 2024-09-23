@@ -2,8 +2,9 @@
 
 (async () => {
   const { run } = await import('../dist/github-action.js');
+  const { version } = require('../package.json');
   try {
-    await run('main');
+    await run('main', version);
   } catch (e) {
     console.error(`BAD: Uncaught error in main script!`);
     console.error(e);

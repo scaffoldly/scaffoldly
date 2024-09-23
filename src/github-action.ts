@@ -29,8 +29,8 @@ process.on('uncaughtException', (err) => {
   process.exit(-1);
 });
 
-export const run = async (mode: Mode): Promise<void> => {
-  const action = await new Action(mode).init();
+export const run = async (mode: Mode, version?: string): Promise<void> => {
+  const action = await new Action(mode, version).init();
   let status: Status = {};
 
   try {

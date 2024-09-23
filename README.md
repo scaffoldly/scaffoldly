@@ -20,7 +20,7 @@ It is a **open-source**, **no-code**, **developer-focused** solution that simpli
 
 ## Usage
 
-Using a minimal configuration, the `scaffoldly` toolchain can package and deploy an application:
+Using a minimal configuration in `package.json`, the `scaffoldly` toolchain can package and deploy an application:
 
 ```jsonc title="package.json"
 {

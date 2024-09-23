@@ -143,7 +143,7 @@ export class DockerService {
   }
 
   private handleDockerEvent(type: 'Pull' | 'Build' | 'Push', event: DockerEvent) {
-    // console.log('!!! event', event);
+    console.log('!!! event', event);
     if (
       'id' in event &&
       event.id === 'moby.buildkit.trace' &&
@@ -796,6 +796,17 @@ export class DockerService {
     }
 
     ui.updateBottomBarSubtext(`Pulling image for ${runtime} with architecture ${architecture}`);
+
+    // Ensure docker is awake
+    await Promise.race([
+      this.docker.ping(),
+      new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error('Please ensure docker is online and not in power svaing mode.')),
+          1000,
+        ),
+      ),
+    ]);
 
     const pullStream = await this.docker.pull(runtime, { platform });
 

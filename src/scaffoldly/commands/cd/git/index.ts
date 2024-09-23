@@ -5,6 +5,7 @@ import { context } from '@actions/github';
 import semver from 'semver';
 import { ScaffoldlyConfig } from '../../../../config';
 import { existsSync } from 'fs';
+import { EventService } from '../../../event';
 
 export type GitDeployStatus = {
   branch?: string;
@@ -27,7 +28,7 @@ export class GitService {
 
   _config?: ScaffoldlyConfig;
 
-  constructor(cwd?: string, config?: ScaffoldlyConfig) {
+  constructor(private eventService: EventService, cwd?: string, config?: ScaffoldlyConfig) {
     if (cwd && existsSync(cwd)) {
       this._cwd = cwd;
       if (cwd) {
@@ -48,6 +49,7 @@ export class GitService {
 
   setConfig(config: ScaffoldlyConfig): void {
     this._config = config;
+    this.eventService.withConfig(config);
   }
 
   get git(): SimpleGit {

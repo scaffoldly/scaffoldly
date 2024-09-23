@@ -74,7 +74,8 @@ const config: Config = {
           position: 'left',
           label: 'Documentation',
         },
-        // { to: '/blog', label: 'Blog', position: 'left' },s
+        { to: '/about', label: 'About', position: 'left' },
+        // { to: '/blog', label: 'Blog', position: 'left' },
         {
           href: 'https://github.com/scaffoldly/scaffoldly/discussions',
           label: 'Discussions',
@@ -96,7 +97,7 @@ const config: Config = {
       style: 'dark',
       links: [
         {
-          title: 'Documentation',
+          title: 'Resources',
           items: [
             {
               label: 'Documentation',
@@ -127,6 +128,10 @@ const config: Config = {
             {
               label: 'GitHub',
               href: 'https://github.com/scaffoldly/scaffoldly',
+            },
+            {
+              label: 'About',
+              to: '/about',
             },
           ],
         },
