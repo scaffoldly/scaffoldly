@@ -1,6 +1,20 @@
-Scaffoldly is a **new framework** for **packaging and deploying** applications to AWS.
+Scaffoldly is a **new framework** for **packaging and deploying** applications to AWS. Scaffoldly provides:
+
+- a [Simple Configuration](#usage) to specify packaging and runtime configuration.
+- a [Command Line Interface](#command-line-interface) for packaging and deploying locally.
+- a [GitHub Action](#github-action) for packaging and deploying in CI/CD.
 
 It is a **open-source**, **no-code**, **developer-focused** solution that simplifies the packaging and deployment process for modern web applications.
+
+✨ Our **[docs site](https://scaffoldly.dev)** is built and deployed **using Scaffoldly** ([source](https://github.com/scaffoldly/scaffoldly/blob/729100c6ef18de6105d0f12c721640be8e8df004/packages/website/package.json#L59-L87)), which uses the **Docusaurus Framework**, is hosted on **AWS Lambda**, and is deployed using **GitHub Actions** ([source](https://github.com/scaffoldly/scaffoldly/blob/729100c6ef18de6105d0f12c721640be8e8df004/.github/workflows/push-main.yml#L49-L52)).
+
+### Motivation
+
+- Current tooling (such as Serverless, AWS SAM, Terraform, Pulumi, AWS CDKs, and Docker) is **unintuitive** and **cumbersome** for developers.
+- Popular frameworks (such as Next.js) are **expensive** and **difficult** to deploy to public Clouds Providers such as AWS.
+- Most applications can be run **cost effectively** in **serverless compute** such as AWS Lambda.
+
+We believe that developing apps locally has been made incredibly easy. **Deploying them to the Cloud Provider of your choice should be equally easy**. [Learn More](https://scaffoldy.dev/about).
 
 ### Key Features
 
@@ -11,8 +25,6 @@ It is a **open-source**, **no-code**, **developer-focused** solution that simpli
 - **Minimal configuration required**: Get started quickly with sensible defaults.
 - **Built for the Public Cloud**: Deploy applications to AWS Lambda effortlessly. Don't get locked into using Vercel or Netlify.
 - **Cost Effective**: Only pay for what you use with AWS Lambda.
-
-✨ Our **[documentation site](https://scaffoldly.dev)** is built and deployed **using Scaffoldly**, which uses the **Docusaurus Framework**, and is hosted on **AWS Lambda**! [_Learn More_](/about).
 
 ## Tutorials
 
