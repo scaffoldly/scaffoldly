@@ -36,7 +36,7 @@ export class Action {
 
   constructor(private mode: Mode, version?: string) {
     this.eventService = new EventService('Gha', version, false);
-    this.gitService = new GitService(this.eventService);
+    this.gitService = new GitService(this.eventService, this.workingDirectory);
     this.apiHelper = new ApiHelper(process.argv);
     this.messagesHelper = new MessagesHelper(process.argv);
     this.scms = new Scms(this.apiHelper, this.messagesHelper, this.gitService);
