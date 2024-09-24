@@ -68,22 +68,21 @@ const config: Config = {
         src: 'img/logo.svg',
       },
       items: [
+        { to: '/about', label: 'Why Scaffoldly?', position: 'left' },
         {
           type: 'docSidebar',
           sidebarId: 'docSidebar',
           position: 'left',
           label: 'Documentation',
         },
-        { to: '/about', label: 'About', position: 'left' },
-        // { to: '/blog', label: 'Blog', position: 'left' },
+        {
+          to: '/community',
+          label: 'Community',
+          position: 'left',
+        },
         {
           href: 'https://github.com/scaffoldly/scaffoldly/discussions',
           label: 'Discussions',
-          position: 'right',
-        },
-        {
-          href: 'https://discord.gg/7FTY8CPPfZ',
-          label: 'Discord',
           position: 'right',
         },
         {
