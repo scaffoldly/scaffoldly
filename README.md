@@ -14,7 +14,7 @@ It is a **open-source**, **no-code**, **developer-focused** solution that simpli
 - Popular frameworks (such as Next.js) are **expensive** and **difficult** to deploy to public Clouds Providers such as AWS.
 - Most applications can be run **cost effectively** in **serverless compute** such as AWS Lambda.
 
-We believe that developing apps locally has been made incredibly easy. **Deploying them to the Cloud Provider of your choice should be equally easy**. [Learn More](https://scaffoldy.dev/about).
+We believe that developing apps locally has been made incredibly easy. **Deploying them to the Cloud Provider of your choice should be equally easy**. [Learn More](https://scaffoldly.dev/about).
 
 ### Key Features
 
