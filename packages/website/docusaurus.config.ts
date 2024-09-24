@@ -82,8 +82,8 @@ const config: Config = {
           position: 'right',
         },
         {
-          href: 'https://join.slack.com/share/enQtNzc0ODI4NTgxNDQ4MS03MWUwZjAxZWExOWM5YzU0NjU1NjJjYzhkNzhhMzM5MDU5Y2ZhZDM0ZWNjNDNmOTMwZDExZGQwODVhNThhYzkx',
-          label: 'Community',
+          href: 'https://discord.gg/7FTY8CPPfZ',
+          label: 'Discord',
           position: 'right',
         },
         {
@@ -113,8 +113,8 @@ const config: Config = {
               href: 'https://github.com/scaffoldly/scaffoldly/discussions',
             },
             {
-              label: 'Slack',
-              href: 'https://join.slack.com/share/enQtNzc0ODI4NTgxNDQ4MS03MWUwZjAxZWExOWM5YzU0NjU1NjJjYzhkNzhhMzM5MDU5Y2ZhZDM0ZWNjNDNmOTMwZDExZGQwODVhNThhYzkx',
+              label: 'Discord',
+              href: 'https://discord.gg/7FTY8CPPfZ',
             },
           ],
         },
