@@ -44,7 +44,7 @@ export class Command {
       .withSessionId(undefined);
     this.apiHelper = new ApiHelper(argv);
     this.messagesHelper = new MessagesHelper(argv);
-    this.gitService = new GitService(this.eventService, process.cwd());
+    this.gitService = new GitService(this.eventService);
   }
 
   public async run(argv: string[]): Promise<void> {

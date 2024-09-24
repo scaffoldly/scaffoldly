@@ -5,6 +5,7 @@ import promiseRetry from 'promise-retry';
 import _ from 'lodash';
 import { NotFoundException, SkipAction } from './errors';
 import { Mode } from '../../../config';
+import { GitService } from './git';
 
 type Differences = {
   [key: string]: unknown | Differences;
@@ -423,8 +424,8 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
 }
 
 export abstract class CdCommand<T> extends Command<T> {
-  constructor(public readonly cwd: string, mode: Mode) {
-    super(cwd, mode);
+  constructor(protected gitService: GitService, mode: Mode) {
+    super(gitService, mode);
   }
 }
 

@@ -5,12 +5,12 @@ import { deployedMarkdown, failedMarkdown } from './messages';
 import { Status } from './status';
 import { GitService } from '../scaffoldly/commands/cd/git';
 import { DeployCommand } from '../scaffoldly/commands/deploy';
-import path, { join } from 'path';
+import { join } from 'path';
 import { ApiHelper } from '../scaffoldly/helpers/apiHelper';
 import { MessagesHelper } from '../scaffoldly/helpers/messagesHelper';
 import { Scms } from '../scaffoldly/stores/scms';
 import { tmpdir } from 'os';
-import { writeFileSync } from 'fs';
+import { existsSync, writeFileSync } from 'fs';
 import { EventService } from '../scaffoldly/event';
 
 const { GITHUB_RUN_ATTEMPT } = process.env;
@@ -36,7 +36,7 @@ export class Action {
 
   constructor(private mode: Mode, version?: string) {
     this.eventService = new EventService('Gha', version, false);
-    this.gitService = new GitService(this.eventService, this.cwd);
+    this.gitService = new GitService(this.eventService);
     this.apiHelper = new ApiHelper(process.argv);
     this.messagesHelper = new MessagesHelper(process.argv);
     this.scms = new Scms(this.apiHelper, this.messagesHelper, this.gitService);
@@ -229,22 +229,18 @@ export class Action {
     });
   }
 
-  get cwd(): string | undefined {
-    const workingDirectory = getInput('working-directory') || undefined;
-    let cwd = process.cwd();
+  get workingDirectory(): string {
+    const workDir = getInput('working-directory');
 
-    if (workingDirectory) {
-      cwd = path.join(cwd, workingDirectory);
-      try {
-        process.chdir(cwd);
-      } catch (e) {
-        if (this.mode === 'main') {
-          throw new Error(`Unable to change working directory to ${cwd}: ${e.message}`);
-        }
+    if (workDir) {
+      const path = join(process.cwd(), workDir);
+      if (this.mode === 'main' && !existsSync(path)) {
+        throw new Error(`Working directory does not exist: ${path}`);
       }
+      return path;
     }
 
-    return cwd;
+    return process.cwd();
   }
 
   get operation(): 'deploy' | undefined {

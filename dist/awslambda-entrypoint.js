@@ -10167,8 +10167,8 @@ var require_dist = __commonJS({
           keys.push(token);
           if (modifier === "+" || modifier === "*") {
             const mod = modifier === "*" ? "?" : "";
-            const sep = stringify3(separator);
-            if (!sep) {
+            const sep2 = stringify3(separator);
+            if (!sep2) {
               throw new TypeError(`Missing separator for "${token.name}": ${DEBUG_URL}`);
             }
             safe || (safe = !strict || safePattern(re, separator));
@@ -10176,7 +10176,7 @@ var require_dist = __commonJS({
               throw new TypeError(`Ambiguous pattern for "${token.name}" separator: ${DEBUG_URL}`);
             }
             safe = !strict;
-            return `(?:${pre}(${pattern}(?:${sep}${pattern})*)${post})${mod}`;
+            return `(?:${pre}(${pattern}(?:${sep2}${pattern})*)${post})${mod}`;
           }
           return `(?:${pre}(${pattern})${post})${modifier}`;
         }
@@ -10483,7 +10483,7 @@ var require_BufferList = __commonJS({
         this.head = this.tail = null;
         this.length = 0;
       };
-      BufferList.prototype.join = function join2(s) {
+      BufferList.prototype.join = function join3(s) {
         if (this.length === 0) return "";
         var p = this.head;
         var ret = "" + p.data;
@@ -22982,8 +22982,8 @@ var require_follow_redirects = __commonJS({
       }
       return parsed;
     }
-    function resolveUrl(relative, base) {
-      return useNativeURL ? new URL4(relative, base) : parseUrl(url2.resolve(base, relative));
+    function resolveUrl(relative2, base) {
+      return useNativeURL ? new URL4(relative2, base) : parseUrl(url2.resolve(base, relative2));
     }
     function validateUrl(input) {
       if (/^\[/.test(input.hostname) && !/^\[[:0-9a-f]+\]$/i.test(input.hostname)) {
@@ -25674,13 +25674,13 @@ var require_dist_cjs13 = __commonJS({
         ...data.default && { default: data.default }
       }
     ), "getConfigData");
-    var import_path = require("path");
+    var import_path2 = require("path");
     var import_getHomeDir = require_getHomeDir();
     var ENV_CONFIG_PATH = "AWS_CONFIG_FILE";
-    var getConfigFilepath = /* @__PURE__ */ __name(() => process.env[ENV_CONFIG_PATH] || (0, import_path.join)((0, import_getHomeDir.getHomeDir)(), ".aws", "config"), "getConfigFilepath");
+    var getConfigFilepath = /* @__PURE__ */ __name(() => process.env[ENV_CONFIG_PATH] || (0, import_path2.join)((0, import_getHomeDir.getHomeDir)(), ".aws", "config"), "getConfigFilepath");
     var import_getHomeDir2 = require_getHomeDir();
     var ENV_CREDENTIALS_PATH = "AWS_SHARED_CREDENTIALS_FILE";
-    var getCredentialsFilepath = /* @__PURE__ */ __name(() => process.env[ENV_CREDENTIALS_PATH] || (0, import_path.join)((0, import_getHomeDir2.getHomeDir)(), ".aws", "credentials"), "getCredentialsFilepath");
+    var getCredentialsFilepath = /* @__PURE__ */ __name(() => process.env[ENV_CREDENTIALS_PATH] || (0, import_path2.join)((0, import_getHomeDir2.getHomeDir)(), ".aws", "credentials"), "getCredentialsFilepath");
     var import_getHomeDir3 = require_getHomeDir();
     var prefixKeyRegex = /^([\w-]+)\s(["'])?([\w-@\+\.%:/]+)\2$/;
     var profileNameBlockList = ["__proto__", "profile __proto__"];
@@ -25738,11 +25738,11 @@ var require_dist_cjs13 = __commonJS({
       const relativeHomeDirPrefix = "~/";
       let resolvedFilepath = filepath;
       if (filepath.startsWith(relativeHomeDirPrefix)) {
-        resolvedFilepath = (0, import_path.join)(homeDir, filepath.slice(2));
+        resolvedFilepath = (0, import_path2.join)(homeDir, filepath.slice(2));
       }
       let resolvedConfigFilepath = configFilepath;
       if (configFilepath.startsWith(relativeHomeDirPrefix)) {
-        resolvedConfigFilepath = (0, import_path.join)(homeDir, configFilepath.slice(2));
+        resolvedConfigFilepath = (0, import_path2.join)(homeDir, configFilepath.slice(2));
       }
       const parsedFiles = await Promise.all([
         (0, import_slurpFile.slurpFile)(resolvedConfigFilepath, {
@@ -35061,12 +35061,12 @@ var require_fromHttp = __commonJS({
     var fromHttp = (options = {}) => {
       options.logger?.debug("@aws-sdk/credential-provider-http - fromHttp");
       let host;
-      const relative = options.awsContainerCredentialsRelativeUri ?? process.env[AWS_CONTAINER_CREDENTIALS_RELATIVE_URI];
+      const relative2 = options.awsContainerCredentialsRelativeUri ?? process.env[AWS_CONTAINER_CREDENTIALS_RELATIVE_URI];
       const full = options.awsContainerCredentialsFullUri ?? process.env[AWS_CONTAINER_CREDENTIALS_FULL_URI];
       const token = options.awsContainerAuthorizationToken ?? process.env[AWS_CONTAINER_AUTHORIZATION_TOKEN];
       const tokenFile = options.awsContainerAuthorizationTokenFile ?? process.env[AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE];
       const warn = options.logger?.constructor?.name === "NoOpLogger" || !options.logger ? console.warn : options.logger.warn;
-      if (relative && full) {
+      if (relative2 && full) {
         warn("@aws-sdk/credential-provider-http: you have set both awsContainerCredentialsRelativeUri and awsContainerCredentialsFullUri.");
         warn("awsContainerCredentialsFullUri will take precedence.");
       }
@@ -35076,8 +35076,8 @@ var require_fromHttp = __commonJS({
       }
       if (full) {
         host = full;
-      } else if (relative) {
-        host = `${DEFAULT_LINK_LOCAL_HOST}${relative}`;
+      } else if (relative2) {
+        host = `${DEFAULT_LINK_LOCAL_HOST}${relative2}`;
       } else {
         throw new property_provider_1.CredentialsProviderError(`No HTTP credential provider host provided.
 Set AWS_CONTAINER_CREDENTIALS_FULL_URI or AWS_CONTAINER_CREDENTIALS_RELATIVE_URI.`, { logger: options.logger });
@@ -42713,12 +42713,12 @@ var require_fromHttp2 = __commonJS({
     var fromHttp = (options = {}) => {
       options.logger?.debug("@aws-sdk/credential-provider-http - fromHttp");
       let host;
-      const relative = options.awsContainerCredentialsRelativeUri ?? process.env[AWS_CONTAINER_CREDENTIALS_RELATIVE_URI];
+      const relative2 = options.awsContainerCredentialsRelativeUri ?? process.env[AWS_CONTAINER_CREDENTIALS_RELATIVE_URI];
       const full = options.awsContainerCredentialsFullUri ?? process.env[AWS_CONTAINER_CREDENTIALS_FULL_URI];
       const token = options.awsContainerAuthorizationToken ?? process.env[AWS_CONTAINER_AUTHORIZATION_TOKEN];
       const tokenFile = options.awsContainerAuthorizationTokenFile ?? process.env[AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE];
       const warn = options.logger?.constructor?.name === "NoOpLogger" || !options.logger ? console.warn : options.logger.warn;
-      if (relative && full) {
+      if (relative2 && full) {
         warn("@aws-sdk/credential-provider-http: you have set both awsContainerCredentialsRelativeUri and awsContainerCredentialsFullUri.");
         warn("awsContainerCredentialsFullUri will take precedence.");
       }
@@ -42728,8 +42728,8 @@ var require_fromHttp2 = __commonJS({
       }
       if (full) {
         host = full;
-      } else if (relative) {
-        host = `${DEFAULT_LINK_LOCAL_HOST}${relative}`;
+      } else if (relative2) {
+        host = `${DEFAULT_LINK_LOCAL_HOST}${relative2}`;
       } else {
         throw new property_provider_1.CredentialsProviderError(`No HTTP credential provider host provided.
 Set AWS_CONTAINER_CREDENTIALS_FULL_URI or AWS_CONTAINER_CREDENTIALS_RELATIVE_URI.`, { logger: options.logger });
@@ -52100,8 +52100,10 @@ var genBase58 = (abc) => /* @__PURE__ */ chain(/* @__PURE__ */ radix(58), /* @__
 var base58 = /* @__PURE__ */ genBase58("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz");
 
 // src/config/index.ts
+var import_path = require("path");
 var import_ignore = __toESM(require_ignore());
 var CONFIG_SIGNATURE = `scaffoldly/scaffoldly:1`;
+var DEFAULT_TASKDIR = (0, import_path.join)(import_path.sep, "var", "task");
 var decode = (config) => {
   if (config.startsWith(`${CONFIG_SIGNATURE}:`)) {
     return JSON.parse(

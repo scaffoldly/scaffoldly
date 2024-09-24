@@ -92,7 +92,7 @@ export class LambdaService implements IamConsumer {
         Timeout: this.gitService.config.timeout,
         MemorySize: 1024,
         Environment: {
-          Variables: this.envService.runtimeEnv,
+          Variables: await this.envService.runtimeEnv,
         },
         LastUpdateStatus: 'Successful',
         State: 'Active',

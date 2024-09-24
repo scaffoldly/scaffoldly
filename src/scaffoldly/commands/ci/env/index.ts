@@ -26,7 +26,7 @@ export class EnvService {
     this.lastStatus = status;
 
     status.envFiles = this.envFiles;
-    status.buildEnv = this.buildEnv;
+    status.buildEnv = await this.buildEnv;
 
     this.lastStatus = status;
   }
@@ -38,7 +38,7 @@ export class EnvService {
   ): Promise<void> {
     this.lastStatus = status;
 
-    status.buildEnv = this.buildEnv;
+    status.buildEnv = await this.buildEnv;
 
     this.lastStatus = status;
   }
@@ -50,43 +50,47 @@ export class EnvService {
     };
   }
 
-  get buildEnv(): Record<string, string> {
-    const processEnv = this.baseEnv;
+  get buildEnv(): Promise<Record<string, string>> {
+    return this.gitService.workDir.then((cwd) => {
+      const processEnv = this.baseEnv;
 
-    dotenv({
-      path: this.envFiles.map((f) => join(this.gitService.cwd, f)),
-      debug: isDebug(),
-      processEnv,
+      dotenv({
+        path: this.envFiles.map((f) => join(cwd, f)),
+        debug: isDebug(),
+        processEnv,
+      });
+
+      const combinedEnv = Object.entries(process.env).reduce(
+        (acc, [k, v]) => {
+          if (!v) return acc;
+          acc[k] = v;
+          return acc;
+        },
+        // Allow the base env to be interpolated into the build env
+        // Although some of the values may be unknown at build time
+        this.baseEnv,
+      );
+
+      const { parsed: expanded = {} } = dotenvExpand({
+        parsed: processEnv,
+        processEnv: combinedEnv, // Don't mutuate processEnv
+      });
+
+      return expanded;
     });
-
-    const combinedEnv = Object.entries(process.env).reduce(
-      (acc, [k, v]) => {
-        if (!v) return acc;
-        acc[k] = v;
-        return acc;
-      },
-      // Allow the base env to be interpolated into the build env
-      // Although some of the values may be unknown at build time
-      this.baseEnv,
-    );
-
-    const { parsed: expanded = {} } = dotenvExpand({
-      parsed: processEnv,
-      processEnv: combinedEnv, // Don't mutuate processEnv
-    });
-
-    return expanded;
   }
 
-  get runtimeEnv(): Record<string, string> {
-    return {
-      SLY_ROUTES: JSON.stringify(this.gitService.config.routes), // TODO encode
-      SLY_SERVE: this.gitService.config.serveCommands.encode(),
-      SLY_SECRET: this.lastStatus?.secretName || '',
-      SLY_DEBUG: 'true', // TODO use flag
-      ...this.baseEnv,
-      ...this.buildEnv,
-    };
+  get runtimeEnv(): Promise<Record<string, string>> {
+    return Promise.all([this.buildEnv]).then(([buildEnv]) => {
+      return {
+        SLY_ROUTES: JSON.stringify(this.gitService.config.routes), // TODO encode
+        SLY_SERVE: this.gitService.config.serveCommands.encode(),
+        SLY_SECRET: this.lastStatus?.secretName || '',
+        SLY_DEBUG: 'true', // TODO use flag
+        ...this.baseEnv,
+        ...buildEnv,
+      };
+    });
   }
 
   get dockerEnv(): string[] {

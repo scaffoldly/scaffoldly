@@ -55,7 +55,7 @@ export class NpmPackageService {
       this.config.files.includes('node_modules') ||
       this.config.files.includes('package.json')
     ) {
-      paths.push(join(this.config.workdir, this.config.src, 'node_modules', '.bin'));
+      paths.push(join(this.config.taskdir, this.config.src, 'node_modules', '.bin'));
     }
 
     this._hasScaffoldly = !!this.dependencies.scaffoldly;

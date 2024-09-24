@@ -1,14 +1,15 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { ScaffoldlyConfig } from '..';
+import { GitService } from '../../scaffoldly/commands/cd/git';
 
 export abstract class Preset {
-  constructor(protected cwd: string) {}
+  constructor(protected gitService: GitService) {}
 
   abstract get config(): Promise<ScaffoldlyConfig>;
-  abstract get configPath(): string;
+  abstract get configPath(): Promise<string>;
 
   async save(): Promise<void> {
-    const configPath = this.configPath;
+    const configPath = await this.configPath;
     if (!existsSync(configPath)) {
       throw new Error(`File not found at ${configPath}`);
     }

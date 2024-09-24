@@ -241,33 +241,34 @@ export class ContainerPool extends DevServer {
   }
 
   private get mounts(): Promise<Dockerode.MountSettings[]> {
-    const mountSettings: Dockerode.MountSettings[] = [];
-
     const { src, ignoreFilter, generatedFiles } = this.gitService.config;
-    const dir = join(this.gitService.cwd, src);
 
-    const files = readdirSync(dir).filter((file) => {
-      return ignoreFilter(file);
+    return this.gitService.workDir.then((cwd) => {
+      const mountSettings: Dockerode.MountSettings[] = [];
+      const dir = join(cwd, src);
+      const files = readdirSync(dir).filter((file) => {
+        return ignoreFilter(file);
+      });
+
+      files.forEach((file) => {
+        const settings: Dockerode.MountSettings = {
+          Type: 'bind',
+          Source: join(dir, file),
+          Target: `/var/task/${file}`,
+        };
+        mountSettings.push(settings);
+      });
+
+      generatedFiles.forEach((file) => {
+        const settings: Dockerode.MountSettings = {
+          Type: 'volume',
+          Source: `${this.imageName.replaceAll(':', '-')}-${file.replaceAll(path.sep, '-')}`,
+          Target: `/var/task/${file}`,
+        };
+        mountSettings.push(settings);
+      });
+
+      return mountSettings;
     });
-
-    files.forEach((file) => {
-      const settings: Dockerode.MountSettings = {
-        Type: 'bind',
-        Source: join(dir, file),
-        Target: `/var/task/${file}`,
-      };
-      mountSettings.push(settings);
-    });
-
-    generatedFiles.forEach((file) => {
-      const settings: Dockerode.MountSettings = {
-        Type: 'volume',
-        Source: `${this.imageName.replaceAll(':', '-')}-${file.replaceAll(path.sep, '-')}`,
-        Target: `/var/task/${file}`,
-      };
-      mountSettings.push(settings);
-    });
-
-    return Promise.resolve(mountSettings);
   }
 }

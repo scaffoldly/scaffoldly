@@ -30,7 +30,7 @@ export class DevCommand extends CiCommand<DevCommand> {
 
   options?: ResourceOptions;
 
-  constructor(private gitService: GitService) {
+  constructor(protected gitService: GitService) {
     super(gitService, 'development');
     this.deployCommand = new DeployCommand(this.gitService, this.mode);
     this.containerPool = new ContainerPool(

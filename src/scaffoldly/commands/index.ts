@@ -6,6 +6,7 @@ import { PermissionAware } from './cd';
 import { PolicyDocument } from './cd/aws/iam';
 import { Preset } from '../../config/presets';
 import { PresetType } from './deploy';
+import { GitService } from './cd/git';
 
 export type Cwd = string;
 
@@ -16,23 +17,24 @@ export abstract class Command<T> implements PermissionAware {
 
   private _permissions: string[] = [];
 
-  constructor(public readonly cwd: string, private _mode: Mode) {}
+  constructor(protected gitService: GitService, private _mode: Mode) {}
 
   abstract handle(subcommand?: string): Promise<void>;
 
-  get packageJson(): PackageJson | undefined {
-    try {
-      const packageJson = JSON.parse(readFileSync(join(this.cwd, 'package.json'), 'utf8'));
-
-      return packageJson;
-    } catch (e) {
-      return undefined;
-    }
+  get packageJson(): Promise<PackageJson | undefined> {
+    return this.gitService.workDir.then((workDir) => {
+      try {
+        const packageJson = JSON.parse(readFileSync(join(workDir, 'package.json'), 'utf8'));
+        return packageJson;
+      } catch (e) {
+        return undefined;
+      }
+    });
   }
 
   async withPreset(preset?: PresetType): Promise<Command<T>> {
     if (preset === 'nextjs') {
-      this._preset = new NextJsPreset(this.cwd, this._mode);
+      this._preset = new NextJsPreset(this.gitService, this._mode);
       this._config = await this._preset.config;
     }
     return this;
@@ -57,24 +59,28 @@ export abstract class Command<T> implements PermissionAware {
     return this._preset;
   }
 
-  get config(): ScaffoldlyConfig {
-    if (!this._config && this.packageJson) {
-      try {
-        this._config = new ScaffoldlyConfig(
-          this.cwd,
-          { packageJson: this.packageJson },
-          this._mode,
-        );
-      } catch (e) {
-        throw new Error('Unable to locate scaffoldly configuration', {
-          cause: e,
-        });
-      }
+  get config(): Promise<ScaffoldlyConfig> {
+    if (this._config) {
+      return Promise.resolve(this._config);
     }
-    if (!this._config) {
-      throw new Error('No Scaffoldly Config Found');
-    }
-    return this._config;
+
+    return Promise.all([this.gitService.baseDir, this.gitService.workDir, this.packageJson]).then(
+      ([baseDir, workDir, packageJson]) => {
+        // TODO: Other config places
+        if (packageJson) {
+          try {
+            this._config = new ScaffoldlyConfig(baseDir, workDir, { packageJson }, this._mode);
+            return this._config;
+          } catch (e) {
+            throw new Error('Unable to locate scaffoldly configuration', {
+              cause: e,
+            });
+          }
+        }
+
+        throw new Error('No Scaffoldly Config Found');
+      },
+    );
   }
 
   withPermissions(permissions: string[]): void {

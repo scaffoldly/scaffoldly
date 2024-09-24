@@ -23,11 +23,11 @@ export class DeployCommand extends CdCommand<DeployCommand> {
 
   options: ResourceOptions = {};
 
-  constructor(private gitService: GitService, mode: Mode = 'production') {
-    super(gitService.cwd, mode);
-    this.envService = new EnvService(this.gitService);
-    this.dockerService = new DockerService(this.gitService, new DockerCiService(this.cwd));
-    this.awsService = new AwsService(this.gitService, this.envService, this.dockerService);
+  constructor(protected gitService: GitService, mode: Mode = 'production') {
+    super(gitService, mode);
+    this.envService = new EnvService(gitService);
+    this.dockerService = new DockerService(gitService, new DockerCiService(gitService));
+    this.awsService = new AwsService(gitService, this.envService, this.dockerService);
   }
 
   withMode(mode?: Mode): DeployCommand {
@@ -48,15 +48,19 @@ export class DeployCommand extends CdCommand<DeployCommand> {
   async handle(subcommand?: 'dockerfile' | 'show-config' | 'save-config'): Promise<void> {
     this.options = this.options || {};
     this.options.permissionsAware = this;
-    this.gitService.setConfig(this.config);
+
+    const config = await this.config;
+    this.gitService.setConfig(config);
 
     if (this.options.dev) {
-      this.dockerService.dockerCiService.withIgnoredFiles(this.config.ignoredFiles);
+      this.dockerService.dockerCiService.withIgnoredFiles(config.ignoredFiles);
     }
 
     if (subcommand === 'dockerfile') {
       ui.updateBottomBar('Generating Dockerfile...');
+      const workDir = await this.gitService.workDir;
       const dockerfile = await this.dockerService.dockerCiService.generateDockerfile(
+        workDir,
         this.gitService.config,
       );
       ui.updateBottomBar('');

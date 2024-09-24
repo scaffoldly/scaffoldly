@@ -1,6 +1,6 @@
 import Docker, { AuthConfig, ImageBuildOptions } from 'dockerode';
 import tar from 'tar-fs';
-import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import {
   Script,
   ScaffoldlyConfig,
@@ -8,6 +8,7 @@ import {
   Commands,
   Shell,
   ServiceName,
+  DEFAULT_TASKDIR,
 } from '../../../../config';
 import { join, relative, sep } from 'path';
 import { ui } from '../../../command';
@@ -15,6 +16,7 @@ import { isDebug } from '../../../ui';
 import { Platform } from '../../cd/docker';
 import { PackageService } from './packages';
 import { decodeTrace } from './protobuf/moby';
+import { GitService } from '../../cd/git';
 
 export type BuildInfo = {
   imageName?: string;
@@ -25,7 +27,6 @@ export type BuildInfo = {
 export type PushInfo = { imageName?: string; imageDigest?: string };
 
 const BASE = 'base';
-type Path = string;
 
 export type Architecture = 'x86_64' | 'arm64' | 'match-host';
 
@@ -49,6 +50,7 @@ export type RunCommand = {
 type DockerStage = { [key: string]: DockerFileSpec | undefined };
 
 type DockerStages = {
+  cwd: string;
   bases: DockerStage;
   builds: DockerStage;
   packages: DockerStage;
@@ -126,7 +128,7 @@ export class DockerService {
 
   private _withIgnoredFiles?: string[];
 
-  constructor(private cwd: string) {
+  constructor(private gitService: GitService) {
     this.docker = new Docker({ version: 'v1.45' });
   }
 
@@ -143,7 +145,7 @@ export class DockerService {
   }
 
   private handleDockerEvent(type: 'Pull' | 'Build' | 'Push', event: DockerEvent) {
-    console.log('!!! event', event);
+    // console.log('!!! event', event);
     if (
       'id' in event &&
       event.id === 'moby.buildkit.trace' &&
@@ -187,11 +189,12 @@ export class DockerService {
   }
 
   async generateDockerfile(
+    cwd: string,
     config: ScaffoldlyConfig,
     env?: Record<string, string>,
   ): Promise<{ dockerfile: string; stages: DockerStages }> {
     this._platform = await this.getPlatform(config.runtimes, 'match-host');
-    const stages = await this.createStages(config, env);
+    const stages = await this.createStages(cwd, config, env);
 
     if (isDebug()) {
       ui.updateBottomBarSubtext(`Stages: ${JSON.stringify(stages)}`);
@@ -213,26 +216,34 @@ export class DockerService {
     const imageTag = `${config.name}:${tag}`;
     const imageName = repositoryUri ? `${repositoryUri}:${tag}` : imageTag;
 
-    // todo add dockerfile to tar instead of writing it to cwd
-    // const dockerfile = this.renderSpec(spec);
-    const { dockerfile, stages } = await this.generateDockerfile(config, env);
+    const baseDir = await this.gitService.baseDir;
+    const workDir = await this.gitService.workDir;
 
-    const dockerfilePath = join(this.cwd, `Dockerfile.${mode}`) as Path;
-    writeFileSync(dockerfilePath, Buffer.from(dockerfile, 'utf-8'));
+    // const dockerfile = this.renderSpec(spec);
+    const { dockerfile, stages } = await this.generateDockerfile(workDir, config, env);
 
     ui.updateBottomBarSubtext('Creating tarball');
-    const stream = tar.pack(this.cwd, {
+    const stream = tar.pack(baseDir, {
       filter: (path) => {
-        const relativePath = relative(this.cwd, path);
-        return !config.ignoreFilter(relativePath);
+        const relativePath = relative(baseDir, path);
+        const filter = !config.ignoreFilter(relativePath);
+        return filter;
       },
     });
+
+    stream.entry(
+      {
+        name: `Dockerfile.${mode}`,
+      },
+      dockerfile,
+      () => {},
+    );
 
     stages.runtime.copy
       ?.filter((c) => c.resolve)
       .forEach((c) => {
         // This will remove the symlink and add the actual file
-        const content = readFileSync(join(this.cwd, c.src));
+        const content = readFileSync(join(workDir, c.src));
         stream.entry(
           {
             name: c.dest,
@@ -251,13 +262,13 @@ export class DockerService {
     // TODO: Multi-platform
     ui.updateBottomBarSubtext('Building Image');
     const buildStream = await this.docker.buildImage(stream, {
-      dockerfile: dockerfilePath.replace(this.cwd, DEFAULT_SRC_ROOT),
+      dockerfile: `Dockerfile.${mode}`,
       t: imageName,
       q: true,
       rm: true,
       forcerm: true,
       platform: this.platform,
-      version: '2', // FYI: Not in the type
+      version: '2',
     } as ImageBuildOptions);
 
     await new Promise<DockerEvent[]>((resolve, reject) => {
@@ -284,6 +295,7 @@ export class DockerService {
   }
 
   async createStages(
+    cwd: string,
     config: ScaffoldlyConfig,
     env?: Record<string, string>,
   ): Promise<DockerStages> {
@@ -301,7 +313,7 @@ export class DockerService {
       throw new Error('Failed to create runtime spec');
     }
 
-    return { bases, builds, packages, runtime };
+    return { cwd, bases, builds, packages, runtime };
   }
 
   async createStage(
@@ -346,12 +358,12 @@ export class DockerService {
   ): Promise<DockerFileSpec | undefined> {
     const packageService = new PackageService(this, config);
 
-    const { workdir, shell, runtime, src, files, scripts, bin } = config;
+    const { taskdir, shell, runtime, src, files, scripts, bin } = config;
 
     const spec: DockerFileSpec = {
       from: `install-${name}`,
       as: `${mode}-${name}`,
-      workdir: workdir,
+      workdir: taskdir,
       shell: shell,
       cmd: undefined,
       copy: [],
@@ -368,7 +380,8 @@ export class DockerService {
       runCommands.push({
         cmds: scripts.install ? [scripts.install] : [],
         prerequisite: false,
-        workdir: src !== DEFAULT_SRC_ROOT ? src : undefined,
+        // workdir: src !== DEFAULT_SRC_ROOT ? src : DEFAULT_SRC_ROOT, //FOO
+        workdir: taskdir,
       });
 
       if (scripts.install) {
@@ -404,7 +417,7 @@ export class DockerService {
         {
           cmds: scripts.build ? [scripts.build] : [],
           prerequisite: false,
-          workdir: src !== DEFAULT_SRC_ROOT ? src : undefined,
+          workdir: taskdir,
         },
       ];
 
@@ -530,33 +543,38 @@ export class DockerService {
   renderStages = (stages: DockerStages): string => {
     const lines = [];
 
-    const { bases, builds, packages, runtime } = stages;
+    const { cwd, bases, builds, packages, runtime } = stages;
 
     Object.values(bases).forEach((spec, ix) => {
       ui.updateBottomBarSubtext(`Rendering ${spec?.as} stage`);
-      lines.push(this.renderSpec('install', spec, ix));
+      lines.push(this.renderSpec('install', cwd, spec, ix));
       lines.push('');
     });
 
     Object.values(builds).forEach((spec, ix) => {
       ui.updateBottomBarSubtext(`Rendering ${spec?.as} stage`);
-      lines.push(this.renderSpec('build', spec, ix));
+      lines.push(this.renderSpec('build', cwd, spec, ix));
       lines.push('');
     });
 
     Object.values(packages).forEach((spec, ix) => {
       ui.updateBottomBarSubtext(`Rendering ${spec?.as} stage`);
-      lines.push(this.renderSpec('package', spec, ix));
+      lines.push(this.renderSpec('package', cwd, spec, ix));
       lines.push('');
     });
 
     ui.updateBottomBarSubtext(`Rendering ${runtime.as} stage`);
-    lines.push(this.renderSpec('start', runtime, 0));
+    lines.push(this.renderSpec('start', cwd, runtime, 0));
 
     return lines.join('\n');
   };
 
-  renderSpec = (mode: Script, spec: DockerFileSpec | undefined, ix: number): string => {
+  renderSpec = (
+    mode: Script,
+    cwd: string,
+    spec: DockerFileSpec | undefined,
+    ix: number,
+  ): string => {
     const lines = [];
 
     if (!spec) {
@@ -612,11 +630,11 @@ export class DockerService {
           }
 
           if (c.src === DEFAULT_SRC_ROOT) {
-            copyLines.add(`COPY ${c.src} ${workdir}${sep}`);
+            copyLines.add(`COPY ${c.src} ${DEFAULT_TASKDIR}${sep}`);
             return;
           }
 
-          const exists = existsSync(join(this.cwd, c.src));
+          const exists = existsSync(join(cwd, c.src));
           if (exists && workdir) {
             copyLines.add(`COPY ${c.src} ${join(workdir, c.dest)}`);
           }
@@ -639,7 +657,7 @@ export class DockerService {
             return;
           }
 
-          const exists = existsSync(join(this.cwd, src));
+          const exists = existsSync(join(cwd, src));
           if (workdir) {
             let source = join(workdir, src);
             if (!exists) {
@@ -803,7 +821,7 @@ export class DockerService {
       new Promise((_, reject) =>
         setTimeout(
           () => reject(new Error('Please ensure docker is online and not in power svaing mode.')),
-          1000,
+          5000,
         ),
       ),
     ]);

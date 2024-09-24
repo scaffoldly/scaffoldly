@@ -4,7 +4,6 @@ import { ResourceOptions } from '..';
 import { context } from '@actions/github';
 import semver from 'semver';
 import { ScaffoldlyConfig } from '../../../../config';
-import { existsSync } from 'fs';
 import { EventService } from '../../../event';
 
 export type GitDeployStatus = {
@@ -24,19 +23,15 @@ export type Origin = {
 export class GitService {
   _git?: SimpleGit;
 
-  _cwd?: string;
-
   _config?: ScaffoldlyConfig;
 
-  constructor(private eventService: EventService, cwd?: string, config?: ScaffoldlyConfig) {
-    if (cwd && existsSync(cwd)) {
-      this._cwd = cwd;
-      if (cwd) {
-        this._git = simpleGit({ baseDir: cwd });
-      }
-      if (config) {
-        this._config = config;
-      }
+  constructor(
+    private eventService: EventService,
+    private _workDir = process.cwd(),
+    config?: ScaffoldlyConfig,
+  ) {
+    if (config) {
+      this._config = config;
     }
   }
 
@@ -52,18 +47,26 @@ export class GitService {
     this.eventService.withConfig(config);
   }
 
-  get git(): SimpleGit {
-    if (!this._git) {
-      throw new Error('Unable to determine git instance. Was the current working directory set?');
-    }
-    return this._git;
+  get baseDir(): Promise<string> {
+    return this.workDir.then((workDir) =>
+      simpleGit({ baseDir: workDir }).revparse(['--show-toplevel']),
+    );
   }
 
-  get cwd(): string {
-    if (!this._cwd) {
-      throw new Error('Unable to determine current working directory');
+  get workDir(): Promise<string> {
+    return Promise.resolve(this._workDir);
+  }
+
+  get git(): Promise<SimpleGit> {
+    if (!this._git) {
+      return this.workDir
+        .then((workDir) => simpleGit({ baseDir: workDir }).revparse(['--show-toplevel']))
+        .then((topLevel) => {
+          this._git = simpleGit({ baseDir: topLevel });
+          return this._git;
+        });
     }
-    return this._cwd;
+    return Promise.resolve(this._git);
   }
 
   public async predeploy(
@@ -84,26 +87,26 @@ export class GitService {
   }
 
   get defaultBranch(): Promise<string | undefined> {
-    return this.git
-      .getRemotes(true)
-      .then((remotes) => {
-        return remotes.find((r) => r.name === 'origin');
-      })
-      .then((remote) =>
-        this.git
-          .remote(['show', remote?.name || 'origin'])
-          .then((show) => {
-            if (!show) {
-              return undefined;
-            }
-            const details = show.match(/HEAD branch: (.+)/);
-            if (!details || details.length < 2) {
-              return undefined;
-            }
-            return details[1].trim();
-          })
-          .catch(() => undefined),
-      );
+    return this.git.then((git) =>
+      git
+        .getRemotes(true)
+        .then((remotes) => remotes.find((r) => r.name === 'origin'))
+        .then((remote) =>
+          git
+            .remote(['show', remote?.name || 'origin'])
+            .then((show) => {
+              if (!show) {
+                return undefined;
+              }
+              const details = show.match(/HEAD branch: (.+)/);
+              if (!details || details.length < 2) {
+                return undefined;
+              }
+              return details[1].trim();
+            })
+            .catch(() => undefined),
+        ),
+    );
   }
 
   get branch(): Promise<'tagged' | string | undefined> {
@@ -116,7 +119,8 @@ export class GitService {
         throw new Error(`Unsupported ref format: ${context.ref}`);
       }
     }
-    return this.git.branch({}).then((b) => b?.current);
+
+    return this.git.then((git) => git.branch({})).then((b) => b?.current);
   }
 
   get origin(): Promise<Origin | undefined> {
@@ -143,11 +147,11 @@ export class GitService {
 
   get remote(): Promise<string | undefined> {
     return this.git
-      .getRemotes(true)
+      .then((git) => git.getRemotes(true))
       .then((remotes) => {
-        return remotes.find((r) => r.name === 'origin');
-      })
-      .then((remote) => remote?.refs.fetch);
+        const remote = remotes.find((r) => r.name === 'origin');
+        return remote?.refs.fetch;
+      });
   }
 
   get sha(): Promise<string> {
@@ -161,7 +165,8 @@ export class GitService {
     if (context.sha) {
       return Promise.resolve(context.sha.substring(0, 7));
     }
-    return this.git.revparse(['HEAD']);
+
+    return this.git.then((git) => git.revparse(['HEAD'])).then((sha) => sha.substring(0, 7));
   }
 
   get tag(): string {

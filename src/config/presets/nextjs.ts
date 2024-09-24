@@ -3,25 +3,28 @@ import { Mode, PackageJson, PackageJsonBin, ScaffoldlyConfig } from '..';
 import { existsSync, readFileSync } from 'fs';
 import { isDebug } from '../../scaffoldly/ui';
 import { Preset } from '.';
+import { GitService } from '../../scaffoldly/commands/cd/git';
 
 export class NextJsPreset extends Preset {
-  constructor(cwd: string, private mode?: Mode) {
-    super(cwd);
+  constructor(gitService: GitService, private mode?: Mode) {
+    super(gitService);
   }
 
-  get configPath(): string {
-    return join(this.cwd, 'package.json');
+  get configPath(): Promise<string> {
+    return this.gitService.workDir.then((workDir) => join(workDir, 'package.json'));
   }
 
   get config(): Promise<ScaffoldlyConfig> {
     return Promise.all([
+      this.gitService.baseDir,
+      this.gitService.workDir,
       this.packageJson,
       this.packages,
       this.bin,
       this.files,
       this.install,
       this.start,
-    ]).then(([packageJson, packages, bin, files, install, start]) => {
+    ]).then(([baseDir, workDir, packageJson, packages, bin, files, install, start]) => {
       packageJson.scaffoldly = {
         runtime: `node:${process.version.split('v')[1]}-alpine`,
         handler: 'localhost:3000',
@@ -43,17 +46,19 @@ export class NextJsPreset extends Preset {
       if (isDebug()) {
         console.log(`Using NextJS preset config:`, JSON.stringify(packageJson.scaffoldly, null, 2));
       }
-      return new ScaffoldlyConfig(this.cwd, { packageJson }, this.mode);
+      return new ScaffoldlyConfig(baseDir, workDir, { packageJson }, this.mode);
     });
   }
 
   get packageJson(): Promise<PackageJson> {
-    try {
-      const packageJson = JSON.parse(readFileSync(this.configPath, 'utf8')) as PackageJson;
-      return Promise.resolve(packageJson);
-    } catch (e) {
-      throw new Error(`Couldn't find package.json in ${this.cwd}`, { cause: e });
-    }
+    return this.configPath.then((configPath) => {
+      try {
+        const packageJson = JSON.parse(readFileSync(configPath, 'utf8')) as PackageJson;
+        return packageJson;
+      } catch (e) {
+        throw new Error(`Couldn't find package.json in ${configPath}`, { cause: e });
+      }
+    });
   }
 
   get runtime(): Promise<string> {
@@ -66,8 +71,10 @@ export class NextJsPreset extends Preset {
   }
 
   get nextOutput(): Promise<'export' | 'standalone' | undefined> {
-    return import(join(this.cwd, 'next.config.mjs')).then((config) => {
-      return config.default.output;
+    return this.gitService.workDir.then((workDir) => {
+      return import(join(workDir, 'next.config.mjs')).then((config) => {
+        return config.default.output;
+      });
     });
   }
 
@@ -111,23 +118,27 @@ export class NextJsPreset extends Preset {
   }
 
   get lockfile(): Promise<string | undefined> {
-    if (existsSync(join(this.cwd, 'yarn.lock'))) {
-      return Promise.resolve('yarn.lock');
-    }
-    if (existsSync(join(this.cwd, 'pnpm-lock.yaml'))) {
-      return Promise.resolve('pnpm-lock.yaml');
-    }
-    if (existsSync(join(this.cwd, 'package-lock.json'))) {
-      return Promise.resolve('package-lock.json');
-    }
-    return Promise.resolve(undefined);
+    return this.gitService.workDir.then((workDir) => {
+      if (existsSync(join(workDir, 'yarn.lock'))) {
+        return Promise.resolve('yarn.lock');
+      }
+      if (existsSync(join(workDir, 'pnpm-lock.yaml'))) {
+        return Promise.resolve('pnpm-lock.yaml');
+      }
+      if (existsSync(join(workDir, 'package-lock.json'))) {
+        return Promise.resolve('package-lock.json');
+      }
+      return Promise.resolve(undefined);
+    });
   }
 
   get public(): Promise<string | undefined> {
-    if (existsSync(join(this.cwd, 'public'))) {
-      return Promise.resolve('public');
-    }
-    return Promise.resolve(undefined);
+    return this.gitService.workDir.then((workDir) => {
+      if (existsSync(join(workDir, 'public'))) {
+        return Promise.resolve('public');
+      }
+      return Promise.resolve(undefined);
+    });
   }
 
   get install(): Promise<string> {

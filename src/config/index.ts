@@ -2,6 +2,7 @@ import { base58 } from '@scure/base';
 import { join, relative, sep } from 'path';
 import ignore from 'ignore';
 import { existsSync, readdirSync, readFileSync } from 'fs';
+
 export const DEFAULT_SRC_ROOT = `.`;
 export const DEFAULT_ROUTE = '/*';
 
@@ -10,6 +11,7 @@ export const DEFAULT_ROUTE = '/*';
 // - Version Consistency
 // - Scooping compiled binaries out of the container (such as awslambda-entrypoint)
 export const CONFIG_SIGNATURE = `scaffoldly/scaffoldly:1`;
+export const DEFAULT_TASKDIR = join(sep, 'var', 'task');
 
 export const decode = <T>(config: string): T => {
   if (config.startsWith(`${CONFIG_SIGNATURE}:`)) {
@@ -110,7 +112,7 @@ export interface IScaffoldlyConfig extends IServiceConfig {
 
   // Top level configuration only:
   get version(): string;
-  get workdir(): string; // Defaults to /var/task
+  get taskdir(): string; // Defaults to /var/task
   get services(): Partial<IServiceConfig>[];
   get routes(): Routes;
   get secrets(): string[];
@@ -170,8 +172,11 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
 
   private _packages: string[];
 
+  private _ignoreFilter?: (pathname: string) => boolean;
+
   constructor(
-    private cwd: string,
+    private baseDir: string,
+    private workDir: string,
     configs: {
       packageJson?: PackageJson;
       serviceConfig?: IServiceConfig;
@@ -312,7 +317,8 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
     const { services = [] } = this.scaffoldly;
     return services.map((service, ix) => {
       return new ScaffoldlyConfig(
-        this.cwd,
+        this.baseDir,
+        this.workDir,
         {
           packageJson: this.packageJson,
           serviceConfig: {
@@ -388,12 +394,12 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
     return cmds;
   }
 
-  get workdir(): string {
-    let { workdir } = this.scaffoldly;
-    if (!workdir) {
-      workdir = join(sep, 'var', 'task');
+  get taskdir(): string {
+    let { taskdir } = this.scaffoldly;
+    if (!taskdir) {
+      taskdir = join(DEFAULT_TASKDIR, relative(this.baseDir, this.workDir));
     }
-    return workdir;
+    return taskdir;
   }
 
   get secrets(): string[] {
@@ -454,21 +460,32 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
   }
 
   get ignoreFilter(): (pathname: string) => boolean {
+    if (this._ignoreFilter) {
+      return this._ignoreFilter;
+    }
+
     const ig = ignore();
     ['.gitignore', '.dockerignore'].map((filename) => {
-      const file = join(this.cwd, this.src, filename);
-      if (existsSync(file)) {
-        ig.add(readFileSync(file).toString());
-      }
+      // Search for .gitignore/.dockerignore in the baseDir and workDir and workDir+src
+      [
+        join(this.baseDir, filename),
+        join(this.workDir, filename),
+        join(this.workDir, this.src, filename),
+      ].forEach((file) => {
+        if (existsSync(file)) {
+          ig.add(readFileSync(file).toString());
+        }
+      });
     });
 
-    return ig.createFilter();
+    this._ignoreFilter = ig.createFilter();
+    return this._ignoreFilter;
   }
 
   get ignoredFiles(): string[] {
-    const src = join(this.cwd, this.src);
+    const src = join(this.workDir, this.src);
     const files = readdirSync(src).filter((path) => {
-      const relativePath = relative(this.cwd, path);
+      const relativePath = relative(this.workDir, path);
       return !this.ignoreFilter(relativePath);
     });
     return files;

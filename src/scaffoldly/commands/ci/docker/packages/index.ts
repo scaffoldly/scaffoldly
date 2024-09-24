@@ -37,9 +37,9 @@ export class PackageService {
   }
 
   get paths(): Promise<string[]> {
-    const { workdir, src } = this.config;
+    const { taskdir, src } = this.config;
     return Promise.all([this.osPackages.paths, this.npmPackages.paths]).then((paths) => [
-      join(workdir, src),
+      join(taskdir, src),
       ...paths.flat(),
     ]);
   }
