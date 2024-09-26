@@ -34,8 +34,9 @@ The configuration is stored in the `package.json` file of your project, making i
           "start": "node server.js"
         },
         "schedules": {
-          "@immediately": "node -e 'console.log(`Hello, ${process.env.USER}!`)'",
-          "@hourly": "curl http://localhost:3000/index.html"
+          "@immediately": "node -e 'console.log(`Hello, ${process.env.USER}!`)'",\
+          "@frequentky": "echo 'keeping the function warm!'",
+          "@hourly": "curl http://localhost:3000/some-hourly-task"
         }
       }
     ]
@@ -175,6 +176,16 @@ The schedules property allows you to define scheduled tasks for your service. Yo
 - `@frequently`: Runs the task every 5 minutes with a 5-minute sliding window.
 - `@hourly`: Runs the task every hour.
 - `@daily`: Runs the task every day.
+
+Example:
+
+```json
+"schedules": {
+  "@immediately": "node -e 'console.log(`Hello, ${process.env.USER}!`)'",\
+  "@frequentky": "echo 'keeping the function warm!'",
+  "@hourly": "curl http://localhost:3000/some-hourly-task"
+}
+```
 
 ```mdx-code-block
 import Social from '/docs/_common/_social.mdx';
