@@ -1,5 +1,10 @@
 # AWS
 
+```mdx-code-block
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+```
+
 ## Permissions
 
 There are two aspects to permissions in AWS:
@@ -14,6 +19,27 @@ To deploy your application using Scaffoldly, you need to grant the necessary per
 ```bash
 npx scaffoldly show permissions
 ```
+
+<Tabs groupId="aws-access">
+  <TabItem value="access-keys" label="AWS Access Keys">
+
+1. Create a new [IAM user](/docs/cloud/aws#access-keys) in AWS with the necessary permissions (`npx scaffoldly show permissions`).
+2. Create an Access Key and Secret Access Key.
+3. Run `aws configure` (or set the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`) environment variables in your terminal.
+
+See: [AWS Config and Credentials File](#aws-config-and-credentials-file)
+
+  </TabItem>
+  <TabItem value="role-assumption" label="AWS IAM Roles">
+
+1. Create a new [IAM role](/docs/cloud/aws#iam-roles) in AWS with the necessary permissions
+   (`npx scaffoldly show permissions`).
+1. Assume the role to your local terminal using a serivce like [SAML.to](https://saml.to), [AWS Identity Center](https://aws.amazon.com/iam/identity-center/), [Gimme AWS Creds](https://github.com/Nike-Inc/gimme-aws-creds), etc.
+
+See: [IAM Roles](#iam-roles)
+
+  </TabItem>
+</Tabs>
 
 ### Runtime Permissions
 
@@ -49,17 +75,13 @@ If using multiple AWS profiles, or `aws sso`, you can specify which profile to u
 
 ### Access Keys
 
-See also: [Deployment Permissions](#deployment-permissions)
-
-Scaffoldly supports the usage `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
+Scaffoldly supports the usage `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`, and optionally `AWS_SESSION_TOKEN`.
 
 These are the most common method for authenticating with AWS. You can set these environment variables in your terminal or CI/CD environment.
 
 ### IAM Roles
 
-See also: [Deployment Permissions](#deployment-permissions)
-
-Scaffoldly supports the usage of `AWS_ROLE_ARN`, `AWS_WEB_IDENTITY_TOKEN_FILE`, and `AWS_ROLE_SESSION_NAME` environment variables for IAM roles with web identity federation.
+Scaffoldly supports the usage of `AWS_ROLE_ARN`, `AWS_WEB_IDENTITY_TOKEN_FILE`, `AWS_ROLE_SESSION_NAME`, and `AWS_SESSION_TOKEN` environment variables for IAM roles with web identity federation.
 
 #### Trust Relationships
 
