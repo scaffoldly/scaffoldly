@@ -4,7 +4,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'Scaffoldly',
-  tagline: 'Scaffoldly Framework',
+  tagline: 'Deploy Next.js to AWS Lambda in Minutes',
   favicon: 'img/favicon.ico',
 
   // Set the production url of your site here
@@ -101,6 +101,14 @@ const config: Config = {
             {
               label: 'Documentation',
               to: '/docs',
+            },
+            {
+              label: 'Tutorials',
+              to: '/docs/tutorials',
+            },
+            {
+              label: 'Community',
+              to: '/community',
             },
           ],
         },

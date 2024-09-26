@@ -2,55 +2,48 @@ import clsx from 'clsx';
 // eslint-disable-next-line import/no-unresolved
 import Heading from '@theme/Heading';
 import styles from './styles.module.css';
+import Link from '@docusaurus/Link';
 
 type FeatureItem = {
   title: string;
-  Svg: React.ComponentType<React.ComponentProps<'svg'>>;
   description: JSX.Element;
 };
 
 const FeatureList: FeatureItem[] = [
   {
-    title: 'Easy to Use',
+    title: 'Simple Configuration',
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    Svg: require('@site/static/img/undraw_docusaurus_mountain.svg').default,
     description: (
       <>
-        Docusaurus was designed from the ground up to be easily installed and used to get your
-        website up and running quickly.
+        The declarative <Link to="/docs/config">configuration</Link> is <strong>simple</strong> and
+        in your <code>package.json</code> or predefined{' '}
+        <Link to="/docs/config/presets">
+          <code>--preset</code>
+        </Link>{' '}
+        options on the <Link to="/docs/cli">CLI</Link>.
       </>
     ),
   },
   {
-    title: 'Focus on What Matters',
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    Svg: require('@site/static/img/undraw_docusaurus_tree.svg').default,
+    title: 'Simple Deployment',
     description: (
-      <>
-        Docusaurus lets you focus on your docs, and we&apos;ll do the chores. Go ahead and move your
-        docs into the <code>docs</code> directory.
-      </>
+      <>The CLI or GitHub Action generate Dockerfiles and Cloud Resources at deploy time.</>
     ),
   },
   {
-    title: 'Powered by React',
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    Svg: require('@site/static/img/undraw_docusaurus_react.svg').default,
+    title: 'Cost Effective AWS',
     description: (
       <>
-        Extend or customize your website layout by reusing React. Docusaurus can be extended while
-        reusing the same header and footer.
+        <strong>Containerized</strong> deployments to <strong>AWS Lambda</strong> and support for
+        CDNs allow your application to run at scale with <strong>minimal cost</strong>.
       </>
     ),
   },
 ];
 
-function Feature({ title, Svg, description }: FeatureItem) {
+function Feature({ title, description }: FeatureItem) {
   return (
     <div className={clsx('col col--4')}>
-      <div className="text--center">
-        <Svg className={styles.featureSvg} role="img" />
-      </div>
       <div className="text--center padding-horiz--md">
         <Heading as="h3">{title}</Heading>
         <p>{description}</p>

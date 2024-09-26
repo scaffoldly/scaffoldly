@@ -21,3 +21,14 @@
   align-items: center;
   justify-content: center;
 }
+
+.links {
+  margin-top: 2em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.subtitle {
+  max-width: 50%;
+}

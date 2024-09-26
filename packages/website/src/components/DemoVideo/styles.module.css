@@ -1,0 +1,10 @@
+.videoSection {
+  display: flex;
+  align-items: center;
+  padding-bottom: 2rem;
+  width: 100%;
+}
+
+.reactPlayer {
+  filter: drop-shadow(black 0rem 0rem 10px);
+}
