@@ -190,18 +190,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
     this.packageJson = packageJson;
 
     if (packageJson) {
-      const { scaffoldly, name, version } = packageJson;
-      if (!name) {
-        throw new Error('Missing `name` in package.json');
-      }
-      if (!version) {
-        throw new Error('Missing `version` in package.json');
-      }
-      if (!scaffoldly) {
-        throw new Error(
-          'Missing `scaffoldly` in package.json.\n\nTry using the `--preset` option for a common configuration.\n\n📖 See: https://scaffoldly.dev/docs/config/presets',
-        );
-      }
+      const { scaffoldly = {}, name = 'unknown', version = '0.0.0-0' } = packageJson;
       this.scaffoldly = scaffoldly;
       this._name = name;
       this._version = version;
@@ -246,10 +235,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
   }
 
   get name(): ServiceName {
-    let name = this.serviceConfig?.name || this._name;
-    if (!name) {
-      throw new Error('Missing `name`');
-    }
+    let name = this.serviceConfig?.name || this._name || 'unknown-service';
 
     const re = /[a-z0-9]+(?:[._-][a-z0-9]+)*/; // From ECR Regex
 
@@ -277,19 +263,12 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
   }
 
   get runtime(): string {
-    const { runtime } = this.serviceConfig || this.scaffoldly;
-    if (!runtime) {
-      // TODO: Find runtime from one of the services
-      throw new Error('Missing `runtime`');
-    }
+    const { runtime = 'alpine:3' } = this.serviceConfig || this.scaffoldly;
     return runtime;
   }
 
   get handler(): string {
-    const { handler } = this.serviceConfig || this.scaffoldly;
-    if (!handler) {
-      throw new Error('Missing `handler` in scaffoldly config');
-    }
+    const { handler = 'localhost:3000' } = this.serviceConfig || this.scaffoldly;
     return handler;
   }
 

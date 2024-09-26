@@ -48,9 +48,9 @@ export class GitService {
   }
 
   get baseDir(): Promise<string> {
-    return this.workDir.then((workDir) =>
-      simpleGit({ baseDir: workDir }).revparse(['--show-toplevel']),
-    );
+    return this.workDir
+      .then((workDir) => simpleGit({ baseDir: workDir }).revparse(['--show-toplevel']))
+      .catch(() => this._workDir);
   }
 
   get workDir(): Promise<string> {
@@ -60,7 +60,11 @@ export class GitService {
   get git(): Promise<SimpleGit> {
     if (!this._git) {
       return this.workDir
-        .then((workDir) => simpleGit({ baseDir: workDir }).revparse(['--show-toplevel']))
+        .then((workDir) =>
+          simpleGit({ baseDir: workDir })
+            .revparse(['--show-toplevel'])
+            .catch(() => workDir),
+        )
         .then((topLevel) => {
           this._git = simpleGit({ baseDir: topLevel });
           return this._git;
@@ -90,6 +94,7 @@ export class GitService {
     return this.git.then((git) =>
       git
         .getRemotes(true)
+        .catch(() => [])
         .then((remotes) => remotes.find((r) => r.name === 'origin'))
         .then((remote) =>
           git
@@ -120,7 +125,10 @@ export class GitService {
       }
     }
 
-    return this.git.then((git) => git.branch({})).then((b) => b?.current);
+    return this.git
+      .then((git) => git.branch({}))
+      .catch(() => {})
+      .then((b) => b?.current);
   }
 
   get origin(): Promise<Origin | undefined> {
@@ -147,7 +155,7 @@ export class GitService {
 
   get remote(): Promise<string | undefined> {
     return this.git
-      .then((git) => git.getRemotes(true))
+      .then((git) => git.getRemotes(true).catch(() => []))
       .then((remotes) => {
         const remote = remotes.find((r) => r.name === 'origin');
         return remote?.refs.fetch;

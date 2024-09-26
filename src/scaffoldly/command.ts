@@ -110,21 +110,13 @@ export class Command {
           .command({
             command: 'permissions',
             describe: `Show the necessary permissions for deployment`,
-            handler: async ({ preset, development }) => {
-              const cmd = await new DeployCommand(this.gitService)
+            handler: async ({ development }) => {
+              const cmd = new DeployCommand(this.gitService)
                 .withMode(development ? 'development' : undefined)
-                .withOptions({ checkPermissions: true })
-                .withPreset(preset);
+                .withOptions({ checkPermissions: true });
               return cmd.handle();
             },
             builder: {
-              preset: {
-                demand: false,
-                type: 'string',
-                choices: PRESETS,
-                nargs: 1,
-                description: 'Use a preset configuration',
-              },
               development: {
                 demand: false,
                 type: 'boolean',
@@ -211,13 +203,6 @@ export class Command {
             choices: PRESETS,
             nargs: 1,
             description: 'Use a preset configuration.',
-          },
-          'check-permissions': {
-            demand: false,
-            type: 'boolean',
-            default: false,
-            requiresArg: false,
-            description: 'Check permissions only. No changes will be made.',
           },
           dryrun: {
             demand: false,
