@@ -15,27 +15,72 @@ const FeatureList: FeatureItem[] = [
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     description: (
       <>
-        The declarative <Link to="/docs/config">configuration</Link> is <strong>simple</strong> and
-        in your <code>package.json</code> or predefined{' '}
-        <Link to="/docs/config/presets">
-          <code>--preset</code>
+        The declarative{' '}
+        <Link to="/docs/config">
+          <strong>configuration</strong>
         </Link>{' '}
-        options on the <Link to="/docs/cli">CLI</Link>.
+        is <strong>simple</strong> and in your <code>package.json</code> or predefined{' '}
+        <Link to="/docs/config/presets">
+          <code>
+            <strong>--preset</strong>
+          </code>
+        </Link>{' '}
+        options on the{' '}
+        <Link to="/docs/cli">
+          <strong>CLI</strong>
+        </Link>
+        .
       </>
     ),
   },
   {
     title: 'Simple Deployment',
     description: (
-      <>The CLI or GitHub Action generate Dockerfiles and Cloud Resources at deploy time.</>
+      <>
+        The{' '}
+        <Link to="/docs/cli">
+          <strong>CLI</strong>
+        </Link>{' '}
+        or{' '}
+        <Link to="/docs/gha">
+          <strong>GitHub Action</strong>
+        </Link>{' '}
+        generate Dockerfiles and Cloud Resources at deploy time.
+      </>
     ),
   },
   {
-    title: 'Cost Effective AWS',
+    title: 'Cost Effective',
     description: (
       <>
-        <strong>Containerized</strong> deployments to <strong>AWS Lambda</strong> and support for
-        CDNs allow your application to run at scale with <strong>minimal cost</strong>.
+        <Link to="docs/cli#dockerfile-command">
+          <strong>Containerized</strong>
+        </Link>{' '}
+        deployments to <strong>AWS Lambda</strong> and support for{' '}
+        <Link to="/docs/cloud/cdn">
+          <strong>CDNs</strong>
+        </Link>{' '}
+        allow your application to run at scale with <strong>minimal cost</strong>.
+      </>
+    ),
+  },
+  {
+    title: '12-Factor Apps',
+    description: (
+      <>
+        Built in support for{' '}
+        <Link to="docs/config/environment">
+          <strong>Environment Variables</strong>
+        </Link>{' '}
+        and{' '}
+        <Link to="docs/config/secrets">
+          <strong>Secrets</strong>
+        </Link>{' '}
+        allow quick addoption to{' '}
+        <Link to="https://12factor.net/" target="_blank">
+          <strong>12-Factor Apps</strong>
+        </Link>
+        .
       </>
     ),
   },
@@ -43,7 +88,7 @@ const FeatureList: FeatureItem[] = [
 
 function Feature({ title, description }: FeatureItem) {
   return (
-    <div className={clsx('col col--4')}>
+    <div className={clsx('col col--3')}>
       <div className="text--center padding-horiz--md">
         <Heading as="h3">{title}</Heading>
         <p>{description}</p>

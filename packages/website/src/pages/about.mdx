@@ -1,3 +1,51 @@
 # About Scaffoldly
 
-hello world
+## Our Mission
+
+At Scaffoldly, our mission is to empower developers by simplifying the deployment of modern web applications the Cloud. We strive to eliminate the complexities of cloud infrastructure, allowing you to focus on what you do best—building exceptional applications and APIs.
+
+## Our Vision
+
+We envision a development ecosystem where deploying to the cloud is as straightforward as running a local development server. By abstracting away the intricacies of cloud infrastructure, Scaffoldly aims to democratize cloud deployment, making it accessible and effortless for developers of all skill levels.
+
+## What Scaffoldly Offers
+
+- **Unified Deployment CLI**: A single command-line tool that streamlines the deployment of both front-end, back-end, and full-stack applications to AWS Lambda.
+- **Seamless Framework Support**: Native support for modern frameworks like Next.js, Express, Flask, Golang, Rust without the need for complex configurations.
+- **Custom Entrypoints**: Proprietary entrypoints that make Next.js and other applications compatible with AWS Lambda's environment.
+- **Eliminated Complexity**: No more wrestling with Terraform scripts or CloudFormation templates—Scaffoldly handles infrastructure setup using AWS SDK calls.
+- **Docker Integration**: Efficient packaging of applications into Docker containers, automated and managed within the Scaffoldly CLI.
+
+## Our Story
+
+The inception of Scaffoldly stems from a desire to streamline API deployment on AWS without relying on heavyweight services like ECS, Fargate, or Kubernetes. We recognized the potential of AWS Lambda as a serverless framework and began experimenting with the Serverless Framework and its plugins. While it efficiently packaged JavaScript applications for AWS Lambda, we sought more—TypeScript support and seamless integration with OpenAPI.
+
+Our journey led us to incorporate plugins like `serverless-bundle` and `serverless-esbuild` to compile TypeScript into CommonJS for deployment. However, the underlying dependency on CloudFormation added unnecessary complexity. To minimize this, we developed Terraform modules to handle core cloud primitives like IAM roles, aiming to make CloudFormation's role as minimal as possible.
+
+The challenge escalated when we introduced front-end frameworks like Angular and React. The deployment process diverged significantly from back-end services, requiring different GitHub Actions and Terraform configurations to deploy single-page applications to S3 and serve them via CloudFront. This fragmented approach was tedious and confusing, even for seasoned developers.
+
+Our ambition to deploy a Next.js application further highlighted the limitations of existing tools. Next.js, primarily designed to work seamlessly with Vercel's hosting platform, presented obstacles for AWS deployment. Developers were often forced down a convoluted path involving Docker containers and Kubernetes clusters—overkill for deploying a simple application.
+
+We discovered that Next.js produces three output modes—**default**, **standalone**, and **export**—each with its own set of challenges when deploying to AWS Lambda:
+
+- **Default Mode**: Requires the `next` dependency, exceeding AWS Lambda's 50MB size limit.
+- **Export Mode**: Outputs static HTML/CSS files, limiting the use of Next.js's dynamic routing capabilities.
+- **Standalone Mode**: Generates a `server.js` that listens on port 3000, necessitating additional infrastructure to handle incoming traffic.
+
+Moreover, AWS Lambda's proprietary request/response format is incompatible with Next.js's expected HTTP requests and responses. To bridge this gap, we delved into AWS Lambda's internals and crafted a custom entrypoint acting as a reverse proxy. This innovation translates AWS Lambda requests into standard HTTP requests, enabling Next.js to function seamlessly across all output modes within AWS Lambda.
+
+Attempts to contribute these enhancements to existing tools like `serverless-offline` were unfruitful. Recognizing the need for a more integrated solution, we decided to build a dedicated CLI. By moving away from dependencies like Terraform and the Serverless Framework, we gained full flexibility over the deployment stack.
+
+## Join the Community
+
+Whether you're an individual developer or part of a larger team, Scaffoldly is here to simplify your deployment workflow.
+
+[Join us](/community) in redefining how applications are deployed to the cloud. Focus on crafting amazing user experiences. And `scaffoldly` will handle the rest.
+
+## Get Started Today
+
+Experience the future of effortless cloud deployment. Try one of our [Tutorials](/docs/tutorials) to deploy your first application with Scaffoldly.
+
+---
+
+_Scaffoldly is committed to continuous improvement and welcomes contributions and feedback from the developer community. Together, we're building a more efficient future for application deployment._
