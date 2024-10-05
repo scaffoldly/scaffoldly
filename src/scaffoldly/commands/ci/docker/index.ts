@@ -145,7 +145,7 @@ export class DockerService {
   }
 
   private handleDockerEvent(type: 'Pull' | 'Build' | 'Push', event: DockerEvent) {
-    // console.log('!!! event', event);
+    // console.error('!!! event', event);
     if (
       'id' in event &&
       event.id === 'moby.buildkit.trace' &&
@@ -501,7 +501,7 @@ export class DockerService {
         if (!fromName) return;
         if (!path) return;
 
-        const binStage = fromStages[`package-${fromName}`];
+        const binStage = fromStages[`package-${fromName.toLowerCase()}`];
         if (!binStage) return;
 
         const scriptPath = join(src, script);

@@ -133,19 +133,24 @@ export class LambdaService implements IamConsumer {
             }),
           ),
         update: (existing) =>
-          this.lambdaClient.send(
-            new UpdateFunctionConfigurationCommand({
-              FunctionName: existing.FunctionArn,
-              ImageConfig: {
-                EntryPoint: ['.entrypoint'],
-                Command: [],
-              },
-              Role: desired.Configuration?.Role,
-              Timeout: desired.Configuration?.Timeout,
-              MemorySize: desired.Configuration?.MemorySize,
-              Environment: desired.Configuration?.Environment,
+          this.lambdaClient
+            .send(
+              new UpdateFunctionConfigurationCommand({
+                FunctionName: existing.FunctionArn,
+                ImageConfig: {
+                  EntryPoint: ['.entrypoint'],
+                  Command: [],
+                },
+                Role: desired.Configuration?.Role,
+                Timeout: desired.Configuration?.Timeout,
+                MemorySize: desired.Configuration?.MemorySize,
+                Environment: desired.Configuration?.Environment,
+              }),
+            )
+            .then((updated) => {
+              status.functionVersion = updated.Version;
+              return updated;
             }),
-          ),
         emitPermissions: (aware) => {
           aware.withPermissions([
             'lambda:CreateFunction',
@@ -203,6 +208,9 @@ export class LambdaService implements IamConsumer {
         update: () => {
           if (!status.functionVersion) {
             throw new SkipAction('Function Version is unknown');
+          }
+          if (!status.imageUri) {
+            throw new SkipAction('Image URI is unknown');
           }
           return this.lambdaClient.send(
             new UpdateAliasCommand({
@@ -390,9 +398,9 @@ export class LambdaService implements IamConsumer {
                 Publish: true,
               }),
             )
-            .then((response) => {
-              status.functionVersion = response.Version;
-              return response;
+            .then((updated) => {
+              status.functionVersion = updated.Version;
+              return updated;
             }),
         emitPermissions: (aware) => {
           aware.withPermissions(['lambda:UpdateFunctionCode', 'lambda:GetFunction']);

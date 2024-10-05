@@ -83,11 +83,11 @@ export class Commands {
   };
 }
 
-export type PackageJson = {
+export type ProjectJson = {
   name?: string;
   version?: string;
   scripts?: { [key: string]: string };
-  bin?: PackageJsonBin;
+  bin?: ProjectJsonBin;
   files?: string[];
   dependencies?: { [key: string]: string };
   devDependencies?: { [key: string]: string };
@@ -95,6 +95,8 @@ export type PackageJson = {
 };
 
 export type Routes = { [key: string]: string | undefined };
+export type Scripts = { [key in Script]?: string };
+export type Schedules = { [key in Schedule]?: string };
 
 export interface IScaffoldlyConfig extends IServiceConfig {
   // Supported in top level and service level:
@@ -102,13 +104,13 @@ export interface IScaffoldlyConfig extends IServiceConfig {
   get name(): string;
   get runtime(): string;
   get handler(): string;
-  get bin(): PackageJsonBin; // Get copied to workdir root
+  get bin(): ProjectJsonBin; // Get copied to workdir root
   get files(): string[]; // Get copied to workdir/{file} during build and serve
   get src(): string; // Defaults to "."
   get packages(): string[];
   get shell(): Shell | undefined;
-  get scripts(): { [key in Script]?: string };
-  get schedules(): { [key in Schedule]?: string };
+  get scripts(): Scripts;
+  get schedules(): Schedules;
 
   // Top level configuration only:
   get version(): string;
@@ -129,7 +131,7 @@ export interface IServiceConfig {
   name: ServiceName;
   runtime: string;
   handler: string;
-  bin?: PackageJsonBin;
+  bin?: ProjectJsonBin;
   files?: string[];
   src: string;
   packages?: string[];
@@ -138,7 +140,7 @@ export interface IServiceConfig {
   schedules: { [key in Schedule]?: string };
 }
 
-export type PackageJsonBin = { [key: string]: string };
+export type ProjectJsonBin = { [key: string]: string };
 
 export type Script = 'prepare' | 'dev' | 'install' | 'build' | 'package' | 'start';
 
@@ -152,7 +154,7 @@ export interface SecretConsumer {
 }
 
 export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
-  packageJson?: PackageJson;
+  projectJson?: ProjectJson;
 
   scaffoldly: Partial<IScaffoldlyConfig>;
 
@@ -166,7 +168,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
 
   private _version: string;
 
-  private _bin: PackageJsonBin;
+  private _bin: ProjectJsonBin;
 
   private _files: string[];
 
@@ -178,7 +180,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
     private baseDir: string,
     private workDir: string,
     configs: {
-      packageJson?: PackageJson;
+      projectJson?: ProjectJson;
       serviceConfig?: IServiceConfig;
     } = {},
     mode: Mode = 'production',
@@ -186,16 +188,16 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
     this.mode = mode;
 
     // TODO Support Devcontainer JSON and scaffoldly.json
-    const { packageJson, serviceConfig } = configs;
-    this.packageJson = packageJson;
+    const { projectJson: projectJson, serviceConfig } = configs;
+    this.projectJson = projectJson;
 
-    if (packageJson) {
-      const { scaffoldly = {}, name = 'unknown', version = '0.0.0-0' } = packageJson;
+    if (projectJson) {
+      const { scaffoldly = {}, name = 'unknown', version = '0.0.0-0' } = projectJson;
       this.scaffoldly = scaffoldly;
       this._name = name;
       this._version = version;
-      this._bin = { ...(packageJson.bin || {}), ...(scaffoldly.bin || {}) };
-      this._files = [...(packageJson.files || []), ...(scaffoldly.files || [])];
+      this._bin = { ...(projectJson.bin || {}), ...(scaffoldly.bin || {}) };
+      this._files = [...(projectJson.files || []), ...(scaffoldly.files || [])];
       this._packages = scaffoldly.packages || [];
 
       if (serviceConfig) {
@@ -282,7 +284,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
     return src;
   }
 
-  get bin(): PackageJsonBin {
+  get bin(): ProjectJsonBin {
     const { _bin: bin = {} } = this;
     return bin;
   }
@@ -299,7 +301,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
         this.baseDir,
         this.workDir,
         {
-          packageJson: this.packageJson,
+          projectJson: this.projectJson,
           serviceConfig: {
             id: service.id || '',
             name: service.name || `${ix + 1}`,

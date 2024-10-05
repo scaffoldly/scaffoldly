@@ -85,8 +85,10 @@ export class GitService {
 
     if (status.branch === 'tagged') {
       status.alias = this.tag;
-    } else {
-      status.alias = status.branch;
+    }
+
+    if (!status.alias) {
+      status.alias = status.branch || 'main';
     }
   }
 

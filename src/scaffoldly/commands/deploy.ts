@@ -57,7 +57,7 @@ export class DeployCommand extends CdCommand<DeployCommand> {
     }
 
     if (subcommand === 'dockerfile') {
-      ui.updateBottomBar('Generating Dockerfile...');
+      ui.updateBottomBar('Generating Dockerfile');
       const workDir = await this.gitService.workDir;
       const dockerfile = await this.dockerService.dockerCiService.generateDockerfile(
         workDir,

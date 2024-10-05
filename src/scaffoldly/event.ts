@@ -55,13 +55,10 @@ const eventId = () => {
 const createSession = (
   platform: 'Cli' | 'Gha',
   sessionId: number,
-  version?: string,
+  library: string,
+  userAgent: string,
 ): Session | undefined => {
   if (process.env.SCAFFOLDLY_DNT) {
-    return undefined;
-  }
-
-  if (!version) {
     return undefined;
   }
 
@@ -77,10 +74,8 @@ const createSession = (
     insert_id: uuidv4(),
     event_type: 'session_start',
     event_id: eventId(),
-    library: `scaffoldly-${platform.toLowerCase()}/${version}`,
-    user_agent: `scaffoldly-${platform.toLowerCase()}/${version} (${os.platform()}; ${os.arch()}) node/${
-      process.version
-    }`,
+    library,
+    user_agent: userAgent,
   };
 };
 
@@ -196,6 +191,14 @@ export class EventService {
     }
   }
 
+  get library(): string {
+    return `scaffoldly-${this.platform.toLowerCase()}/${this.version}`;
+  }
+
+  get userAgent(): string {
+    return `${this.library} (${os.platform()}; ${os.arch()}) node/${process.version}`;
+  }
+
   get sessionId(): number | undefined {
     return this.session?.session_id;
   }
@@ -209,7 +212,7 @@ export class EventService {
       emit = true;
     }
 
-    this.session = createSession(this.platform, sessionId, this.version);
+    this.session = createSession(this.platform, sessionId, this.library, this.userAgent);
 
     if (emit) {
       this.emit(this.session);

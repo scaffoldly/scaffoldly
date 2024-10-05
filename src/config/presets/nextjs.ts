@@ -1,5 +1,5 @@
 import { join } from 'path';
-import { Mode, PackageJson, PackageJsonBin, ScaffoldlyConfig } from '..';
+import { Mode, ProjectJson, ProjectJsonBin, ScaffoldlyConfig } from '..';
 import { existsSync, readFileSync } from 'fs';
 import { isDebug } from '../../scaffoldly/ui';
 import { Preset } from '.';
@@ -18,14 +18,14 @@ export class NextJsPreset extends Preset {
     return Promise.all([
       this.gitService.baseDir,
       this.gitService.workDir,
-      this.packageJson,
+      this.projectJson,
       this.packages,
       this.bin,
       this.files,
       this.install,
       this.start,
-    ]).then(([baseDir, workDir, packageJson, packages, bin, files, install, start]) => {
-      packageJson.scaffoldly = {
+    ]).then(([baseDir, workDir, projectJson, packages, bin, files, install, start]) => {
+      projectJson.scaffoldly = {
         runtime: `node:${process.version.split('v')[1]}-alpine`,
         handler: 'localhost:3000',
         packages,
@@ -36,24 +36,24 @@ export class NextJsPreset extends Preset {
             files,
             scripts: {
               install,
-              dev: packageJson.scripts?.dev,
-              build: packageJson.scripts?.build,
+              dev: projectJson.scripts?.dev,
+              build: projectJson.scripts?.build,
               start,
             },
           },
         ],
       };
       if (isDebug()) {
-        console.log(`Using NextJS preset config:`, JSON.stringify(packageJson.scaffoldly, null, 2));
+        console.log(`Using NextJS preset config:`, JSON.stringify(projectJson.scaffoldly, null, 2));
       }
-      return new ScaffoldlyConfig(baseDir, workDir, { packageJson }, this.mode);
+      return new ScaffoldlyConfig(baseDir, workDir, { projectJson: projectJson }, this.mode);
     });
   }
 
-  get packageJson(): Promise<PackageJson> {
+  get projectJson(): Promise<ProjectJson> {
     return this.configPath.then((configPath) => {
       try {
-        const packageJson = JSON.parse(readFileSync(configPath, 'utf8')) as PackageJson;
+        const packageJson = JSON.parse(readFileSync(configPath, 'utf8')) as ProjectJson;
         return packageJson;
       } catch (e) {
         throw new Error(`Couldn't find package.json in ${configPath}`, { cause: e });
@@ -71,7 +71,7 @@ export class NextJsPreset extends Preset {
   }
 
   get nextOutput(): Promise<'export' | 'standalone' | undefined> {
-    return this.gitService.workDir.then((workDir) => {
+    return this.gitService.workDir.then(async (workDir) => {
       return import(join(workDir, 'next.config.mjs')).then((config) => {
         return config.default.output;
       });
@@ -87,7 +87,7 @@ export class NextJsPreset extends Preset {
     });
   }
 
-  get bin(): Promise<PackageJsonBin | undefined> {
+  get bin(): Promise<ProjectJsonBin | undefined> {
     return this.nextOutput.then((output) => {
       if (output === 'standalone') {
         return { 'server.js': 'next:.next/standalone/server.js' };
@@ -154,14 +154,14 @@ export class NextJsPreset extends Preset {
   }
 
   get start(): Promise<string | undefined> {
-    return Promise.all([this.packageJson, this.nextOutput]).then(([packageJson, output]) => {
+    return Promise.all([this.projectJson, this.nextOutput]).then(([projectJson, output]) => {
       if (output === 'export') {
         return 'serve out';
       }
       if (output === 'standalone') {
         return 'node server.js';
       }
-      return packageJson.scripts?.start;
+      return projectJson.scripts?.start;
     });
   }
 }

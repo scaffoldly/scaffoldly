@@ -1,13 +1,13 @@
 import { STSClient } from '@aws-sdk/client-sts';
-import packageJson from '../../../package.json';
 import { Octokit } from 'octokit';
+import { EventService } from '../event';
 
 export class ApiHelper {
   private dev = false;
 
   private octokit?: Octokit;
 
-  constructor(private argv: string[]) {
+  constructor(private argv: string[], private eventService: EventService) {
     this.dev = this.argv.includes('--dev');
 
     if (this.dev) {
@@ -28,14 +28,10 @@ IN DEVELOPMENT MODE
     }
     const octokit = new Octokit({
       auth: withToken,
-      userAgent: this.userAgent(),
+      userAgent: this.eventService.userAgent,
     });
 
     this.octokit = octokit;
     return octokit;
-  }
-
-  userAgent(): string {
-    return `${packageJson.name}/${packageJson.version}`;
   }
 }

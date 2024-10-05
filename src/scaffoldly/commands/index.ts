@@ -1,12 +1,12 @@
-import { join } from 'path';
-import { Mode, PackageJson, ScaffoldlyConfig } from '../../config';
-import { readFileSync } from 'fs';
+import { Mode, ProjectJson, ScaffoldlyConfig } from '../../config';
 import { NextJsPreset } from '../../config/presets/nextjs';
 import { PermissionAware } from './cd';
 import { PolicyDocument } from './cd/aws/iam';
 import { Preset } from '../../config/presets';
 import { PresetType } from './deploy';
 import { GitService } from './cd/git';
+import { NodeProject } from '../../config/projects/node';
+import { DotnetProject } from '../../config/projects/dotnet';
 
 export type Cwd = string;
 
@@ -21,14 +21,12 @@ export abstract class Command<T> implements PermissionAware {
 
   abstract handle(subcommand?: string): Promise<void>;
 
-  get packageJson(): Promise<PackageJson | undefined> {
-    return this.gitService.workDir.then((workDir) => {
-      try {
-        const packageJson = JSON.parse(readFileSync(join(workDir, 'package.json'), 'utf8'));
-        return packageJson;
-      } catch (e) {
-        return undefined;
-      }
+  get projectJson(): Promise<ProjectJson | undefined> {
+    return Promise.all([
+      new NodeProject(this.gitService).projectJson,
+      new DotnetProject(this.gitService).projectJson,
+    ]).then(([node, dotnet]) => {
+      return node || dotnet;
     });
   }
 
@@ -64,12 +62,17 @@ export abstract class Command<T> implements PermissionAware {
       return Promise.resolve(this._config);
     }
 
-    return Promise.all([this.gitService.baseDir, this.gitService.workDir, this.packageJson]).then(
-      ([baseDir, workDir, packageJson]) => {
+    return Promise.all([this.gitService.baseDir, this.gitService.workDir, this.projectJson]).then(
+      ([baseDir, workDir, projectJson]) => {
         // TODO: Other config places
-        if (packageJson) {
+        if (projectJson) {
           try {
-            this._config = new ScaffoldlyConfig(baseDir, workDir, { packageJson }, this._mode);
+            this._config = new ScaffoldlyConfig(
+              baseDir,
+              workDir,
+              { projectJson: projectJson },
+              this._mode,
+            );
             return this._config;
           } catch (e) {
             throw new Error('Unable to locate scaffoldly configuration', {

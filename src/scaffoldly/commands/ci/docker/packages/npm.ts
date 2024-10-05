@@ -37,9 +37,9 @@ export class NpmPackageService {
   }
 
   get dependencies(): Record<string, string> {
-    const packageJson = this.config.packageJson;
-    const dependencies = packageJson?.dependencies || {};
-    const devDependencies = packageJson?.devDependencies || {};
+    const projectJson = this.config.projectJson;
+    const dependencies = projectJson?.dependencies || {};
+    const devDependencies = projectJson?.devDependencies || {};
     return { ...dependencies, ...devDependencies };
   }
 
