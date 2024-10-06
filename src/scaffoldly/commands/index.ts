@@ -7,6 +7,7 @@ import { PresetType } from './deploy';
 import { GitService } from './cd/git';
 import { NodeProject } from '../../config/projects/node';
 import { DotnetProject } from '../../config/projects/dotnet';
+import { GolangProject } from '../../config/projects/golang';
 
 export type Cwd = string;
 
@@ -25,8 +26,9 @@ export abstract class Command<T> implements PermissionAware {
     return Promise.all([
       new NodeProject(this.gitService).projectJson,
       new DotnetProject(this.gitService).projectJson,
-    ]).then(([node, dotnet]) => {
-      return node || dotnet;
+      new GolangProject(this.gitService).projectJson,
+    ]).then(([node, dotnet, golang]) => {
+      return node || dotnet || golang;
     });
   }
 

@@ -399,7 +399,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
       return acc;
     }, {} as Record<string, string>);
 
-    return Buffer.from(JSON.stringify(env), 'utf-8');
+    return Uint8Array.from(Buffer.from(JSON.stringify(env), 'utf-8'));
   }
 
   get packages(): string[] {
