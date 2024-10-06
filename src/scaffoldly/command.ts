@@ -42,7 +42,7 @@ export class Command {
     this.eventService = new EventService('Cli', this.version, true)
       .withArgs(argv.slice(2))
       .withSessionId(undefined);
-    this.apiHelper = new ApiHelper(argv);
+    this.apiHelper = new ApiHelper(argv, this.eventService);
     this.messagesHelper = new MessagesHelper(argv);
     this.gitService = new GitService(this.eventService);
   }

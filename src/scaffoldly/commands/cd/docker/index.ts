@@ -4,6 +4,7 @@ import { EcrDeployStatus, RegistryAuthConsumer } from '../aws/ecr';
 import { LambdaDeployStatus } from '../aws/lambda';
 import { EnvDeployStatus } from '../../ci/env';
 import { GitService } from '../git';
+import Dockerode from 'dockerode';
 
 export type Platform = 'linux/amd64' | 'linux/arm64';
 
@@ -77,7 +78,12 @@ export class DockerService {
       return;
     }
 
-    const authConfig = await consumer.authConfig;
+    let authConfig: Dockerode.AuthConfig | undefined = undefined;
+    try {
+      authConfig = await consumer.authConfig;
+    } catch (e) {
+      // No-op
+    }
 
     const { imageDigest } = await new CloudResource<PushInfo, PushInfo>(
       {
