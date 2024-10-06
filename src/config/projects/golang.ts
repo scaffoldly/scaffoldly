@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { ProjectJson } from '..';
 import { join } from 'path';
 import { AbstractProject } from '.';
@@ -12,14 +12,21 @@ type GoMod = {
 export class GolangProject extends AbstractProject {
   private get goProject(): Promise<{ projectName?: string; goMod: GoMod } | undefined> {
     return this.gitService.workDir.then((workDir) => {
-      const lines = readFileSync(join(workDir, 'go.mod'), 'utf8').split('\n');
+      // THIS IS AWFUL I WISH I HAD A BETTER WAY TO DO THIS I FEEL DIRTY
+      // - All I really want is module and dependencies
+      // - Perhaps look into golang tooling and make a JS variant of the go mod parser
+      const goModPath = join(workDir, 'go.mod');
+      if (!existsSync(goModPath)) {
+        return undefined;
+      }
+      const lines = readFileSync(goModPath, 'utf8').split('\n');
+
       let projectName: string | undefined = undefined;
       let insideRequireBlock = false;
 
       const parsed: GoMod = {};
 
       lines.forEach((line) => {
-        // THIS IS AWFUL I WISH I HAD A BETTER WAY TO DO THIS I FEEL DIRTY
         const moduleMatch = line.match(/^module\s+(\S+)/);
         const requireMatch = line.match(/^require\s+(\S+)\s+(\S+)/); // Single-line require
         const requireStartMatch = line.match(/^require\s*\(\s*$/); // Start of multiline require
