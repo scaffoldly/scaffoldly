@@ -84,13 +84,9 @@ export class IamService {
   }
 
   public async identity(options: ResourceOptions): Promise<void> {
-    let region: string | undefined = undefined;
-    if (process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION) {
-      region = process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION;
-    } else {
-      region = 'us-east-1';
-    }
+    const region = process.env.AWS_REGION || 'us-east-1';
     process.env.AWS_REGION = region;
+    process.env.AWS_DEFAULT_REGION = region;
 
     if (options.checkPermissions) {
       // Pin to us-east-1 for permission check
