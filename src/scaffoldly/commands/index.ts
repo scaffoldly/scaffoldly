@@ -8,6 +8,7 @@ import { GitService } from './cd/git';
 import { NodeProject } from '../../config/projects/node';
 import { DotnetProject } from '../../config/projects/dotnet';
 import { GolangProject } from '../../config/projects/golang';
+import { RustProject } from '../../config/projects/rust';
 
 export type Cwd = string;
 
@@ -27,8 +28,9 @@ export abstract class Command<T> implements PermissionAware {
       new NodeProject(this.gitService).projectJson,
       new DotnetProject(this.gitService).projectJson,
       new GolangProject(this.gitService).projectJson,
-    ]).then(([node, dotnet, golang]) => {
-      return node || dotnet || golang;
+      new RustProject(this.gitService).projectJson,
+    ]).then(([node, dotnet, golang, rust]) => {
+      return node || dotnet || golang || rust;
     });
   }
 
