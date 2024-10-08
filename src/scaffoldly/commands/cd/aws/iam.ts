@@ -20,6 +20,11 @@ import { CloudResource, ResourceOptions } from '..';
 import { SecretDeployStatus } from './secret';
 import { GitService } from '../git';
 
+export type IdentityStatus = {
+  accountId?: string;
+  region?: string;
+};
+
 export type IamDeployStatus = {
   roleArn?: string;
 };
@@ -83,26 +88,48 @@ export class IamService {
     this.stsClient = new STSClient();
   }
 
-  public async identity(options: ResourceOptions): Promise<void> {
-    const region = process.env.AWS_REGION || 'us-east-1';
-    process.env.AWS_REGION = region;
-    process.env.AWS_DEFAULT_REGION = region;
+  public async identity(status: IdentityStatus, options: ResourceOptions): Promise<void> {
+    const readIdentity = (region?: string) =>
+      this.stsClient.send(new GetCallerIdentityCommand({})).finally(() => {
+        if (region) {
+          // We may have fallen back to us-east-1, so update the client and set env vars
+          // The rest of the clients in scaffoldly use naked constructors,
+          //   so this will allow the rest of them to use the desired/valid region
+          //   and we won't have to check exceptions for "Region is missing" in the rest of the code
+          console.warn(`🟠 Setting AWS region to "${region}"`);
+          process.env.AWS_REGION = region;
+          process.env.AWS_DEFAULT_REGION = region;
+        }
+      });
 
-    if (options.checkPermissions) {
-      // Pin to us-east-1 for permission check
-      this.stsClient = new STSClient({});
-    }
+    const ensureRegion = async (region?: string) => {
+      try {
+        await readIdentity(region);
+      } catch (e) {
+        if (!region && e.message === 'Region is missing') {
+          return await ensureRegion(
+            process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || 'us-east-1',
+          );
+        }
+      }
+    };
 
-    await new CloudResource<
-      { account: string; arn: string; userId: string },
+    // Prevent "Region is missing" error and so we can simply check credentials below
+    await ensureRegion();
+
+    const identity = await new CloudResource<
+      { accountId: string; arn: string; userId: string },
       GetCallerIdentityCommandOutput
     >(
       {
         describe: (resource) => {
-          return { type: 'Identity', label: resource.arn || 'known after read' };
+          return {
+            type: `Identity`,
+            label: resource.arn || '[computed]',
+          };
         },
         read: () =>
-          this.stsClient.send(new GetCallerIdentityCommand({})).catch((e) => {
+          readIdentity().catch((e) => {
             if (!(e instanceof Error)) {
               throw e;
             }
@@ -116,17 +143,19 @@ export class IamService {
               };
             }
 
-            if (e.message === 'Region is missing' || e.name === 'CredentialsProviderError') {
+            if (e.name === 'CredentialsProviderError') {
               throw new Error(
                 `AWS credentials are missing. Please do one of the following:
-- Run 'aws configure' to set the default credentials,
-- or: set the AWS_REGION, AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables,
-- or: set the AWS_PROFILE environment variable to select the correct profile,
-- or: set the AWS_ROLE_ARN, AWS_ROLE_SESSION_NAME, and AWS_WEB_IDENTITY_TOKEN_FILE environment variables.
-
-💡 Add the \`--check-permissions\` option to show the necessary AWS permissions
-
-📖 See: https://scaffoldly.dev/docs/cloud/aws`,
+    - Run 'aws configure' to set the default credentials,
+    - or: set the AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables,
+    - or: set the AWS_ROLE_ARN, AWS_ROLE_SESSION_NAME, and AWS_WEB_IDENTITY_TOKEN_FILE environment variables,
+    - or: set the AWS_PROFILE environment variable to select the correct profile from \`~/.aws/config\`.
+    
+    💡 Run with the \`show permissions\` comand to show the necessary AWS permissions
+    
+    📖 See: https://scaffoldly.dev/docs/cloud/aws
+    
+  Reason`,
                 { cause: e },
               );
             }
@@ -141,6 +170,9 @@ export class IamService {
         };
       },
     ).manage({ ...options, checkPermissions: false });
+
+    status.accountId = identity.accountId;
+    status.region = await this.stsClient.config.region();
   }
 
   public async predeploy(

@@ -174,11 +174,10 @@ export class Command {
           this.loginWrapper(async () => {
             const development = args.development as boolean | undefined;
             const preset = args.preset as PresetType | undefined;
-            const checkPermissions = args['check-permissions'] as boolean | undefined;
             const dryrun = args.dryrun as boolean | undefined;
             const deploy = await new DeployCommand(this.gitService)
               .withMode(development ? 'development' : undefined)
-              .withOptions({ checkPermissions: checkPermissions || false, dryRun: dryrun || false })
+              .withOptions({ dryRun: dryrun || false })
               .withPreset(preset as PresetType | undefined);
             return deploy.handle();
           }, isHeadless()),

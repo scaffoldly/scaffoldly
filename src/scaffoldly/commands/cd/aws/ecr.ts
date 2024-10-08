@@ -13,6 +13,7 @@ import { CloudResource, ResourceOptions } from '..';
 import {} from '@smithy/types';
 import { NotFoundException } from '../errors';
 import { GitService } from '../git';
+import { IdentityStatus } from './iam';
 
 export type EcrDeployStatus = {
   repositoryUri?: string;
@@ -29,7 +30,10 @@ export class EcrService implements RegistryAuthConsumer {
     this.ecrClient = new ECRClient();
   }
 
-  public async predeploy(status: EcrDeployStatus, options: ResourceOptions): Promise<void> {
+  public async predeploy(
+    status: IdentityStatus & EcrDeployStatus,
+    options: ResourceOptions,
+  ): Promise<void> {
     if (options.dev) {
       return;
     }
@@ -39,7 +43,12 @@ export class EcrService implements RegistryAuthConsumer {
     const repository = await new CloudResource<Repository, DescribeRepositoriesCommandOutput>(
       {
         describe: (resource) => {
-          return { type: 'ECR Repository', label: resource.repositoryName || name };
+          return {
+            type: 'ECR Repository',
+            label:
+              resource.repositoryUri ||
+              `${status.accountId}.dkr.ecr.${status.region}.amazonaws.com/${name}`,
+          };
         },
         read: () =>
           this.ecrClient.send(new DescribeRepositoriesCommand({ repositoryNames: [name] })),
@@ -108,7 +117,7 @@ export class EcrService implements RegistryAuthConsumer {
         if (!(e instanceof Error)) {
           throw e;
         }
-        if (e.message === 'Region is missing' || e.name === 'CredentialsProviderError') {
+        if (e.name === 'CredentialsProviderError') {
           return {};
         }
         throw e;

@@ -1,6 +1,6 @@
 import { LambdaDeployStatus, LambdaService } from './lambda';
 import { ResourceOptions } from '..';
-import { IamDeployStatus, IamService } from './iam';
+import { IamDeployStatus, IamService, IdentityStatus } from './iam';
 import { EcrDeployStatus, EcrService } from './ecr';
 import { DockerDeployStatus, DockerService } from '../docker';
 import { SecretDeployStatus, SecretService } from './secret';
@@ -12,6 +12,7 @@ import { DynamoDbService } from './dynamodb';
 export type DeployStatus = GitDeployStatus &
   EnvDeployStatus &
   DockerDeployStatus &
+  IdentityStatus &
   EcrDeployStatus &
   IamDeployStatus &
   SecretDeployStatus &
@@ -46,7 +47,7 @@ export class AwsService {
 
   async predeploy(status: DeployStatus, options: ResourceOptions): Promise<void> {
     // Check Identity and Permissions
-    await this.iamService.identity(options);
+    await this.iamService.identity(status, options);
 
     // Deploy ECR
     await this.ecrService.predeploy(status, options);
