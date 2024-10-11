@@ -378,7 +378,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
   get taskdir(): string {
     let { taskdir } = this.scaffoldly;
     if (!taskdir) {
-      taskdir = join(DEFAULT_TASKDIR, relative(this.baseDir, this.workDir));
+      taskdir = join(DEFAULT_TASKDIR, relative(this.baseDir, join(this.workDir)));
     }
     return taskdir;
   }

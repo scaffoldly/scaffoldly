@@ -34,7 +34,7 @@ export class EcrService implements RegistryAuthConsumer {
     status: IdentityStatus & EcrDeployStatus,
     options: ResourceOptions,
   ): Promise<void> {
-    if (options.dev) {
+    if (options.dev || options.buildOnly) {
       return;
     }
 

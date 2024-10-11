@@ -80,7 +80,7 @@ export class LambdaService implements IamConsumer {
       DockerDeployStatus,
     options: ResourceOptions,
   ): Promise<void> {
-    if (options.dev) {
+    if (options.dev || options.buildOnly) {
       return;
     }
 
@@ -176,7 +176,7 @@ export class LambdaService implements IamConsumer {
     status: LambdaDeployStatus & GitDeployStatus,
     options: ResourceOptions,
   ): Promise<void> {
-    if (options.dev) {
+    if (options.dev || options.buildOnly) {
       return;
     }
 
@@ -231,7 +231,7 @@ export class LambdaService implements IamConsumer {
   }
 
   private async configureUrl(status: LambdaDeployStatus, options: ResourceOptions): Promise<void> {
-    if (options.dev) {
+    if (options.dev || options.buildOnly) {
       return;
     }
 
@@ -291,7 +291,7 @@ export class LambdaService implements IamConsumer {
     status: DeployStatus,
     options: ResourceOptions,
   ): Promise<void> {
-    if (options.dev) {
+    if (options.dev || options.buildOnly) {
       return;
     }
 
@@ -354,7 +354,7 @@ export class LambdaService implements IamConsumer {
     status: LambdaDeployStatus & EcrDeployStatus & DockerDeployStatus,
     options: ResourceOptions,
   ): Promise<void> {
-    if (options.dev) {
+    if (options.dev || options.buildOnly) {
       return;
     }
 

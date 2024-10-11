@@ -37,6 +37,7 @@ export type ResourceOptions = {
   notify?: (message: string, level?: 'notice' | 'error') => void;
   dev?: boolean;
   checkPermissions?: boolean;
+  buildOnly?: boolean;
   dryRun?: boolean;
   permissionsAware?: PermissionAware;
 };

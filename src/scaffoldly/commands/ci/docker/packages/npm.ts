@@ -77,7 +77,7 @@ export class NpmPackageService {
       {
         prerequisite: true,
         cmds: [
-          `npm install -g ${this.packages.join(' ')} --omit=dev --omit=optional --omit=peer`,
+          `npm install ${this.packages.join(' ')} --omit=dev --omit=optional --omit=peer`,
           `npm cache clean --force`,
         ],
       },

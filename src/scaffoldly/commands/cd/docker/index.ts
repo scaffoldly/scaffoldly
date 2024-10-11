@@ -27,6 +27,9 @@ export class DockerService {
     consumer: RegistryAuthConsumer,
     options: ResourceOptions,
   ): Promise<void> {
+    if (options.buildOnly) {
+      return;
+    }
     // Do an initial push to get a valid image digest
     await this.push(status, consumer, options);
   }
@@ -37,6 +40,11 @@ export class DockerService {
     options: ResourceOptions,
   ): Promise<void> {
     await this.build(status, options);
+
+    if (options.buildOnly) {
+      return;
+    }
+
     await this.push(status, consumer, options);
   }
 

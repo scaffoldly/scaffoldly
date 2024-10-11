@@ -173,11 +173,12 @@ export class Command {
         handler: (args) =>
           this.loginWrapper(async () => {
             const development = args.development as boolean | undefined;
+            const buildOnly = args['build-only'] as boolean | undefined;
             const preset = args.preset as PresetType | undefined;
             const dryrun = args.dryrun as boolean | undefined;
             const deploy = await new DeployCommand(this.gitService)
               .withMode(development ? 'development' : undefined)
-              .withOptions({ dryRun: dryrun || false })
+              .withOptions({ dryRun: dryrun || false, buildOnly: buildOnly || false })
               .withPreset(preset as PresetType | undefined);
             return deploy.handle();
           }, isHeadless()),
@@ -202,6 +203,13 @@ export class Command {
             choices: PRESETS,
             nargs: 1,
             description: 'Use a preset configuration.',
+          },
+          'build-only': {
+            demand: false,
+            type: 'boolean',
+            default: false,
+            requiresArg: false,
+            description: 'Only perform a build. Deployment to the cloud will not occur.',
           },
           dryrun: {
             demand: false,

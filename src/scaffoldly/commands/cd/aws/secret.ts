@@ -36,7 +36,7 @@ export class SecretService implements IamConsumer {
     consumer: SecretConsumer,
     options: ResourceOptions,
   ): Promise<void> {
-    if (options.dev) {
+    if (options.dev || options.buildOnly) {
       return;
     }
 

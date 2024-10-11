@@ -89,6 +89,10 @@ export class IamService {
   }
 
   public async identity(status: IdentityStatus, options: ResourceOptions): Promise<void> {
+    if (options.buildOnly) {
+      return;
+    }
+
     const readIdentity = (region?: string) =>
       this.stsClient.send(new GetCallerIdentityCommand({})).finally(() => {
         if (region) {
@@ -180,7 +184,7 @@ export class IamService {
     consumers: IamConsumer[],
     options: ResourceOptions,
   ): Promise<void> {
-    if (options.dev) {
+    if (options.dev || options.buildOnly) {
       return;
     }
 

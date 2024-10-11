@@ -131,7 +131,7 @@ export class ScheduleService implements IamConsumer {
   }
 
   public async predeploy(status: ScheduleDeployStatus, options: ResourceOptions): Promise<void> {
-    if (options.dev) {
+    if (options.dev || options.buildOnly) {
       return;
     }
 
@@ -174,7 +174,7 @@ export class ScheduleService implements IamConsumer {
     status: ScheduleDeployStatus & LambdaDeployStatus & IamDeployStatus,
     options: ResourceOptions,
   ): Promise<void> {
-    if (options.dev) {
+    if (options.dev || options.buildOnly) {
       return;
     }
 
