@@ -122,6 +122,7 @@ export interface IScaffoldlyConfig extends IServiceConfig {
   get timeout(): number;
   get memorySize(): number;
   get generatedFiles(): string[];
+  get user(): string | undefined;
 }
 
 export type ServiceName = string;
@@ -177,7 +178,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
   private _ignoreFilter?: (pathname: string) => boolean;
 
   constructor(
-    private baseDir: string,
+    public readonly baseDir: string,
     private workDir: string,
     configs: {
       projectJson?: ProjectJson;
@@ -475,5 +476,10 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
   get generatedFiles(): string[] {
     const { generatedFiles = [] } = this.scaffoldly;
     return generatedFiles;
+  }
+
+  get user(): string | undefined {
+    const { user } = this.scaffoldly;
+    return user;
   }
 }

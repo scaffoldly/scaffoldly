@@ -12,6 +12,10 @@ export const isDebug = (): boolean => {
   return !!process.argv.find((arg) => arg === '--debug');
 };
 
+export const isLocalDeps = (): boolean => {
+  return !!process.argv.find((arg) => arg === '--local-deps');
+};
+
 export const hasOutput = (): boolean => {
   return !!process.argv.find((arg) => arg === '--output' || arg === '-o');
 };

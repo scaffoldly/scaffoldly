@@ -11,6 +11,7 @@ export type SpawnResult = {
 export type AsyncPrelude = {
   statusCode?: number;
   headers?: Record<string, unknown>;
+  cookies?: string[];
 };
 
 export type AsyncResponse = {

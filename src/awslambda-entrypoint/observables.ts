@@ -20,6 +20,7 @@ import { error, info, isDebug, log } from './log';
 import {
   convertAlbQueryStringToURLSearchParams,
   findHandler,
+  transformAxiosResponseCookies,
   transformAxiosResponseHeaders,
 } from './util';
 import { AbortEvent, AsyncPrelude, AsyncResponse, RuntimeEvent } from './types';
@@ -144,13 +145,16 @@ const proxy$ = (
   info('Proxy request', { method, url });
   log('Proxying request', { headers, data, deadline });
 
+  const proxyHeaders = { ...(headers || {}) };
+
   return defer(() => {
     return axios.request({
       method,
       url,
-      headers,
+      headers: proxyHeaders,
       data,
       timeout: deadline ? deadline - Date.now() : undefined,
+      maxRedirects: 0,
       transformRequest: (req) => req,
       transformResponse: (res) => res,
       validateStatus: () => true,
@@ -184,10 +188,10 @@ const proxy$ = (
         throw new Error(`Response from ${method} ${url} was not a stream`);
       }
 
-      // TODO: cookie headers
       const prelude: AsyncPrelude = {
         statusCode: resp.status,
         headers: transformAxiosResponseHeaders(responseHeaders),
+        cookies: transformAxiosResponseCookies(responseHeaders),
       };
 
       return {
@@ -237,10 +241,13 @@ export const asyncResponse$ = (
   }
 
   let rawPath: string | undefined = undefined;
-  if ('http' in requestContext) {
+  if (!rawPath && 'rawPath' in rawEvent && typeof rawEvent.rawPath === 'string') {
+    rawPath = rawEvent.rawPath;
+  }
+  if (!rawPath && 'http' in requestContext) {
     rawPath = requestContext.http.path;
   }
-  if ('elb' in requestContext && 'path' in rawEvent) {
+  if (!rawPath && 'elb' in requestContext && 'path' in rawEvent) {
     rawPath = rawEvent.path;
   }
 

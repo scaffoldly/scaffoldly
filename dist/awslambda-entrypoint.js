@@ -52218,6 +52218,10 @@ var transformAxiosResponseHeaders = (headers) => {
     return acc;
   }, {});
 };
+var transformAxiosResponseCookies = (headers) => {
+  const cookies = headers["set-cookie"] || [];
+  return cookies;
+};
 
 // node_modules/axios/lib/helpers/bind.js
 function bind(fn, thisArg) {
@@ -57239,13 +57243,15 @@ var shell$ = (abortEvent, runtimeEvent, rawEvent, env) => {
 var proxy$ = (abortEvent, runtimeEvent, url2, method, headers, data, deadline) => {
   info("Proxy request", { method, url: url2 });
   log("Proxying request", { headers, data, deadline });
+  const proxyHeaders = { ...headers || {} };
   return (0, import_rxjs2.defer)(() => {
     return axios_default.request({
       method,
       url: url2,
-      headers,
+      headers: proxyHeaders,
       data,
       timeout: deadline ? deadline - Date.now() : void 0,
+      maxRedirects: 0,
       transformRequest: (req) => req,
       transformResponse: (res) => res,
       validateStatus: () => true,
@@ -57276,7 +57282,8 @@ var proxy$ = (abortEvent, runtimeEvent, url2, method, headers, data, deadline) =
       }
       const prelude = {
         statusCode: resp.status,
-        headers: transformAxiosResponseHeaders(responseHeaders)
+        headers: transformAxiosResponseHeaders(responseHeaders),
+        cookies: transformAxiosResponseCookies(responseHeaders)
       };
       return {
         requestId: runtimeEvent.requestId,
@@ -57311,10 +57318,13 @@ var asyncResponse$ = (abortEvent, runtimeEvent, routes) => {
     method = rawEvent.httpMethod;
   }
   let rawPath = void 0;
-  if ("http" in requestContext) {
+  if (!rawPath && "rawPath" in rawEvent && typeof rawEvent.rawPath === "string") {
+    rawPath = rawEvent.rawPath;
+  }
+  if (!rawPath && "http" in requestContext) {
     rawPath = requestContext.http.path;
   }
-  if ("elb" in requestContext && "path" in rawEvent) {
+  if (!rawPath && "elb" in requestContext && "path" in rawEvent) {
     rawPath = rawEvent.path;
   }
   let urlSearchParams = void 0;

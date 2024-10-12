@@ -127,3 +127,10 @@ export const transformAxiosResponseHeaders = (
     return acc;
   }, {} as Record<string, unknown>);
 };
+
+export const transformAxiosResponseCookies = (
+  headers: RawAxiosResponseHeaders | AxiosResponseHeaders,
+): string[] => {
+  const cookies = headers['set-cookie'] || [];
+  return cookies;
+};

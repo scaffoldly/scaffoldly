@@ -8,7 +8,6 @@ import {
   Commands,
   Shell,
   ServiceName,
-  DEFAULT_TASKDIR,
 } from '../../../../config';
 import { join, relative, sep } from 'path';
 import { ui } from '../../../command';
@@ -34,6 +33,7 @@ export type Copy = {
   from?: string;
   src: string;
   dest: string;
+  binDir?: boolean;
   noGlob?: boolean;
   absolute?: boolean;
   resolve?: boolean;
@@ -68,6 +68,7 @@ type DockerFileSpec = {
   paths?: string[];
   cmd?: Commands;
   shell?: Shell;
+  user?: string;
 };
 
 type DockerEvent =
@@ -358,7 +359,7 @@ export class DockerService {
   ): Promise<DockerFileSpec | undefined> {
     const packageService = new PackageService(this, config);
 
-    const { taskdir, shell, runtime, src, files, scripts, bin } = config;
+    const { taskdir, shell, runtime, src, files, scripts, bin, user } = config;
 
     const spec: DockerFileSpec = {
       from: `install-${name}`,
@@ -370,6 +371,7 @@ export class DockerService {
       paths: [],
       env,
       run: [],
+      user,
     };
 
     if (mode === 'install') {
@@ -381,7 +383,7 @@ export class DockerService {
         cmds: scripts.install ? [scripts.install] : [],
         prerequisite: false,
         // workdir: src !== DEFAULT_SRC_ROOT ? src : DEFAULT_SRC_ROOT, //FOO
-        workdir: join(taskdir, src),
+        workdir: taskdir,
       });
 
       if (scripts.install) {
@@ -417,7 +419,7 @@ export class DockerService {
         {
           cmds: scripts.build ? [scripts.build] : [],
           prerequisite: false,
-          workdir: join(taskdir, src),
+          workdir: taskdir,
         },
       ];
 
@@ -456,8 +458,32 @@ export class DockerService {
           };
           return cp;
         }
-        const cp: Copy = { from: fromStage?.as, src: join(src, file), dest: join(src, file) };
+        const cp: Copy = { from: fromStage?.as, src: file, dest: file };
         return cp;
+      });
+
+      Object.entries(bin).forEach(([, nameAndPath]) => {
+        if (!nameAndPath) return;
+
+        let [fromName, path] = nameAndPath.split(':');
+        if (path) {
+          // TODO: handle ':' in nameAndPath
+          return;
+        }
+
+        path = fromName;
+        fromName = 'base';
+
+        const binStage = fromStages[`build-${fromName.toLowerCase()}`];
+        if (!binStage) return;
+
+        const [binDir] = splitPath(path);
+        copy.push({
+          from: binStage.as,
+          src: join(src, binDir),
+          dest: join(src, binDir, sep),
+          binDir: true,
+        });
       });
 
       if (name !== 'base') {
@@ -487,19 +513,25 @@ export class DockerService {
         .map((key) => {
           const fromStage = fromStages[key];
           const copies = fromStage?.copy || [];
-          return copies.map((c) => {
-            const cp: Copy = { ...c, from: key, noGlob: true };
-            return cp;
-          });
+          return copies
+            .filter((c) => !c.binDir)
+            .map((c) => {
+              const cp: Copy = { ...c, from: key, noGlob: true };
+              return cp;
+            });
         })
         .flat();
 
       Object.entries(bin).forEach(([script, nameAndPath]) => {
         if (!nameAndPath) return;
 
-        const [fromName, path] = nameAndPath.split(':');
+        let [fromName, path] = nameAndPath.split(':');
         if (!fromName) return;
-        if (!path) return;
+
+        if (!path) {
+          path = fromName;
+          fromName = 'base';
+        }
 
         const binStage = fromStages[`package-${fromName.toLowerCase()}`];
         if (!binStage) return;
@@ -576,6 +608,7 @@ export class DockerService {
     ix: number,
   ): string => {
     const lines = [];
+    let COPY = 'COPY';
 
     if (!spec) {
       if (isDebug()) {
@@ -591,7 +624,7 @@ export class DockerService {
     //   }
     // }
 
-    const { copy, workdir, env = {}, run, paths = [], cmd, shell } = spec;
+    const { copy, workdir, env = {}, run, paths = [], cmd, shell, user } = spec;
 
     const from = spec.as ? `${spec.from} AS ${spec.as}` : spec.from;
 
@@ -619,24 +652,29 @@ export class DockerService {
       });
     }
 
+    if (user) {
+      lines.push(`USER ${user}`);
+      COPY = `${COPY} --chown=${user}`;
+    }
+
     const copyLines = new Set<string>();
     if (copy) {
       copy
         .filter((c) => !c.from)
         .forEach((c) => {
           if (c.resolve && workdir) {
-            copyLines.add(`COPY ${c.dest}* ${join(workdir, c.dest)}`);
+            copyLines.add(`${COPY} ${c.dest}* ${join(workdir, c.dest)}`);
             return;
           }
 
           if (c.src === DEFAULT_SRC_ROOT) {
-            copyLines.add(`COPY ${c.src} ${DEFAULT_TASKDIR}${sep}`);
+            copyLines.add(`${COPY} ${c.src} ${workdir}${sep}`);
             return;
           }
 
           const exists = existsSync(join(cwd, c.src));
           if (exists && workdir) {
-            copyLines.add(`COPY ${c.src} ${join(workdir, c.dest)}`);
+            copyLines.add(`${COPY} ${c.src} ${join(workdir, c.dest)}`);
           }
         });
 
@@ -650,10 +688,12 @@ export class DockerService {
 
           if (c.noGlob && workdir) {
             if (c.absolute) {
-              copyLines.add(`COPY --from=${c.from} ${src} ${join(workdir, c.dest)}`);
+              copyLines.add(`${COPY} --from=${c.from} ${src} ${join(workdir, c.dest)}`);
               return;
             }
-            copyLines.add(`COPY --from=${c.from} ${join(workdir, src)} ${join(workdir, c.dest)}`);
+            copyLines.add(
+              `${COPY} --from=${c.from} ${join(workdir, src)} ${join(workdir, c.dest)}`,
+            );
             return;
           }
 
@@ -663,7 +703,7 @@ export class DockerService {
             if (!exists) {
               source = `${source}*`;
             }
-            copyLines.add(`COPY --from=${c.from} ${source} ${join(workdir, c.dest)}`);
+            copyLines.add(`${COPY} --from=${c.from} ${source} ${join(workdir, c.dest)}`);
           }
         });
     }
