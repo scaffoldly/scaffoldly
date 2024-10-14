@@ -403,7 +403,11 @@ export class LambdaService implements IamConsumer {
               return updated;
             }),
         emitPermissions: (aware) => {
-          aware.withPermissions(['lambda:UpdateFunctionCode', 'lambda:GetFunction']);
+          aware.withPermissions([
+            'lambda:UpdateFunctionCode',
+            'lambda:GetFunction',
+            'lambda:InvokeFunction',
+          ]);
         },
       },
       (output) => {

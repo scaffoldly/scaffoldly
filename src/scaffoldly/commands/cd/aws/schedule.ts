@@ -351,7 +351,7 @@ export class ScheduleService implements IamConsumer {
                 return invokeOutput;
               }),
           emitPermissions: (aware) => {
-            aware.withPermissions(['lambda:InvokeFunction']);
+            aware.withPermissions([]);
           },
         },
         (output) => output,
