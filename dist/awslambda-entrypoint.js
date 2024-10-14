@@ -55491,12 +55491,12 @@ function stripFinalNewline(input) {
   return input;
 }
 
-// node_modules/execa/node_modules/npm-run-path/index.js
+// node_modules/npm-run-path/index.js
 var import_node_process = __toESM(require("node:process"), 1);
 var import_node_path = __toESM(require("node:path"), 1);
 var import_node_url = require("node:url");
 
-// node_modules/execa/node_modules/path-key/index.js
+// node_modules/npm-run-path/node_modules/path-key/index.js
 function pathKey(options = {}) {
   const {
     env = process.env,
@@ -55508,7 +55508,7 @@ function pathKey(options = {}) {
   return Object.keys(env).reverse().find((key) => key.toUpperCase() === "PATH") || "Path";
 }
 
-// node_modules/execa/node_modules/npm-run-path/index.js
+// node_modules/npm-run-path/index.js
 var npmRunPath = ({
   cwd = import_node_process.default.cwd(),
   path: pathOption = import_node_process.default.env[pathKey()],

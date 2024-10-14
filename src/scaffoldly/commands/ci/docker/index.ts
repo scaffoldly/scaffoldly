@@ -61,6 +61,7 @@ type DockerFileSpec = {
   // bases?: DockerFileSpec[];
   from: string;
   as: string;
+  rootdir: string;
   workdir?: string;
   copy?: Copy[];
   env?: { [key: string]: string | undefined };
@@ -359,11 +360,12 @@ export class DockerService {
   ): Promise<DockerFileSpec | undefined> {
     const packageService = new PackageService(this, config);
 
-    const { taskdir, shell, runtime, src, files, scripts, bin, user } = config;
+    const { taskdir, rootdir, shell, runtime, src, files, scripts, bin, user } = config;
 
     const spec: DockerFileSpec = {
       from: `install-${name}`,
       as: `${mode}-${name}`,
+      rootdir,
       workdir: taskdir,
       shell: shell,
       cmd: undefined,
@@ -379,31 +381,31 @@ export class DockerService {
 
       const runCommands = await packageService.commands;
 
-      runCommands.push({
-        cmds: scripts.install ? [scripts.install] : [],
-        prerequisite: false,
-        // workdir: src !== DEFAULT_SRC_ROOT ? src : DEFAULT_SRC_ROOT, //FOO
-        workdir: taskdir,
-      });
+      // runCommands.push({
+      //   cmds: scripts.install ? [scripts.install] : [],
+      //   prerequisite: false,
+      //   // workdir: src !== DEFAULT_SRC_ROOT ? src : DEFAULT_SRC_ROOT, //FOO
+      //   workdir: taskdir,
+      // });
 
-      if (scripts.install) {
-        const copy: Copy[] = [{ src, dest: src }];
-        // if (src !== DEFAULT_SRC_ROOT) {
-        //   files.forEach((file) => {
-        //     const [from, f] = file.split(':');
-        //     if (from && f) {
-        //       copy.push({
-        //         from: `${mode}-${from}`,
-        //         src: join(src, f), // TODO figure out ".."
-        //         dest: join(src, f),
-        //       });
-        //       return;
-        //     }
-        //     copy.push({ src: file, dest: file });
-        //   });
-        // }
-        spec.copy = copy;
-      }
+      // if (scripts.install) {
+      //   const copy: Copy[] = [{ src, dest: src }];
+      //   // if (src !== DEFAULT_SRC_ROOT) {
+      //   //   files.forEach((file) => {
+      //   //     const [from, f] = file.split(':');
+      //   //     if (from && f) {
+      //   //       copy.push({
+      //   //         from: `${mode}-${from}`,
+      //   //         src: join(src, f), // TODO figure out ".."
+      //   //         dest: join(src, f),
+      //   //       });
+      //   //       return;
+      //   //     }
+      //   //     copy.push({ src: file, dest: file });
+      //   //   });
+      //   // }
+      //   spec.copy = copy;
+      // }
 
       spec.run = runCommands;
 
@@ -416,6 +418,11 @@ export class DockerService {
       // const fromStage = fromStages[`install-${name}`];
 
       spec.run = [
+        {
+          cmds: scripts.install ? [scripts.install] : [],
+          prerequisite: false,
+          workdir: taskdir,
+        },
         {
           cmds: scripts.build ? [scripts.build] : [],
           prerequisite: false,
@@ -624,7 +631,7 @@ export class DockerService {
     //   }
     // }
 
-    const { copy, workdir, env = {}, run, paths = [], cmd, shell, user } = spec;
+    const { copy, rootdir, workdir, env = {}, run, paths = [], cmd, shell, user } = spec;
 
     const from = spec.as ? `${spec.from} AS ${spec.as}` : spec.from;
 
@@ -668,7 +675,7 @@ export class DockerService {
           }
 
           if (c.src === DEFAULT_SRC_ROOT) {
-            copyLines.add(`${COPY} ${c.src} ${workdir}${sep}`);
+            copyLines.add(`${COPY} ${c.src} ${rootdir}${sep}`);
             return;
           }
 
