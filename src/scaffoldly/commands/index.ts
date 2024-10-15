@@ -10,6 +10,7 @@ import { DotnetProject } from '../../config/projects/dotnet';
 import { GolangProject } from '../../config/projects/golang';
 import { RustProject } from '../../config/projects/rust';
 import { StandaloneProject } from '../../config/projects/standalone';
+import { PythonProject } from '../../config/projects/python';
 
 export type Cwd = string;
 
@@ -30,9 +31,10 @@ export abstract class Command<T> implements PermissionAware {
       new DotnetProject(this.gitService).projectJson,
       new GolangProject(this.gitService).projectJson,
       new RustProject(this.gitService).projectJson,
+      new PythonProject(this.gitService).projectJson,
       new StandaloneProject(this.gitService).projectJson,
-    ]).then(([node, dotnet, golang, rust, standalone]) => {
-      const projectJson = node || dotnet || golang || rust;
+    ]).then(([node, dotnet, golang, rust, python, standalone]) => {
+      const projectJson = node || dotnet || golang || rust || python;
 
       if (projectJson) {
         return projectJson;

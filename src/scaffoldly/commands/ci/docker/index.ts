@@ -381,6 +381,12 @@ export class DockerService {
 
       const runCommands = await packageService.commands;
 
+      runCommands.push({
+        cmds: scripts.prepare ? [scripts.prepare] : [],
+        prerequisite: true,
+        workdir: taskdir,
+      });
+
       // runCommands.push({
       //   cmds: scripts.install ? [scripts.install] : [],
       //   prerequisite: false,

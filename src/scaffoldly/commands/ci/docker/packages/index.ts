@@ -4,15 +4,19 @@ import { NpmPackageService } from './npm';
 import { OsPackageService } from './os';
 import { join, relative } from 'path';
 import { isLocalDeps } from '../../../../ui';
+import { PipPackageService } from './pip';
 
 export class PackageService {
   osPackages: OsPackageService;
 
   npmPackages: NpmPackageService;
 
+  pipPackages: PipPackageService;
+
   constructor(private dockerService: DockerService, private config: ScaffoldlyConfig) {
     this.osPackages = new OsPackageService(this.dockerService, config);
     this.npmPackages = new NpmPackageService(config);
+    this.pipPackages = new PipPackageService(config);
   }
 
   get entrypoint(): Copy {
@@ -39,14 +43,19 @@ export class PackageService {
 
   get paths(): Promise<string[]> {
     const { taskdir, src } = this.config;
-    return Promise.all([this.osPackages.paths, this.npmPackages.paths]).then((paths) => [
-      join(taskdir, src),
-      ...paths.flat(),
-    ]);
+    return Promise.all([
+      this.osPackages.paths,
+      this.npmPackages.paths,
+      this.pipPackages.paths,
+    ]).then((paths) => [join(taskdir, src), ...paths.flat()]);
   }
 
   get commands(): Promise<RunCommand[]> {
-    return Promise.all([this.osPackages.commands, this.npmPackages.commands])
+    return Promise.all([
+      this.osPackages.commands,
+      this.npmPackages.commands,
+      this.pipPackages.commands,
+    ])
       .then((cmds) => cmds.flat())
       .catch((e) => {
         if (!(e instanceof Error)) {
