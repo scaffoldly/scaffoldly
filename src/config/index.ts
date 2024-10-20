@@ -86,6 +86,8 @@ export class Commands {
 export type ProjectJson = {
   name?: string;
   version?: string;
+  description?: string;
+  license?: string;
   scripts?: { [key: string]: string };
   bin?: ProjectJsonBin;
   files?: string[];
@@ -331,6 +333,33 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
       routes[DEFAULT_ROUTE] = this.handler;
     }
     return routes;
+  }
+
+  get installCommands(): Commands {
+    const script: Script = 'install';
+
+    const cmds = new Commands();
+    let workdir = this.src !== DEFAULT_SRC_ROOT ? this.src : undefined;
+
+    if (this.scripts[script]) {
+      cmds.add({
+        cmd: this.scripts[script],
+        workdir,
+      });
+    }
+
+    this.services.forEach((service) => {
+      workdir = service.src !== DEFAULT_SRC_ROOT ? service.src : undefined;
+
+      if (service.scripts[script]) {
+        cmds.add({
+          cmd: service.scripts[script],
+          workdir,
+        });
+      }
+    });
+
+    return cmds;
   }
 
   get serveCommands(): Commands {

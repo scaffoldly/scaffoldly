@@ -83,7 +83,13 @@ const build = async (ts, tsOptions) => {
   const esbuild = await import('esbuild');
   try {
     await esbuild.build({
-      entryPoints: ['src/scaffoldly.ts', 'src/github-action.ts', 'src/awslambda-entrypoint.ts'],
+      entryPoints: [
+        'src/scaffoldly.ts',
+        'src/github-action.ts',
+        'src/awslambda-entrypoint.ts',
+        'src/create-app.ts',
+        'src/index.ts',
+      ],
       bundle: true,
       outdir: 'dist',
       minify: false,

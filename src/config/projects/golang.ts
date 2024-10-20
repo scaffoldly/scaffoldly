@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { ProjectJson } from '..';
 import { join } from 'path';
 import { AbstractProject } from '.';
@@ -10,16 +10,48 @@ type GoMod = {
 };
 
 export class GolangProject extends AbstractProject {
+  async setProject(name: string): Promise<void> {
+    this.goModFile.then((goModFile) => {
+      // Find the first line that starts with "module"
+      // Replace the module name with the new name
+      // Write the file back to disk
+      if (!goModFile) {
+        return;
+      }
+
+      const lines = readFileSync(goModFile, 'utf8').split('\n');
+      const newLines = lines.map((line) => {
+        const moduleMatch = line.match(/^module\s+(\S+)/);
+        if (moduleMatch) {
+          return `module ${name}`;
+        }
+        return line;
+      });
+      writeFileSync(goModFile, newLines.join('\n'));
+    });
+  }
+
+  private get goModFile(): Promise<string | undefined> {
+    return this.workdir
+      .then((workDir) => join(workDir, 'go.mod'))
+      .then((goModFile) => {
+        if (!existsSync(goModFile)) {
+          return undefined;
+        }
+        return goModFile;
+      });
+  }
+
   private get goProject(): Promise<{ projectName?: string; goMod: GoMod } | undefined> {
-    return this.gitService.workDir.then((workDir) => {
+    return this.goModFile.then((goModFile) => {
+      if (!goModFile) {
+        return undefined;
+      }
       // THIS IS AWFUL I WISH I HAD A BETTER WAY TO DO THIS I FEEL DIRTY
       // - All I really want is module and dependencies
       // - Perhaps look into golang tooling and make a JS variant of the go mod parser
-      const goModPath = join(workDir, 'go.mod');
-      if (!existsSync(goModPath)) {
-        return undefined;
-      }
-      const lines = readFileSync(goModPath, 'utf8').split('\n');
+      // - TODO: release a go mod parser library
+      const lines = readFileSync(goModFile, 'utf8').split('\n');
 
       let projectName: string | undefined = undefined;
       let insideRequireBlock = false;

@@ -43,8 +43,19 @@ export type CsProj = {
 };
 
 export class DotnetProject extends AbstractProject {
+  async setProject(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _name: string,
+  ): Promise<void> {
+    // This one is tricky:
+    // - Rename .csproj file
+    // - Rename .http file
+    // - Replace "DotNetCSharpApp" in .csproj file
+    throw new Error('Not implemented');
+  }
+
   private get projectFile(): Promise<string | undefined> {
-    return this.gitService.workDir.then((workDir) => {
+    return this.workdir.then((workDir) => {
       const files = readdirSync(workDir).filter((file) => file.endsWith('.csproj'));
       if (files.length === 0) {
         return undefined;
@@ -57,18 +68,16 @@ export class DotnetProject extends AbstractProject {
   }
 
   private get project(): Promise<{ projectName: string; csProj: CsProj } | undefined> {
-    return Promise.all([this.projectFile, this.gitService.workDir]).then(
-      ([projectFile, workDir]) => {
-        if (!projectFile) {
-          return undefined;
-        }
-        return (
-          parseStringPromise(readFileSync(join(workDir, projectFile))) as Promise<CsProj>
-        ).then((csProj) => {
+    return Promise.all([this.projectFile, this.workdir]).then(([projectFile, workDir]) => {
+      if (!projectFile) {
+        return undefined;
+      }
+      return (parseStringPromise(readFileSync(join(workDir, projectFile))) as Promise<CsProj>).then(
+        (csProj) => {
           return { projectName: projectFile.replace('.csproj', ''), csProj };
-        });
-      },
-    );
+        },
+      );
+    });
   }
 
   get projectJson(): Promise<ProjectJson | undefined> {

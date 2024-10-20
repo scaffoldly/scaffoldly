@@ -1,8 +1,8 @@
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { IScaffoldlyConfig, IServiceConfig, ProjectJson } from '..';
 import { join } from 'path';
 import { AbstractProject } from '.';
-import { parse } from 'smol-toml';
+import { parse, stringify } from 'smol-toml';
 
 type ScaffoldlyConfigWithServiceMap = IScaffoldlyConfig & {
   services?: Array<Partial<IServiceConfig>[]> | { [key: string]: Partial<IServiceConfig> };
@@ -23,14 +23,40 @@ type PyprojectToml = {
 };
 
 export class PythonProject extends AbstractProject {
+  async setProject(name: string): Promise<void> {
+    return this.pyProjectFile.then((pyProjectFile) => {
+      if (!pyProjectFile) {
+        return;
+      }
+
+      const pyProject = parse(readFileSync(pyProjectFile, 'utf-8')) as Partial<PyprojectToml>;
+
+      if (pyProject.tool?.poetry) {
+        pyProject.tool.poetry.name = name;
+      }
+
+      writeFileSync(pyProjectFile, stringify(pyProject));
+    });
+  }
+
+  private get pyProjectFile(): Promise<string | undefined> {
+    return this.workdir
+      .then((workDir) => join(workDir, 'pyproject.toml'))
+      .then((pyProjectFile) => {
+        if (!existsSync(pyProjectFile)) {
+          return undefined;
+        }
+        return pyProjectFile;
+      });
+  }
+
   private get pyProject(): Promise<{ pyprojectToml: PyprojectToml } | undefined> {
-    return this.gitService.workDir.then((workDir) => {
-      const pyprojectTomlPath = join(workDir, 'pyproject.toml');
-      if (!existsSync(pyprojectTomlPath)) {
+    return this.pyProjectFile.then((pyProjectFile) => {
+      if (!pyProjectFile) {
         return undefined;
       }
 
-      const parsed = parse(readFileSync(pyprojectTomlPath, 'utf-8')) as PyprojectToml;
+      const parsed = parse(readFileSync(pyProjectFile, 'utf-8')) as PyprojectToml;
 
       return { pyprojectToml: parsed };
     });

@@ -1,8 +1,8 @@
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { IScaffoldlyConfig, ProjectJson } from '..';
 import { join } from 'path';
 import { AbstractProject } from '.';
-import { parse } from 'smol-toml';
+import { parse, stringify } from 'smol-toml';
 
 type CargoToml = {
   package?: {
@@ -17,14 +17,44 @@ type CargoToml = {
 };
 
 export class RustProject extends AbstractProject {
+  async setProject(name: string): Promise<void> {
+    return this.cargoTomlFile.then((cargoTomlFile) => {
+      if (!cargoTomlFile) {
+        return;
+      }
+
+      const cargoToml = parse(readFileSync(cargoTomlFile, 'utf-8')) as Partial<CargoToml>;
+
+      if (!cargoToml.package) {
+        return;
+      }
+
+      if (cargoToml.package) {
+        cargoToml.package.name = name;
+      }
+
+      writeFileSync(cargoTomlFile, stringify(cargoToml));
+    });
+  }
+
+  private get cargoTomlFile(): Promise<string | undefined> {
+    return this.workdir
+      .then((workDir) => join(workDir, 'Cargo.toml'))
+      .then((cargoTomlFile) => {
+        if (!existsSync(cargoTomlFile)) {
+          return undefined;
+        }
+        return cargoTomlFile;
+      });
+  }
+
   private get rustProject(): Promise<{ cargoToml: CargoToml } | undefined> {
-    return this.gitService.workDir.then((workDir) => {
-      const cargoTomlPath = join(workDir, 'Cargo.toml');
-      if (!existsSync(cargoTomlPath)) {
+    return this.cargoTomlFile.then((cargoTomlFile) => {
+      if (!cargoTomlFile) {
         return undefined;
       }
 
-      const parsed = parse(readFileSync(cargoTomlPath, 'utf-8')) as CargoToml;
+      const parsed = parse(readFileSync(cargoTomlFile, 'utf-8')) as CargoToml;
 
       return { cargoToml: parsed };
     });
