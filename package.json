@@ -15,7 +15,7 @@
     "build": "./build.cjs",
     "scaffoldly": "node dist/scaffoldly.cjs"
   },
-  "main": "scripts/scaffoldly.cjs",
+  "main": "dist/index.js",
   "bin": {
     "scaffoldly": "scripts/scaffoldly.cjs",
     "sly": "scripts/scaffoldly.cjs"
