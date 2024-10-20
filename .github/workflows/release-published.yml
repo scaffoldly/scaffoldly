@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node: ['18']
+        node: ['22']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,14 +21,14 @@ jobs:
           cache: 'yarn'
       - run: yarn
       - run: yarn build
-      - if: ${{ matrix.node == '18' }}
+      - if: ${{ matrix.node == '22' }}
         uses: scaffoldly/bump-version-action@v1
         with:
           action: postrelease
           version-file: package.json
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           major-tag: true
-      - if: ${{ matrix.node == '18' }}
+      - if: ${{ matrix.node == '22' }}
         run: yarn publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
