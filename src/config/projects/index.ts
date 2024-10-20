@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { Commands, IScaffoldlyConfig, ProjectJson, ScaffoldlyConfig } from '..';
 import { GitService } from '../../scaffoldly/commands/cd/git';
 import { join } from 'path';
@@ -23,7 +23,7 @@ export abstract class AbstractProject {
   get standaloneConfigFile(): Promise<string | undefined> {
     return this.workdir.then((workDir) => {
       const standaloneConfigFile = join(workDir, 'scaffoldly.json');
-      if (!readFileSync(standaloneConfigFile)) {
+      if (!existsSync(standaloneConfigFile)) {
         return undefined;
       }
       return standaloneConfigFile;

@@ -34246,7 +34246,7 @@ var AbstractProject = class {
   get standaloneConfigFile() {
     return this.workdir.then((workDir) => {
       const standaloneConfigFile = (0, import_path2.join)(workDir, "scaffoldly.json");
-      if (!(0, import_fs2.readFileSync)(standaloneConfigFile)) {
+      if (!(0, import_fs2.existsSync)(standaloneConfigFile)) {
         return void 0;
       }
       return standaloneConfigFile;
