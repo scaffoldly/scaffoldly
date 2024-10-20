@@ -18728,78 +18728,98 @@ var require_isexe = __commonJS({
 // node_modules/which/which.js
 var require_which = __commonJS({
   "node_modules/which/which.js"(exports2, module2) {
+    module2.exports = which2;
+    which2.sync = whichSync;
     var isWindows = process.platform === "win32" || process.env.OSTYPE === "cygwin" || process.env.OSTYPE === "msys";
     var path2 = require("path");
     var COLON = isWindows ? ";" : ":";
     var isexe = require_isexe();
-    var getNotFoundError = (cmd) => Object.assign(new Error(`not found: ${cmd}`), { code: "ENOENT" });
-    var getPathInfo = (cmd, opt) => {
-      const colon = opt.colon || COLON;
-      const pathEnv = cmd.match(/\//) || isWindows && cmd.match(/\\/) ? [""] : [
-        // windows always checks the cwd first
-        ...isWindows ? [process.cwd()] : [],
-        ...(opt.path || process.env.PATH || /* istanbul ignore next: very unusual */
-        "").split(colon)
-      ];
-      const pathExtExe = isWindows ? opt.pathExt || process.env.PATHEXT || ".EXE;.CMD;.BAT;.COM" : "";
-      const pathExt = isWindows ? pathExtExe.split(colon) : [""];
+    function getNotFoundError(cmd) {
+      var er = new Error("not found: " + cmd);
+      er.code = "ENOENT";
+      return er;
+    }
+    function getPathInfo(cmd, opt) {
+      var colon = opt.colon || COLON;
+      var pathEnv = opt.path || process.env.PATH || "";
+      var pathExt = [""];
+      pathEnv = pathEnv.split(colon);
+      var pathExtExe = "";
       if (isWindows) {
+        pathEnv.unshift(process.cwd());
+        pathExtExe = opt.pathExt || process.env.PATHEXT || ".EXE;.CMD;.BAT;.COM";
+        pathExt = pathExtExe.split(colon);
         if (cmd.indexOf(".") !== -1 && pathExt[0] !== "")
           pathExt.unshift("");
       }
+      if (cmd.match(/\//) || isWindows && cmd.match(/\\/))
+        pathEnv = [""];
       return {
-        pathEnv,
-        pathExt,
-        pathExtExe
+        env: pathEnv,
+        ext: pathExt,
+        extExe: pathExtExe
       };
-    };
-    var which2 = (cmd, opt, cb) => {
+    }
+    function which2(cmd, opt, cb) {
       if (typeof opt === "function") {
         cb = opt;
         opt = {};
       }
-      if (!opt)
-        opt = {};
-      const { pathEnv, pathExt, pathExtExe } = getPathInfo(cmd, opt);
-      const found = [];
-      const step = (i) => new Promise((resolve, reject) => {
-        if (i === pathEnv.length)
-          return opt.all && found.length ? resolve(found) : reject(getNotFoundError(cmd));
-        const ppRaw = pathEnv[i];
-        const pathPart = /^".*"$/.test(ppRaw) ? ppRaw.slice(1, -1) : ppRaw;
-        const pCmd = path2.join(pathPart, cmd);
-        const p = !pathPart && /^\.[\\\/]/.test(cmd) ? cmd.slice(0, 2) + pCmd : pCmd;
-        resolve(subStep(p, i, 0));
-      });
-      const subStep = (p, i, ii) => new Promise((resolve, reject) => {
-        if (ii === pathExt.length)
-          return resolve(step(i + 1));
-        const ext = pathExt[ii];
-        isexe(p + ext, { pathExt: pathExtExe }, (er, is) => {
-          if (!er && is) {
-            if (opt.all)
-              found.push(p + ext);
-            else
-              return resolve(p + ext);
-          }
-          return resolve(subStep(p, i, ii + 1));
-        });
-      });
-      return cb ? step(0).then((res) => cb(null, res), cb) : step(0);
-    };
-    var whichSync = (cmd, opt) => {
+      var info = getPathInfo(cmd, opt);
+      var pathEnv = info.env;
+      var pathExt = info.ext;
+      var pathExtExe = info.extExe;
+      var found = [];
+      (function F(i, l) {
+        if (i === l) {
+          if (opt.all && found.length)
+            return cb(null, found);
+          else
+            return cb(getNotFoundError(cmd));
+        }
+        var pathPart = pathEnv[i];
+        if (pathPart.charAt(0) === '"' && pathPart.slice(-1) === '"')
+          pathPart = pathPart.slice(1, -1);
+        var p = path2.join(pathPart, cmd);
+        if (!pathPart && /^\.[\\\/]/.test(cmd)) {
+          p = cmd.slice(0, 2) + p;
+        }
+        ;
+        (function E(ii, ll) {
+          if (ii === ll) return F(i + 1, l);
+          var ext = pathExt[ii];
+          isexe(p + ext, { pathExt: pathExtExe }, function(er, is) {
+            if (!er && is) {
+              if (opt.all)
+                found.push(p + ext);
+              else
+                return cb(null, p + ext);
+            }
+            return E(ii + 1, ll);
+          });
+        })(0, pathExt.length);
+      })(0, pathEnv.length);
+    }
+    function whichSync(cmd, opt) {
       opt = opt || {};
-      const { pathEnv, pathExt, pathExtExe } = getPathInfo(cmd, opt);
-      const found = [];
-      for (let i = 0; i < pathEnv.length; i++) {
-        const ppRaw = pathEnv[i];
-        const pathPart = /^".*"$/.test(ppRaw) ? ppRaw.slice(1, -1) : ppRaw;
-        const pCmd = path2.join(pathPart, cmd);
-        const p = !pathPart && /^\.[\\\/]/.test(cmd) ? cmd.slice(0, 2) + pCmd : pCmd;
-        for (let j = 0; j < pathExt.length; j++) {
-          const cur = p + pathExt[j];
+      var info = getPathInfo(cmd, opt);
+      var pathEnv = info.env;
+      var pathExt = info.ext;
+      var pathExtExe = info.extExe;
+      var found = [];
+      for (var i = 0, l = pathEnv.length; i < l; i++) {
+        var pathPart = pathEnv[i];
+        if (pathPart.charAt(0) === '"' && pathPart.slice(-1) === '"')
+          pathPart = pathPart.slice(1, -1);
+        var p = path2.join(pathPart, cmd);
+        if (!pathPart && /^\.[\\\/]/.test(cmd)) {
+          p = cmd.slice(0, 2) + p;
+        }
+        for (var j = 0, ll = pathExt.length; j < ll; j++) {
+          var cur = p + pathExt[j];
+          var is;
           try {
-            const is = isexe.sync(cur, { pathExt: pathExtExe });
+            is = isexe.sync(cur, { pathExt: pathExtExe });
             if (is) {
               if (opt.all)
                 found.push(cur);
@@ -18815,9 +18835,7 @@ var require_which = __commonJS({
       if (opt.nothrow)
         return null;
       throw getNotFoundError(cmd);
-    };
-    module2.exports = which2;
-    which2.sync = whichSync;
+    }
   }
 });
 

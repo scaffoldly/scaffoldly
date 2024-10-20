@@ -23195,9 +23195,9 @@ var require_isexe = __commonJS({
   }
 });
 
-// node_modules/which/which.js
+// node_modules/cross-spawn/node_modules/which/which.js
 var require_which = __commonJS({
-  "node_modules/which/which.js"(exports2, module2) {
+  "node_modules/cross-spawn/node_modules/which/which.js"(exports2, module2) {
     var isWindows = process.platform === "win32" || process.env.OSTYPE === "cygwin" || process.env.OSTYPE === "msys";
     var path3 = require("path");
     var COLON = isWindows ? ";" : ":";

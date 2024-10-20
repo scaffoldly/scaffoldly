@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 const { esbuildPluginTsc } = require('esbuild-plugin-tsc');
+const { Generator } = require('npm-dts');
 
 if (fs.existsSync(path.join(__dirname, '..', '.git'))) {
   try {
@@ -106,6 +107,15 @@ const build = async (ts, tsOptions) => {
       },
       logLevel: 'info',
       plugins: [
+        {
+          name: 'types',
+          setup: async (build) => {
+            await new Generator({
+              entry: 'src/index.ts',
+              output: 'dist/index.d.ts',
+            }).generate();
+          },
+        },
         {
           name: 'lint',
           setup: async (build) => {
