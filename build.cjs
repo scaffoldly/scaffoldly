@@ -154,7 +154,7 @@ if (require.main === module) {
       dts: true,
       platform: 'node',
       target: 'node18',
-      watch: true,
+      watch: process.argv.includes('--watch'),
       loader: {
         '.md': 'text',
         '.node': 'file',
