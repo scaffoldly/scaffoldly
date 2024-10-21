@@ -14,6 +14,7 @@ import { DevCommand } from './commands/dev';
 import { DeployCommand, PresetType, PRESETS } from './commands/deploy';
 import { GitService } from './commands/cd/git';
 import { EventService } from './event';
+import { run as createApp } from '../create-app';
 
 export const ui = new BottomBar(process.stderr);
 
@@ -51,6 +52,20 @@ export class Command {
     const yargs = (await import('yargs')).default;
     const ya = yargs()
       .scriptName(this.messagesHelper.processName)
+      .command('create', 'Create Scaffoldly resources', (create) => {
+        create
+          .scriptName(this.messagesHelper.processName)
+          .command({
+            command: 'app',
+            describe: 'Generate a new scaffoldly application from a template',
+            handler: async () => {
+              // TODO: Migrate to the Command class
+              return createApp();
+            },
+          })
+          .help()
+          .wrap(null);
+      })
       .command('show', 'Display config, dockerfiles, etc.', (show) => {
         show
           .scriptName(this.messagesHelper.processName)

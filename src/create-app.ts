@@ -18,10 +18,6 @@ import { PythonProject } from './config/projects/python';
 import { RustProject } from './config/projects/rust';
 import ejs from 'ejs';
 
-const argv = minimist<{
-  t?: string;
-  template?: string;
-}>(process.argv.slice(2), { string: ['_'] });
 const cwd = process.cwd();
 
 type ColorFunc = (str: string | number) => string;
@@ -71,6 +67,13 @@ type Index = {
 const fetchFrameworks = async (): Promise<Framework[]> => {
   const { data: indexYaml } = await axios.get(
     'https://raw.githubusercontent.com/scaffoldly/scaffoldly-examples/refs/heads/main/index.yml',
+    {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0',
+      },
+    },
   );
 
   const index = load(indexYaml) as Index;
@@ -100,6 +103,13 @@ const fetchFrameworks = async (): Promise<Framework[]> => {
 const generateReadme = async (variant: FrameworkVariant): Promise<string> => {
   const { data: readmeTemplate } = await axios.get(
     'https://raw.githubusercontent.com/scaffoldly/scaffoldly-examples/refs/heads/main/.templates/csa/README.md.tpl',
+    {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0',
+      },
+    },
   );
 
   return ejs.render(readmeTemplate, variant, { async: true });
@@ -111,14 +121,17 @@ function templates(frameworks: Framework[]) {
     .reduce((a, b) => a.concat(b), []);
 }
 
-function getVariant(frameworks: Framework[], branch: string): FrameworkVariant | undefined {
+function getVariant(
+  frameworks: Framework[],
+  branch: string,
+): { framework?: Framework; variant?: FrameworkVariant } {
   for (const framework of frameworks) {
     const variant = framework.variants.find((v) => v.branch === branch);
     if (variant) {
-      return variant;
+      return { framework, variant };
     }
   }
-  return undefined;
+  return {};
 }
 
 const renameFiles: Record<string, string | undefined> = {
@@ -152,7 +165,11 @@ const exec = async (workingDirectory: string, args: string[]): Promise<void> => 
       reject(err);
     });
 
-    p.on('exit', () => {
+    p.on('exit', (code) => {
+      if (code !== 0) {
+        reject(new Error(`Command failed with code ${code}`));
+        return;
+      }
       resolve();
     });
 
@@ -289,6 +306,21 @@ const getProject = (projectType: ProjectType, workdir: string): AbstractProject 
 export const run = async (): Promise<void> => {
   const frameworks = await fetchFrameworks();
 
+  const argv = minimist<{
+    t?: string;
+    template?: string;
+  }>(
+    // Supporting the following invocation patterns:
+    //  - npx create-scaffoldly-app
+    //  - npm create scaffoldly-app ('npm' get lobbed off by npm)
+    //  - yarn create scaffoldly-app ('yarn' get lobbed off by yarn)
+    //  - npx scaffoldly create app
+    process.argv
+      .slice(2)
+      .filter((arg) => arg.toLowerCase() !== 'create' && arg.toLowerCase() !== 'app'),
+    { string: ['_'] },
+  );
+
   const argTargetDir = formatTargetDir(argv._[0]);
   const argTemplate = argv.template || argv.t;
 
@@ -395,17 +427,21 @@ export const run = async (): Promise<void> => {
   }
 
   // user choice associated with prompts
-  const { framework, overwrite, packageName, variant: branch } = result as Choice;
-  const variant = getVariant(frameworks, branch);
+  const { overwrite, packageName, variant: branch } = result as Choice;
+  const { framework, variant } = getVariant(frameworks, argTemplate || branch);
 
-  if (!variant) {
-    throw new Error(`Invalid variant: ${branch}`);
+  if (!framework || !variant) {
+    throw new Error(`Invalid variant: ${variant}`);
   }
 
-  const { rm: excludeFiles, type, devCommand } = variant;
+  const { rm: excludeFiles, type, devCommand, branch: variantBranch } = variant;
 
   if (!type) {
-    throw new Error(`Invalid project type: ${type}`);
+    throw new Error(`Invalid or missing project type`);
+  }
+
+  if (!variantBranch) {
+    throw new Error(`Invalid or missing variant branch`);
   }
 
   const root = path.join(cwd, targetDir);
@@ -418,7 +454,7 @@ export const run = async (): Promise<void> => {
 
   console.log(`\nCreating project in ${root}...`);
 
-  const templateDir = await downloadAndExtractZip(framework, branch);
+  const templateDir = await downloadAndExtractZip(framework, variantBranch);
 
   const write = (file: string, content?: string) => {
     const targetPath = path.join(root, renameFiles[file] ?? file);
@@ -462,37 +498,33 @@ export const run = async (): Promise<void> => {
     );
   }
 
+  console.log(``);
   console.log(`Initializing git in ${root}...`);
   const git = simpleGit(root);
   await git.init({ '--initial-branch': 'main' });
   await git.add('.');
-  await git.commit('[csa] Initial commit');
+  await git.commit('Initial commit');
 
   const cdProjectName = path.relative(cwd, root);
   console.log(``);
-  console.log(`Done.`);
+  console.log(`✨ Done. Begin development with the following commands:`);
   console.log(``);
   if (root !== cwd) {
-    console.log(`First, change into the project's directory by running:`);
-    console.log(``);
     console.log(`    cd ${cdProjectName.includes(' ') ? `"${cdProjectName}"` : cdProjectName}`);
-    console.log(``);
   }
-  console.log(`✨ Begin development on your project:`);
-  console.log(``);
   console.log(`    ${devCommand}`);
   console.log(``);
-  console.log(``);
-  console.log(`When you're ready, push this repository to GitHub:`);
+  console.log(`Push this repository to GitHub:`);
   console.log(``);
   console.log(`    1) Create a new repository on GitHub`);
   console.log(`    2) Run: \`git remote add origin <repository-url>\``);
   console.log(`    3) Run: \`git push -u origin main\``);
   console.log(``);
+  console.log(`Scaffoldly can package and deploy your application:`);
   console.log(``);
-  console.log(`Once you're ready to deploy to AWS:`);
-  console.log(`    Run: \`npx scaffoldly deploy\``);
-  console.log(`    and Scaffoldly will build and deploy your application to AWS.`);
+  console.log(`    1) Run: \`npx scaffoldly deploy\``);
+  console.log(``);
+  console.log(`    💡 A \`git push\` will also package and deploy using GitHub Actions!`);
   console.log(``);
   console.log(`See our documentation at https://scaffoldly.dev/docs`);
   console.log(``);
