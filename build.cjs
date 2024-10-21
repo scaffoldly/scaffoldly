@@ -157,20 +157,8 @@ if (require.main === module) {
       watch: process.argv.includes('--watch'),
       loader: {
         '.md': 'text',
-        '.node': 'file',
       },
       external: ['*.node'],
-      onSuccess: async () => {
-        // After the build is done, remove all .node files
-        const distDir = './dist';
-        const files = fs.readdirSync(distDir);
-
-        for (const file of files) {
-          if (path.extname(file) === '.node') {
-            fs.unlinkSync(path.join(distDir, file));
-          }
-        }
-      },
     });
     // try {
     //   const { ts, tsOptions } = await configureTypescript();

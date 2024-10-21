@@ -83,6 +83,7 @@ const fetchFrameworks = async (): Promise<Framework[]> => {
       color: yellow,
       variants: Object.entries(variants).reduce((accV, [variant, frameworkVariant]) => {
         accV.push({
+          configFile: frameworkVariant.projectFile,
           ...frameworkVariant,
           display: variant,
           color: yellow,
@@ -401,7 +402,7 @@ export const run = async (): Promise<void> => {
     throw new Error(`Invalid variant: ${branch}`);
   }
 
-  const { rm: excludeFiles, type } = variant;
+  const { rm: excludeFiles, type, devCommand } = variant;
 
   if (!type) {
     throw new Error(`Invalid project type: ${type}`);
@@ -468,27 +469,30 @@ export const run = async (): Promise<void> => {
   await git.commit('[csa] Initial commit');
 
   const cdProjectName = path.relative(cwd, root);
-  console.log(`\n`);
+  console.log(``);
   console.log(`Done.`);
-  console.log(`\n`);
+  console.log(``);
   if (root !== cwd) {
     console.log(`First, change into the project's directory by running:`);
     console.log(``);
     console.log(`    cd ${cdProjectName.includes(' ') ? `"${cdProjectName}"` : cdProjectName}`);
     console.log(``);
   }
-
-  console.log(`Next, push this repository to GitHub:`);
+  console.log(`✨ Begin development on your project:`);
+  console.log(``);
+  console.log(`    ${devCommand}`);
+  console.log(``);
+  console.log(``);
+  console.log(`When you're ready, push this repository to GitHub:`);
   console.log(``);
   console.log(`    1) Create a new repository on GitHub`);
   console.log(`    2) Run: \`git remote add origin <repository-url>\``);
   console.log(`    3) Run: \`git push -u origin main\``);
   console.log(``);
-  console.log(`✨ And begin development on your project like normal!`);
   console.log(``);
   console.log(`Once you're ready to deploy to AWS:`);
   console.log(`    Run: \`npx scaffoldly deploy\``);
-  console.log(`    and scaffoldly will build and deploy your application to AWS.`);
+  console.log(`    and Scaffoldly will build and deploy your application to AWS.`);
   console.log(``);
   console.log(`See our documentation at https://scaffoldly.dev/docs`);
   console.log(``);

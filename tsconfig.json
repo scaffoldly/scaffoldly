@@ -38,6 +38,7 @@
     "forceConsistentCasingInFileNames": true
   },
   "exclude": [
+    "**/*.node",
     "dist/**/*",
     "build/**/*",
     "examples/**/*",
