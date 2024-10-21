@@ -2,12 +2,12 @@
   "compileOnSave": true,
   "compilerOptions": {
     /* Basic Options */
-    "incremental": true,
     "target": "ESNext",
     "module": "CommonJS",
     "outDir": "build/",
     "declaration": true,
     "declarationMap": true,
+    "inlineSources": true,
     "inlineSourceMap": true,
 
     /* Strict Type-Checking Options */
