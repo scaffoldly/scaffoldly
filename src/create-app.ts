@@ -40,7 +40,7 @@ type ProjectType = 'dotnet' | 'go' | 'node' | 'python' | 'rust';
 type Choice = {
   projectName: string;
   framework: Framework;
-  variant: string;
+  variant?: string;
   overwrite?: 'yes';
   packageName: string;
 };
@@ -123,7 +123,7 @@ function templates(frameworks: Framework[]) {
 
 function getVariant(
   frameworks: Framework[],
-  branch: string,
+  branch?: string,
 ): { framework?: Framework; variant?: FrameworkVariant } {
   for (const framework of frameworks) {
     const variant = framework.variants.find((v) => v.branch === branch);
@@ -428,7 +428,7 @@ export const run = async (): Promise<void> => {
 
   // user choice associated with prompts
   const { overwrite, packageName, variant: branch } = result as Choice;
-  const { framework, variant } = getVariant(frameworks, argTemplate || branch);
+  const { framework, variant } = getVariant(frameworks, branch || argTemplate);
 
   if (!framework || !variant) {
     throw new Error(`Invalid variant: ${variant}`);
@@ -477,7 +477,7 @@ export const run = async (): Promise<void> => {
     write(file);
   }
 
-  const project = getProject(type, templateDir);
+  const project = getProject(type, root);
   if (!project) {
     throw new Error(`Invalid project type: ${variant.type}`);
   }
