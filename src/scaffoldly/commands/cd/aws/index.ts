@@ -56,7 +56,7 @@ export class AwsService {
     await this.dockerService.predeploy(status, this.ecrService, options);
 
     // Deploy Secret
-    await this.secretService.predeploy(status, this.gitService.config, options);
+    await this.secretService.predeploy(status, this.envService, options);
 
     // Deploy IAM
     await this.iamService.predeploy(

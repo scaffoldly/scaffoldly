@@ -149,7 +149,7 @@ if (require.main === module) {
       ],
       bundle: true,
       outDir: 'dist',
-      minify: false,
+      minify: true,
       sourcemap: 'inline',
       dts: true,
       platform: 'node',

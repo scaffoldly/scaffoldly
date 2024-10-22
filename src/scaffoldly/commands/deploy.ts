@@ -23,9 +23,13 @@ export class DeployCommand extends CdCommand<DeployCommand> {
 
   options: ResourceOptions = {};
 
-  constructor(protected gitService: GitService, mode: Mode = 'production') {
+  constructor(
+    protected gitService: GitService,
+    secrets: Record<string, string | undefined>,
+    mode: Mode = 'production',
+  ) {
     super(gitService, mode);
-    this.envService = new EnvService(gitService);
+    this.envService = new EnvService(gitService, secrets);
     this.dockerService = new DockerService(gitService, new DockerCiService(gitService));
     this.awsService = new AwsService(gitService, this.envService, this.dockerService);
   }

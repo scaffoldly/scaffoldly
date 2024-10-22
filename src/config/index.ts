@@ -119,7 +119,6 @@ export interface IScaffoldlyConfig extends IServiceConfig {
   get taskdir(): string; // Defaults to /var/task
   get services(): Partial<IServiceConfig>[];
   get routes(): Routes;
-  get secrets(): string[];
   get resources(): string[];
   get timeout(): number;
   get memorySize(): number;
@@ -152,11 +151,7 @@ export type Mode = 'development' | 'debug' | 'production';
 // DEVNOTE: Edit .github/release.yml if more '@-schedules` are added
 export type Schedule = '@immediately' | '@frequently' | '@hourly' | '@daily';
 
-export interface SecretConsumer {
-  get secretValue(): Uint8Array;
-}
-
-export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
+export class ScaffoldlyConfig implements IScaffoldlyConfig {
   projectJson?: ProjectJson;
 
   scaffoldly: Partial<IScaffoldlyConfig>;
@@ -417,25 +412,6 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig, SecretConsumer {
     const { rootdir } = this;
     const taskdir = join(rootdir, relative(this.baseDir, join(this.workDir)));
     return taskdir;
-  }
-
-  get secrets(): string[] {
-    const { secrets = [] } = this.scaffoldly;
-    return secrets;
-  }
-
-  get secretValue(): Uint8Array {
-    const env = this.secrets.reduce((acc, secret) => {
-      const value = process.env[secret];
-      if (!value) {
-        console.warn(`WARN: Secret ${secret} not found in environment`);
-        return acc;
-      }
-      acc[secret] = value;
-      return acc;
-    }, {} as Record<string, string>);
-
-    return Uint8Array.from(Buffer.from(JSON.stringify(env), 'utf-8'));
   }
 
   get packages(): string[] {

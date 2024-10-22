@@ -135,29 +135,23 @@ export class Action {
       return status;
     }
 
-    const deployCommand = new DeployCommand(this.gitService).withStatus(status).withOptions({
-      notify: (message, level) => {
-        if (level === 'error') {
-          error(message);
-        } else {
-          notice(message);
-        }
-      },
-    });
+    const secrets = JSON.parse(getInput('secrets', { required: false }) || '{}');
+
+    const deployCommand = new DeployCommand(this.gitService, secrets)
+      .withStatus(status)
+      .withOptions({
+        notify: (message, level) => {
+          if (level === 'error') {
+            error(message);
+          } else {
+            notice(message);
+          }
+        },
+      });
 
     switch (this.operation) {
       case 'deploy':
         try {
-          const secrets = JSON.parse(getInput('secrets', { required: false }) || '{}');
-
-          if (Object.keys(secrets).length > 0) {
-            debug(`Setting environment variables from secrets: ${Object.keys(secrets)}`);
-            process.env = {
-              ...process.env,
-              ...secrets,
-            };
-          }
-
           await deployCommand.handle();
         } catch (e) {
           if (!(e instanceof Error)) {

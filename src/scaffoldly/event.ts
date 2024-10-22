@@ -53,7 +53,7 @@ const eventId = () => {
 };
 
 const createSession = (
-  platform: 'Cli' | 'Gha',
+  platform: 'Cli' | 'Gha' | 'Ale',
   sessionId: number,
   library: string,
   userAgent: string,
@@ -176,7 +176,10 @@ export class EventService {
 
   private event$: Subject<AmplitudeEvent> = new Subject();
 
-  constructor(private platform: 'Cli' | 'Gha', private version?: string, autoEnd = true) {
+  // Cli == Command Line Interface
+  // Gha == GitHub Action
+  // Ale == AWS Lambda Entrypoint
+  constructor(private platform: 'Cli' | 'Gha' | 'Ale', private version?: string, autoEnd = true) {
     this.event$.subscribe(async (event) => {
       axios
         .post('https://api.amplitude.com/2/httpapi', event, { timeout: 1000 })

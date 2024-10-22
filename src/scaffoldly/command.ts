@@ -73,7 +73,7 @@ export class Command {
             command: 'dockerfile',
             describe: `Show the generated Dockerfile`,
             handler: async ({ preset, development }) => {
-              const cmd = await new DeployCommand(this.gitService)
+              const cmd = await new DeployCommand(this.gitService, process.env)
                 .withMode(development ? 'development' : undefined)
                 .withPreset(preset);
               return cmd.handle('dockerfile');
@@ -99,7 +99,7 @@ export class Command {
             command: 'config',
             describe: `Show the effective configuration`,
             handler: async ({ preset, save }) => {
-              const cmd = await new DeployCommand(this.gitService).withPreset(preset);
+              const cmd = await new DeployCommand(this.gitService, process.env).withPreset(preset);
               if (save) {
                 return cmd.handle('save-config');
               }
@@ -126,7 +126,7 @@ export class Command {
             command: 'permissions',
             describe: `Show the necessary permissions for deployment`,
             handler: async ({ development }) => {
-              const cmd = new DeployCommand(this.gitService)
+              const cmd = new DeployCommand(this.gitService, process.env)
                 .withMode(development ? 'development' : undefined)
                 .withOptions({ checkPermissions: true });
               return cmd.handle();
@@ -191,7 +191,7 @@ export class Command {
             const buildOnly = args['build-only'] as boolean | undefined;
             const preset = args.preset as PresetType | undefined;
             const dryrun = args.dryrun as boolean | undefined;
-            const deploy = await new DeployCommand(this.gitService)
+            const deploy = await new DeployCommand(this.gitService, process.env)
               .withMode(development ? 'development' : undefined)
               .withOptions({ dryRun: dryrun || false, buildOnly: buildOnly || false })
               .withPreset(preset as PresetType | undefined);

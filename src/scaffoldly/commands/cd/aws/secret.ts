@@ -11,7 +11,6 @@ import { NotFoundException } from '../errors';
 import { createHash } from 'crypto';
 import { IamConsumer, PolicyDocument } from './iam';
 import { GitDeployStatus, GitService } from '../git';
-import { SecretConsumer } from '../../../../config';
 
 export type SecretName = string;
 export type SecretVersion = string;
@@ -21,6 +20,10 @@ export type SecretDeployStatus = {
   secretName?: string;
   uniqueId?: string;
 };
+
+export interface SecretConsumer {
+  get secretValue(): Promise<Uint8Array>;
+}
 
 export class SecretService implements IamConsumer {
   secretsManagerClient: SecretsManagerClient;
@@ -56,15 +59,22 @@ export class SecretService implements IamConsumer {
         read: () =>
           this.secretsManagerClient.send(new DescribeSecretCommand({ SecretId: secretName })),
         create: () =>
-          this.secretsManagerClient.send(
-            new CreateSecretCommand({ Name: secretName, SecretBinary: consumer.secretValue }),
+          consumer.secretValue.then((secretValue) =>
+            this.secretsManagerClient.send(
+              new CreateSecretCommand({
+                Name: secretName,
+                SecretBinary: secretValue,
+              }),
+            ),
           ),
         update: (existing) =>
-          this.secretsManagerClient.send(
-            new PutSecretValueCommand({
-              SecretId: existing.secretId,
-              SecretBinary: consumer.secretValue,
-            }),
+          consumer.secretValue.then((secretValue) =>
+            this.secretsManagerClient.send(
+              new PutSecretValueCommand({
+                SecretId: existing.secretId,
+                SecretBinary: secretValue,
+              }),
+            ),
           ),
         emitPermissions: (aware) => {
           aware.withPermissions([

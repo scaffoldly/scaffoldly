@@ -5,8 +5,9 @@ import { expand as dotenvExpand } from 'dotenv-expand';
 import { join } from 'path';
 import { GitService } from '../../cd/git';
 import { isDebug } from '@actions/core';
-import { SecretDeployStatus } from '../../cd/aws/secret';
+import { SecretConsumer, SecretDeployStatus } from '../../cd/aws/secret';
 import { LambdaDeployStatus } from '../../cd/aws/lambda';
+import { ui } from '../../../command';
 
 export type EnvDeployStatus = {
   envFiles?: string[];
@@ -15,10 +16,59 @@ export type EnvDeployStatus = {
 
 const normalizeBranch = (branch: string) => branch.replaceAll('/', '-').replaceAll('_', '-');
 
-export class EnvService {
+const redact = (input: string): string => {
+  const length = input.length;
+  let slice = 2;
+
+  if (length <= 2) {
+    slice = 0; // Fully redacted for strings with length 2 or less
+  } else if (length <= 4) {
+    slice = 1; // Only the first and last character visible for strings with length 3 or 4
+  }
+
+  return `${input.slice(0, slice)}${'.'.repeat(length - slice * 2)}${input.slice(-slice)}`;
+};
+
+export class EnvService implements SecretConsumer {
   private lastStatus?: DeployStatus;
 
-  constructor(private gitService: GitService) {}
+  private _env: Record<string, string | undefined>;
+
+  private _secretEnv: Record<string, string | undefined>;
+
+  constructor(private gitService: GitService, secrets: Record<string, string | undefined>) {
+    this._env = Object.entries(process.env).reduce((acc, [key, value]) => {
+      if (!value) {
+        return acc;
+      }
+      acc[key] = `${value}`;
+      return acc;
+    }, {} as Record<string, string | undefined>);
+
+    this._secretEnv = Object.entries(secrets).reduce((acc, [key, value]) => {
+      if (!value) {
+        return acc;
+      }
+      acc[key] = `${value}`;
+      return acc;
+    }, {} as Record<string, string | undefined>);
+  }
+
+  get secretValue(): Promise<Uint8Array> {
+    return this.computeEnv().then(({ secrets, combinedEnv }) => {
+      const secretEnv = secrets.reduce((acc, secret) => {
+        const value = combinedEnv[secret];
+        if (!value) {
+          throw new Error(`Secret \`${secret}\` not found in environment`);
+        }
+        ui.updateBottomBarSubtext(`Injecting secret \`${secret}\`: ${redact(value)}`);
+        acc[secret] = value;
+        return acc;
+      }, {} as Record<string, string | undefined>);
+
+      return Uint8Array.from(Buffer.from(JSON.stringify(secretEnv), 'utf-8'));
+    });
+  }
 
   public async predeploy(
     status: EnvDeployStatus & SecretDeployStatus & LambdaDeployStatus,
@@ -50,34 +100,52 @@ export class EnvService {
     };
   }
 
-  get buildEnv(): Promise<Record<string, string>> {
+  private async computeEnv(): Promise<{
+    env: Record<string, string>;
+    secrets: string[];
+    combinedEnv: Record<string, string>;
+  }> {
     return this.gitService.workDir.then((cwd) => {
       const processEnv = this.baseEnv;
 
-      dotenv({
+      const { parsed: unexpanded = {} } = dotenv({
         path: this.envFiles.map((f) => join(cwd, f)),
         debug: isDebug(),
         processEnv,
       });
 
-      const combinedEnv = Object.entries(process.env).reduce(
-        (acc, [k, v]) => {
-          if (!v) return acc;
-          acc[k] = v;
+      const combinedEnv = Object.entries({
+        ...this.baseEnv,
+        ...this._env,
+        ...this._secretEnv,
+      }).reduce((acc, [key, value]) => {
+        if (!value) {
           return acc;
-        },
-        // Allow the base env to be interpolated into the build env
-        // Although some of the values may be unknown at build time
-        this.baseEnv,
-      );
+        }
+        acc[key] = value;
+        return acc;
+      }, {} as Record<string, string>);
 
       const { parsed: expanded = {} } = dotenvExpand({
         parsed: processEnv,
         processEnv: combinedEnv, // Don't mutuate processEnv
       });
 
-      return expanded;
+      // Secrets are any values that are still unexpanded
+      const secrets = Object.keys(unexpanded).filter(
+        (key) => unexpanded[key].includes('$') && expanded[key] === '',
+      );
+
+      return { env: expanded, secrets, combinedEnv };
     });
+  }
+
+  get secrets(): Promise<string[]> {
+    return this.computeEnv().then(({ secrets }) => secrets);
+  }
+
+  get buildEnv(): Promise<Record<string, string>> {
+    return this.computeEnv().then(({ env }) => env);
   }
 
   get runtimeEnv(): Promise<Record<string, string>> {
