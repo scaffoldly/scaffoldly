@@ -7,7 +7,7 @@ import { SecretDeployStatus, SecretService } from './secret';
 import { GitDeployStatus, GitService } from '../git';
 import { EnvDeployStatus, EnvService } from '../../ci/env';
 import { ScheduleService, ScheduleDeployStatus } from './schedule';
-import { DynamoDbService } from './dynamodb';
+import { ResourcesDeployStatus, ResourcesService } from './resources';
 
 export type DeployStatus = GitDeployStatus &
   EnvDeployStatus &
@@ -17,7 +17,8 @@ export type DeployStatus = GitDeployStatus &
   IamDeployStatus &
   SecretDeployStatus &
   LambdaDeployStatus &
-  ScheduleDeployStatus;
+  ScheduleDeployStatus &
+  ResourcesDeployStatus;
 
 export class AwsService {
   secretService: SecretService;
@@ -28,7 +29,7 @@ export class AwsService {
 
   lambdaService: LambdaService;
 
-  dynamoDbService: DynamoDbService;
+  resourcesService: ResourcesService;
 
   scheduleService: ScheduleService;
 
@@ -37,12 +38,14 @@ export class AwsService {
     private envService: EnvService,
     private dockerService: DockerService,
   ) {
+    this.resourcesService = new ResourcesService(gitService);
     this.secretService = new SecretService(gitService);
     this.iamService = new IamService(gitService);
     this.ecrService = new EcrService(gitService);
     this.lambdaService = new LambdaService(gitService, this.envService, this.dockerService);
-    this.dynamoDbService = new DynamoDbService(gitService);
     this.scheduleService = new ScheduleService(gitService);
+
+    this.envService.addProducer(this.resourcesService);
   }
 
   async predeploy(status: DeployStatus, options: ResourceOptions): Promise<void> {
@@ -58,10 +61,13 @@ export class AwsService {
     // Deploy Secret
     await this.secretService.predeploy(status, this.envService, options);
 
+    // Deploy Resources
+    await this.resourcesService.predeploy(status, options);
+
     // Deploy IAM
     await this.iamService.predeploy(
       status,
-      [this.secretService, this.lambdaService, this.dynamoDbService, this.scheduleService],
+      [this.secretService, this.lambdaService, this.resourcesService, this.scheduleService],
       options,
     );
 

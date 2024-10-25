@@ -12,6 +12,7 @@ import { ui } from '../../../command';
 export type EnvDeployStatus = {
   envFiles?: string[];
   buildEnv?: Record<string, string>;
+  producedEnv?: Record<string, string>;
 };
 
 const normalizeBranch = (branch: string) => branch.replaceAll('/', '-').replaceAll('_', '-');
@@ -29,12 +30,18 @@ const redact = (input: string): string => {
   return `${input.slice(0, slice)}${'.'.repeat(length - slice * 2)}${input.slice(-slice)}`;
 };
 
+export interface EnvProducer {
+  get env(): Promise<Record<string, string>>;
+}
+
 export class EnvService implements SecretConsumer {
   private lastStatus?: DeployStatus;
 
   private _env: Record<string, string | undefined>;
 
   private _secretEnv: Record<string, string | undefined>;
+
+  private envProducers: EnvProducer[] = [];
 
   constructor(private gitService: GitService, secrets: Record<string, string | undefined>) {
     this._env = Object.entries(process.env).reduce((acc, [key, value]) => {
@@ -52,6 +59,10 @@ export class EnvService implements SecretConsumer {
       acc[key] = `${value}`;
       return acc;
     }, {} as Record<string, string | undefined>);
+  }
+
+  addProducer(producer: EnvProducer): void {
+    this.envProducers.push(producer);
   }
 
   get secretValue(): Promise<Uint8Array> {
@@ -77,6 +88,7 @@ export class EnvService implements SecretConsumer {
 
     status.envFiles = this.envFiles;
     status.buildEnv = await this.buildEnv;
+    status.producedEnv = await this.producedEnv;
 
     this.lastStatus = status;
   }
@@ -89,6 +101,7 @@ export class EnvService implements SecretConsumer {
     this.lastStatus = status;
 
     status.buildEnv = await this.buildEnv;
+    status.producedEnv = await this.producedEnv;
 
     this.lastStatus = status;
   }
@@ -100,44 +113,53 @@ export class EnvService implements SecretConsumer {
     };
   }
 
+  private get producedEnv(): Promise<Record<string, string>> {
+    return Promise.all(this.envProducers.map((producer) => producer.env)).then((envs) =>
+      envs.reduce((acc, env) => ({ ...acc, ...env }), {}),
+    );
+  }
+
   private async computeEnv(): Promise<{
     env: Record<string, string>;
     secrets: string[];
     combinedEnv: Record<string, string>;
   }> {
-    return this.gitService.workDir.then((cwd) => {
-      const processEnv = this.baseEnv;
+    return Promise.all([this.gitService.workDir, this.producedEnv]).then(
+      async ([cwd, producedEnv]) => {
+        const processEnv = this.baseEnv;
 
-      const { parsed: unexpanded = {} } = dotenv({
-        path: this.envFiles.map((f) => join(cwd, f)),
-        debug: isDebug(),
-        processEnv,
-      });
+        const { parsed: unexpanded = {} } = dotenv({
+          path: this.envFiles.map((f) => join(cwd, f)),
+          debug: isDebug(),
+          processEnv,
+        });
 
-      const combinedEnv = Object.entries({
-        ...this.baseEnv,
-        ...this._env,
-        ...this._secretEnv,
-      }).reduce((acc, [key, value]) => {
-        if (!value) {
+        const combinedEnv = Object.entries({
+          ...producedEnv,
+          ...this.baseEnv,
+          ...this._env,
+          ...this._secretEnv,
+        }).reduce((acc, [key, value]) => {
+          if (!value) {
+            return acc;
+          }
+          acc[key] = value;
           return acc;
-        }
-        acc[key] = value;
-        return acc;
-      }, {} as Record<string, string>);
+        }, {} as Record<string, string>);
 
-      const { parsed: expanded = {} } = dotenvExpand({
-        parsed: processEnv,
-        processEnv: combinedEnv, // Don't mutuate processEnv
-      });
+        const { parsed: expanded = {} } = dotenvExpand({
+          parsed: processEnv,
+          processEnv: combinedEnv, // Don't mutuate processEnv
+        });
 
-      // Secrets are any values that are still unexpanded
-      const secrets = Object.keys(unexpanded).filter(
-        (key) => unexpanded[key].includes('$') && expanded[key] === '',
-      );
+        // Secrets are any values that are still unexpanded
+        const secrets = Object.keys(unexpanded).filter(
+          (key) => unexpanded[key].includes('$') && expanded[key] === '',
+        );
 
-      return { env: expanded, secrets, combinedEnv };
-    });
+        return { env: expanded, secrets, combinedEnv };
+      },
+    );
   }
 
   get secrets(): Promise<string[]> {
@@ -149,12 +171,13 @@ export class EnvService implements SecretConsumer {
   }
 
   get runtimeEnv(): Promise<Record<string, string>> {
-    return Promise.all([this.buildEnv]).then(([buildEnv]) => {
+    return Promise.all([this.producedEnv, this.buildEnv]).then(([producedEnv, buildEnv]) => {
       return {
         SLY_ROUTES: JSON.stringify(this.gitService.config.routes), // TODO encode
         SLY_SERVE: this.gitService.config.serveCommands.encode(),
         SLY_SECRET: this.lastStatus?.secretName || '',
         SLY_DEBUG: 'true', // TODO use flag
+        ...producedEnv,
         ...this.baseEnv,
         ...buildEnv,
       };
