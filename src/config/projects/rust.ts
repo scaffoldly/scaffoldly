@@ -62,7 +62,7 @@ export class RustProject extends AbstractProject {
 
   get projectJson(): Promise<ProjectJson | undefined> {
     return Promise.all([this.rustProject]).then(([project]) => {
-      const projectJson: ProjectJson = {};
+      const projectJson: ProjectJson = { type: 'rust' };
 
       if (!project) {
         return undefined;

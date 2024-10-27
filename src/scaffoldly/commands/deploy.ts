@@ -117,5 +117,13 @@ export class DeployCommand extends CdCommand<DeployCommand> {
     console.log(`   📄 Env Files: ${status.envFiles?.join(', ')}`);
     console.log(`   📦 Image Size: ${filesize(status.imageSize || 0)}`);
     console.log(`   🌎 URL: ${status.url || 'unknown'}`);
+
+    if (status.producedEnv && Object.keys(status.producedEnv).length) {
+      console.log(
+        `   📃 Environment:\n${Object.entries(status.producedEnv)
+          .map(([key]) => `        ${key}`)
+          .join('\n')}`,
+      );
+    }
   }
 }

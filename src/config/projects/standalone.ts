@@ -24,7 +24,7 @@ export class StandaloneProject extends AbstractProject {
         return undefined;
       }
 
-      const projectJson: ProjectJson = {};
+      const projectJson: ProjectJson = { type: 'standalone' };
       projectJson.name = standaloneConfig.name;
       projectJson.version = standaloneConfig.version;
       projectJson.scaffoldly = standaloneConfig;

@@ -15,6 +15,7 @@ import { DeployCommand, PresetType, PRESETS } from './commands/deploy';
 import { GitService } from './commands/cd/git';
 import { EventService } from './event';
 import { run as createApp } from '../create-app';
+import { ulid } from 'ulid';
 
 export const ui = new BottomBar(process.stderr);
 
@@ -40,9 +41,9 @@ export class Command {
   private eventService: EventService;
 
   constructor(argv: string[], private version?: string) {
-    this.eventService = new EventService('Cli', this.version, true)
+    this.eventService = new EventService('Cli', this.version)
       .withArgs(argv.slice(2))
-      .withSessionId(undefined);
+      .withSessionId(ulid());
     this.apiHelper = new ApiHelper(argv, this.eventService);
     this.messagesHelper = new MessagesHelper(argv);
     this.gitService = new GitService(this.eventService);
@@ -74,6 +75,11 @@ export class Command {
             describe: `Show the generated Dockerfile`,
             handler: async ({ preset, development }) => {
               const cmd = await new DeployCommand(this.gitService, process.env)
+                .withOptions({
+                  notify: (action, type, message) => {
+                    this.eventService.withResourceAction(action, type, message);
+                  },
+                })
                 .withMode(development ? 'development' : undefined)
                 .withPreset(preset);
               return cmd.handle('dockerfile');
@@ -99,7 +105,13 @@ export class Command {
             command: 'config',
             describe: `Show the effective configuration`,
             handler: async ({ preset, save }) => {
-              const cmd = await new DeployCommand(this.gitService, process.env).withPreset(preset);
+              const cmd = await new DeployCommand(this.gitService, process.env)
+                .withOptions({
+                  notify: (action, type, message) => {
+                    this.eventService.withResourceAction(action, type, message);
+                  },
+                })
+                .withPreset(preset);
               if (save) {
                 return cmd.handle('save-config');
               }
@@ -128,7 +140,12 @@ export class Command {
             handler: async ({ development }) => {
               const cmd = new DeployCommand(this.gitService, process.env)
                 .withMode(development ? 'development' : undefined)
-                .withOptions({ checkPermissions: true });
+                .withOptions({
+                  checkPermissions: true,
+                  notify: (action, type, message) => {
+                    this.eventService.withResourceAction(action, type, message);
+                  },
+                });
               return cmd.handle();
             },
             builder: {
@@ -193,7 +210,13 @@ export class Command {
             const dryrun = args.dryrun as boolean | undefined;
             const deploy = await new DeployCommand(this.gitService, process.env)
               .withMode(development ? 'development' : undefined)
-              .withOptions({ dryRun: dryrun || false, buildOnly: buildOnly || false })
+              .withOptions({
+                dryRun: dryrun || false,
+                buildOnly: buildOnly || false,
+                notify: (action, type, message) => {
+                  this.eventService.withResourceAction(action, type, message);
+                },
+              })
               .withPreset(preset as PresetType | undefined);
             return deploy.handle();
           }, isHeadless()),

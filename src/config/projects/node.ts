@@ -36,7 +36,8 @@ export class NodeProject extends AbstractProject {
         return undefined;
       }
       try {
-        const packageJson = JSON.parse(readFileSync(packageJsonFile, 'utf8'));
+        const packageJson = JSON.parse(readFileSync(packageJsonFile, 'utf8')) as ProjectJson;
+        packageJson.type = 'node';
         return packageJson;
       } catch (e) {
         return undefined;

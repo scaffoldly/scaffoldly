@@ -82,7 +82,9 @@ export class DotnetProject extends AbstractProject {
 
   get projectJson(): Promise<ProjectJson | undefined> {
     return this.project.then((project) => {
-      const projectJson: ProjectJson = {};
+      const projectJson: ProjectJson = {
+        type: 'dotnet',
+      };
 
       if (!project) {
         return undefined;

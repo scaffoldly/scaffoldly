@@ -1,38 +1,53 @@
 import os from 'os';
 import { v5 as uuidv5, v4 as uuidv4 } from 'uuid';
-import urlJoin from 'url-join';
 import { URLSearchParams } from 'url';
-import { IScaffoldlyConfig, ScaffoldlyConfig } from '../config';
+import { ProjectJson } from '../config';
 import { Subject } from 'rxjs';
 import axios from 'axios';
-import { onExit } from 'signal-exit';
+import { NotifyAction } from './commands/cd';
 
-export type AmplitudeEvent = {
-  api_key: string;
-  events: (Session | SessionEvent)[];
-  options: Record<string, never>;
-  client_upload_time: string;
+type Session = {
+  sessionId: string;
+  time: number;
+  insertId: string;
+  eventId: number;
 };
 
-export type Session = {
-  device_id: string;
-  session_id: number;
-  time: number;
+type StartEvent = Partial<Session> & {
+  type: 'start';
+  deviceId: string;
   platform: string;
   language: string;
   ip: string;
-  insert_id: string;
-  event_type: string;
-  event_id: number;
   library: string;
-  user_agent: string;
+  userAgent: string;
+  args: string[];
 };
 
-export type SessionEvent = Session & {
-  event_type: '[Amplitude] Page Viewed';
-  event_properties: {
-    [key: string]: string;
+type ProjectEvent = Partial<Session> & {
+  type: 'project';
+  projectType: string;
+  config?: {
+    [key: string]: unknown;
   };
+};
+
+type ResourceEvent = Partial<Session> & {
+  type: 'resource';
+  action: string;
+  resourceType: string;
+  resourceId: string;
+};
+
+export type Event = Partial<StartEvent> | Partial<ProjectEvent> | Partial<ResourceEvent>;
+
+export type SessionEvent = Partial<Event> & {
+  sessionId: string;
+  time: number;
+};
+
+export type EventResponse = Partial<SessionEvent> & {
+  error?: string;
 };
 
 const deviceId = () => {
@@ -45,46 +60,48 @@ const deviceId = () => {
   return uuidv5(`macs://${macAddresses.join('/')}`, uuidv5.URL);
 };
 
+const resourceId = (resourceMessage: string) => {
+  return uuidv5(`resource://${resourceMessage}`, uuidv5.URL);
+};
+
 // eslint-disable-next-line @typescript-eslint/naming-convention
-let _eventId = -1;
+let _eventId = 0;
 
 const eventId = () => {
   return (_eventId += 1);
 };
 
 const createSession = (
+  sessionId: string,
   platform: 'Cli' | 'Gha' | 'Ale',
-  sessionId: number,
+  args: string[],
   library: string,
   userAgent: string,
-): Session | undefined => {
-  if (process.env.SCAFFOLDLY_DNT) {
-    return undefined;
-  }
-
+): StartEvent => {
   const now = Date.now();
 
   return {
-    device_id: deviceId(),
-    session_id: sessionId,
+    sessionId,
     time: now,
+    insertId: uuidv4(),
+    eventId: eventId(),
+    deviceId: deviceId(),
+    type: 'start',
     platform,
     language: 'en-US',
     ip: '$remote',
-    insert_id: uuidv4(),
-    event_type: 'session_start',
-    event_id: eventId(),
     library,
-    user_agent: userAgent,
+    userAgent,
+    args,
   };
 };
 
-const argsToUrl = (session: Session, argv: string[] | Record<string, string | undefined>): URL => {
+const convertArgs = (args: string[] | Record<string, string | undefined> = []): string[] => {
   const pathParts: string[] = [];
   const params = new URLSearchParams();
 
-  if (!Array.isArray(argv)) {
-    argv = Object.entries(argv).reduce((acc, [key, value]) => {
+  if (!Array.isArray(args)) {
+    args = Object.entries(args).reduce((acc, [key, value]) => {
       if (!value) {
         return acc;
       }
@@ -93,7 +110,7 @@ const argsToUrl = (session: Session, argv: string[] | Record<string, string | un
     }, [] as string[]);
   }
 
-  argv.forEach((arg) => {
+  args.forEach((arg) => {
     if (arg.includes('=')) {
       const [key, value] = arg.split('=');
 
@@ -117,81 +134,67 @@ const argsToUrl = (session: Session, argv: string[] | Record<string, string | un
     }
   });
 
-  const url = new URL(
-    urlJoin(`https://${session.platform.toLowerCase()}.scaffoldly.dev`, ...pathParts),
-  );
-  url.search = params.toString();
-
-  return url;
+  return args;
 };
 
-const createSessionEvent = (
-  session: Session | undefined,
-  config: Partial<IScaffoldlyConfig>,
-  args: string[] | Record<string, string | undefined>,
-): SessionEvent | undefined => {
-  if (!session) {
-    return undefined;
-  }
-
-  const url = argsToUrl(session, args);
-
+const createProjectEvent = (sessionId: string, project: ProjectJson): ProjectEvent => {
   return {
-    ...session,
-    event_id: eventId(),
-    insert_id: uuidv4(),
-    event_type: '[Amplitude] Page Viewed',
-    event_properties: {
-      '[Amplitude] Page Domain': url.host,
-      '[Amplitude] Page Location': `${url.origin}${url.pathname}`,
-      '[Amplitude] Page Path': url.pathname,
-      '[Amplitude] Page Title': `${session.platform} | ${url.pathname
-        .slice(1)
-        .split('/')
-        .join('|')}`,
-      '[Amplitude] Page URL': url.toString(),
-      ...Object.entries(config).reduce((acc, [key, value]) => {
-        if (typeof value === 'string') {
-          return {
-            ...acc,
-            [`[Scaffoldly] ${key}`]: value,
-          };
-        } else {
-          return {
-            ...acc,
-            [`[Scaffoldly] ${key}`]: JSON.stringify(value),
-          };
-        }
-      }, {} as { [key: string]: string }),
-    },
+    sessionId,
+    type: 'project',
+    time: Date.now(),
+    eventId: eventId(),
+    insertId: uuidv4(),
+    config: project.scaffoldly,
+    projectType: project.type,
+  };
+};
+
+const createResourceEvent = (
+  sessionId: string,
+  action: NotifyAction,
+  type: string,
+  message: string,
+): ResourceEvent => {
+  return {
+    sessionId,
+    type: 'resource',
+    time: Date.now(),
+    eventId: eventId(),
+    insertId: uuidv4(),
+    action,
+    resourceType: type,
+    resourceId: resourceId(message),
   };
 };
 
 export class EventService {
-  private session: Session | undefined;
+  private post = (event: Event) =>
+    axios
+      .post<EventResponse>('https://events.scaffoldly.dev/api/v1/session', event, {
+        timeout: 5000,
+      })
+      .then(() => {})
+      .catch(() => {});
 
-  private args?: string[] | Record<string, string | undefined>;
+  private args?: string[];
 
-  private config?: Partial<IScaffoldlyConfig>;
+  private project?: ProjectJson;
 
-  private event$: Subject<AmplitudeEvent> = new Subject();
+  private _sessionId: string | undefined;
+
+  private event$: Subject<Event> = new Subject();
 
   // Cli == Command Line Interface
   // Gha == GitHub Action
   // Ale == AWS Lambda Entrypoint
-  constructor(private platform: 'Cli' | 'Gha' | 'Ale', private version?: string, autoEnd = true) {
-    this.event$.subscribe(async (event) => {
-      axios
-        .post('https://api.amplitude.com/2/httpapi', event, { timeout: 1000 })
-        .then(() => {})
-        .catch(() => {});
-    });
-
-    if (autoEnd) {
-      onExit(() => {
-        this.end();
-      });
+  constructor(private platform: 'Cli' | 'Gha' | 'Ale', private version?: string) {
+    if (process.env.SCAFFOLDLY_DNT) {
+      return;
     }
+
+    this.event$.subscribe({
+      next: (event) => this.post(event),
+    });
   }
 
   get library(): string {
@@ -202,69 +205,39 @@ export class EventService {
     return `${this.library} (${os.platform()}; ${os.arch()}) node/${process.version}`;
   }
 
-  get sessionId(): number | undefined {
-    return this.session?.session_id;
-  }
-
-  public withSessionId(sessionId?: number): EventService {
-    let emit = false;
-
-    if (!sessionId) {
-      // Only emit if a session ID was created
-      sessionId = Date.now();
-      emit = true;
+  public withSessionId(sessionId: string): EventService {
+    this._sessionId = sessionId;
+    if (this.args) {
+      this.event$.next(
+        createSession(sessionId, this.platform, this.args, this.library, this.userAgent),
+      );
     }
-
-    this.session = createSession(this.platform, sessionId, this.library, this.userAgent);
-
-    if (emit) {
-      this.emit(this.session);
-    }
-
     return this;
   }
 
   public withArgs(args: string[] | Record<string, string | undefined>): EventService {
-    this.args = args;
-    this.emit();
+    this.args = convertArgs(args);
+    if (this._sessionId) {
+      this.event$.next(
+        createSession(this._sessionId, this.platform, this.args, this.library, this.userAgent),
+      );
+    }
+
     return this;
   }
 
-  public withConfig(config: ScaffoldlyConfig): EventService {
-    this.config = config.scaffoldly;
-    this.emit();
+  public withProject(project?: ProjectJson): EventService {
+    this.project = project;
+    if (this._sessionId && this.project) {
+      this.event$.next(createProjectEvent(this._sessionId, this.project));
+    }
     return this;
   }
 
-  public end(): void {
-    if (this.session) {
-      this.emit({
-        ...this.session,
-        event_type: 'session_end',
-        event_id: eventId(),
-        insert_id: uuidv4(),
-      });
-      this.session = undefined;
+  public withResourceAction(action: NotifyAction, type: string, message: string): EventService {
+    if (this._sessionId) {
+      this.event$.next(createResourceEvent(this._sessionId, action, type, message));
     }
-  }
-
-  public emit(payload?: Session | SessionEvent): void {
-    if (!this.session) {
-      return;
-    }
-
-    if (!payload && this.args && this.config) {
-      payload = createSessionEvent(this.session, this.config, this.args);
-      return this.emit(payload);
-    }
-
-    if (payload) {
-      this.event$.next({
-        api_key: 'e8773fe68449dee5d1097aef9dd2b278',
-        events: [payload],
-        options: {},
-        client_upload_time: new Date().toISOString(),
-      });
-    }
+    return this;
   }
 }

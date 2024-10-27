@@ -35,7 +35,7 @@ export class Action {
   _branch?: string;
 
   constructor(private mode: Mode, version?: string) {
-    this.eventService = new EventService('Gha', version, false);
+    this.eventService = new EventService('Gha', version);
     this.gitService = new GitService(this.eventService, this.workingDirectory);
     this.apiHelper = new ApiHelper(process.argv, this.eventService);
     this.messagesHelper = new MessagesHelper(process.argv);
@@ -52,7 +52,7 @@ export class Action {
   }
 
   async pre(status: Status): Promise<Status> {
-    status.sessionId = this.eventService.withSessionId(status.sessionId).sessionId;
+    this.eventService.withSessionId(status.sessionId);
 
     status.deployLogsUrl = await this.logsUrl;
     status.commitSha = this.commitSha;
@@ -123,9 +123,7 @@ export class Action {
   }
 
   async main(status: Status): Promise<Status> {
-    status.sessionId = this.eventService
-      .withArgs({ mode: 'main' })
-      .withSessionId(status.sessionId).sessionId;
+    this.eventService.withArgs({ mode: 'main' }).withSessionId(status.sessionId);
 
     debug(`status: ${JSON.stringify(status)}`);
 
@@ -140,7 +138,8 @@ export class Action {
     const deployCommand = new DeployCommand(this.gitService, secrets)
       .withStatus(status)
       .withOptions({
-        notify: (message, level) => {
+        notify: (action, type, message, level) => {
+          this.eventService.withResourceAction(action, type, message);
           if (level === 'error') {
             error(message);
           } else {
@@ -171,7 +170,7 @@ export class Action {
   }
 
   async post(status: Status): Promise<Status> {
-    status.sessionId = this.eventService.withSessionId(status.sessionId).sessionId;
+    this.eventService.withSessionId(status.sessionId);
 
     debug(`status: ${JSON.stringify(status)}`);
 
@@ -185,7 +184,6 @@ export class Action {
       status.longMessage = longMessage;
     }
 
-    this.eventService.end();
     return status;
   }
 

@@ -64,7 +64,7 @@ export class PythonProject extends AbstractProject {
 
   get projectJson(): Promise<ProjectJson | undefined> {
     return Promise.all([this.pyProject]).then(([project]) => {
-      const projectJson: ProjectJson = {};
+      const projectJson: ProjectJson = { type: 'python' };
 
       if (!project) {
         return undefined;

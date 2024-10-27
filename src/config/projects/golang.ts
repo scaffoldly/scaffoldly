@@ -102,7 +102,9 @@ export class GolangProject extends AbstractProject {
 
   get projectJson(): Promise<ProjectJson | undefined> {
     return Promise.all([this.goProject, this.standaloneConfig]).then(([project, config]) => {
-      const projectJson: ProjectJson = {};
+      const projectJson: ProjectJson = {
+        type: 'golang',
+      };
 
       if (!project) {
         return undefined;

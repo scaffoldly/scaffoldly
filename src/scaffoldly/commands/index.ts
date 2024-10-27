@@ -33,16 +33,21 @@ export abstract class Command<T> implements PermissionAware {
       new RustProject(this.gitService).projectJson,
       new PythonProject(this.gitService).projectJson,
       new StandaloneProject(this.gitService).projectJson,
-    ]).then(([node, dotnet, golang, rust, python, standalone]) => {
-      const projectJson = node || dotnet || golang || rust || python;
+    ])
+      .then(([node, dotnet, golang, rust, python, standalone]) => {
+        const projectJson = node || dotnet || golang || rust || python;
 
-      if (projectJson) {
+        if (projectJson) {
+          return projectJson;
+        }
+
+        console.warn('🟠 Framework not detected. Using `scaffoldly.json` for configuration.');
+        return standalone;
+      })
+      .then((projectJson) => {
+        this.gitService.eventService.withProject(projectJson);
         return projectJson;
-      }
-
-      console.warn('🟠 Framework not detected. Using `scaffoldly.json` for configuration.');
-      return standalone;
-    });
+      });
   }
 
   async withPreset(preset?: PresetType): Promise<Command<T>> {

@@ -32,9 +32,16 @@ function getDifferences(subset: any, superset: any): Differences {
   return differences;
 }
 
+export type NotifyAction = '✨' | 'Created' | 'Updated' | 'Failed to Create' | 'Failed to Update';
+
 export type ResourceOptions = {
   retries?: number;
-  notify?: (message: string, level?: 'notice' | 'error') => void;
+  notify?: (
+    action: NotifyAction,
+    resourceType: string,
+    resourceMessage: string,
+    level?: 'notice' | 'error',
+  ) => void;
   dev?: boolean;
   checkPermissions?: boolean;
   buildOnly?: boolean;
@@ -408,7 +415,12 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
         ui.updateBottomBar('');
         console.log(`${emoji ? `${emoji} ` : ''}${messageOutput}`);
         if (options.notify) {
-          options.notify(messageOutput, resource instanceof Error ? 'error' : 'notice');
+          options.notify(
+            verb,
+            type,
+            resourceMessage,
+            resource instanceof Error ? 'error' : 'notice',
+          );
         }
         break;
       case 'Reading':

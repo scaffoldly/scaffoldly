@@ -26,7 +26,7 @@ export class GitService {
   _config?: ScaffoldlyConfig;
 
   constructor(
-    private eventService: EventService,
+    public eventService: EventService,
     private _workDir = process.cwd(),
     config?: ScaffoldlyConfig,
   ) {
@@ -44,7 +44,6 @@ export class GitService {
 
   setConfig(config: ScaffoldlyConfig): void {
     this._config = config;
-    this.eventService.withConfig(config);
   }
 
   get baseDir(): Promise<string> {

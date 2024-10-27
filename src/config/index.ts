@@ -84,6 +84,7 @@ export class Commands {
 }
 
 export type ProjectJson = {
+  type: 'dotnet' | 'golang' | 'node' | 'python' | 'rust' | 'standalone';
   name?: string;
   version?: string;
   description?: string;

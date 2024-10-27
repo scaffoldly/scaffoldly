@@ -12,6 +12,7 @@ import {
   info,
   setOutput,
 } from '@actions/core';
+import { ulid } from 'ulid';
 
 onExit((code, signal) => {
   if (code !== 0) {
@@ -31,7 +32,9 @@ process.on('uncaughtException', (err) => {
 
 export const run = async (mode: Mode, version?: string): Promise<void> => {
   const action = await new Action(mode, version).init();
-  let status: Status = {};
+  let status: Status = {
+    sessionId: ulid(),
+  };
 
   try {
     switch (mode) {
