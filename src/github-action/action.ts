@@ -90,7 +90,7 @@ export class Action {
         process.env.RUNNER_TEMP || tmpdir(),
         'id_token',
       );
-      process.env.AWS_ROLE_SESSION_NAME = `scaffoldly-${context.runNumber}-${context.runId}`;
+      process.env.AWS_ROLE_SESSION_NAME = `scaffoldly-gha-${context.repo.owner}-${context.repo.repo}`;
 
       // Save the ID token to a file
       writeFileSync(process.env.AWS_WEB_IDENTITY_TOKEN_FILE, idToken);
