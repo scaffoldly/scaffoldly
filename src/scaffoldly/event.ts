@@ -88,7 +88,7 @@ const createSession = (
     deviceId: deviceId(),
     type: 'start',
     platform,
-    language: 'en-US',
+    language: process.env.LANG || 'unknown',
     ip: '$remote',
     library,
     userAgent,
