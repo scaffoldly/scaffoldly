@@ -139,7 +139,7 @@ export class Action {
       .withStatus(status)
       .withOptions({
         notify: (action, type, message, level) => {
-          this.eventService.withResourceAction(action, type, message);
+          this.eventService.emitAction(action, type, message);
           if (level === 'error') {
             error(message);
           } else {

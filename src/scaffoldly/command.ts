@@ -77,7 +77,7 @@ export class Command {
               const cmd = await new DeployCommand(this.gitService, process.env)
                 .withOptions({
                   notify: (action, type, message) => {
-                    this.eventService.withResourceAction(action, type, message);
+                    this.eventService.emitAction(action, type, message);
                   },
                 })
                 .withMode(development ? 'development' : undefined)
@@ -108,7 +108,7 @@ export class Command {
               const cmd = await new DeployCommand(this.gitService, process.env)
                 .withOptions({
                   notify: (action, type, message) => {
-                    this.eventService.withResourceAction(action, type, message);
+                    this.eventService.emitAction(action, type, message);
                   },
                 })
                 .withPreset(preset);
@@ -143,7 +143,7 @@ export class Command {
                 .withOptions({
                   checkPermissions: true,
                   notify: (action, type, message) => {
-                    this.eventService.withResourceAction(action, type, message);
+                    this.eventService.emitAction(action, type, message);
                   },
                 });
               return cmd.handle();
@@ -214,7 +214,7 @@ export class Command {
                 dryRun: dryrun || false,
                 buildOnly: buildOnly || false,
                 notify: (action, type, message) => {
-                  this.eventService.withResourceAction(action, type, message);
+                  this.eventService.emitAction(action, type, message);
                 },
               })
               .withPreset(preset as PresetType | undefined);

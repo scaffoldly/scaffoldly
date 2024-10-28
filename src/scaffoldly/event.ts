@@ -1,5 +1,5 @@
 import os from 'os';
-import { v5 as uuidv5, v4 as uuidv4 } from 'uuid';
+import { v5 as uuidv5 } from 'uuid';
 import { URLSearchParams } from 'url';
 import { ProjectJson } from '../config';
 import { Subject } from 'rxjs';
@@ -60,8 +60,11 @@ const deviceId = () => {
   return uuidv5(`macs://${macAddresses.join('/')}`, uuidv5.URL);
 };
 
-const resourceId = (resourceMessage: string) => {
-  return uuidv5(`resource://${resourceMessage}`, uuidv5.URL);
+const resourceId = (resource: string | unknown) => {
+  if (typeof resource === 'string') {
+    return uuidv5(`resource://${resource}`, uuidv5.URL);
+  }
+  return uuidv5(`resource://${JSON.stringify(resource)}`, uuidv5.URL);
 };
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -73,6 +76,7 @@ const eventId = () => {
 
 const createSession = (
   sessionId: string,
+  insertId: string,
   platform: 'Cli' | 'Gha' | 'Ale',
   args: string[],
   library: string,
@@ -83,7 +87,7 @@ const createSession = (
   return {
     sessionId,
     time: now,
-    insertId: uuidv4(),
+    insertId,
     eventId: eventId(),
     deviceId: deviceId(),
     type: 'start',
@@ -137,13 +141,17 @@ const convertArgs = (args: string[] | Record<string, string | undefined> = []): 
   return args;
 };
 
-const createProjectEvent = (sessionId: string, project: ProjectJson): ProjectEvent => {
+const createProjectEvent = (
+  sessionId: string,
+  insertId: string,
+  project: ProjectJson,
+): ProjectEvent => {
   return {
     sessionId,
     type: 'project',
     time: Date.now(),
     eventId: eventId(),
-    insertId: uuidv4(),
+    insertId,
     config: project.scaffoldly,
     projectType: project.type,
   };
@@ -151,6 +159,7 @@ const createProjectEvent = (sessionId: string, project: ProjectJson): ProjectEve
 
 const createResourceEvent = (
   sessionId: string,
+  insertId: string,
   action: NotifyAction,
   type: string,
   message: string,
@@ -160,7 +169,7 @@ const createResourceEvent = (
     type: 'resource',
     time: Date.now(),
     eventId: eventId(),
-    insertId: uuidv4(),
+    insertId,
     action,
     resourceType: type,
     resourceId: resourceId(message),
@@ -180,7 +189,9 @@ export class EventService {
 
   private project?: ProjectJson;
 
-  private _sessionId: string | undefined;
+  private sessionId: string | undefined;
+
+  private insertId: string | undefined;
 
   private event$: Subject<Event> = new Subject();
 
@@ -206,38 +217,51 @@ export class EventService {
   }
 
   public withSessionId(sessionId: string): EventService {
-    this._sessionId = sessionId;
-    if (this.args) {
-      this.event$.next(
-        createSession(sessionId, this.platform, this.args, this.library, this.userAgent),
-      );
-    }
+    this.sessionId = sessionId;
+    this.emit();
+    return this;
+  }
+
+  public withInsertId(object: unknown): EventService {
+    this.insertId = resourceId(object);
+    this.emit();
     return this;
   }
 
   public withArgs(args: string[] | Record<string, string | undefined>): EventService {
     this.args = convertArgs(args);
-    if (this._sessionId) {
-      this.event$.next(
-        createSession(this._sessionId, this.platform, this.args, this.library, this.userAgent),
-      );
-    }
-
+    this.emit();
     return this;
   }
 
   public withProject(project?: ProjectJson): EventService {
     this.project = project;
-    if (this._sessionId && this.project) {
-      this.event$.next(createProjectEvent(this._sessionId, this.project));
-    }
+    this.emit();
     return this;
   }
 
-  public withResourceAction(action: NotifyAction, type: string, message: string): EventService {
-    if (this._sessionId) {
-      this.event$.next(createResourceEvent(this._sessionId, action, type, message));
+  public emitAction(action: NotifyAction, type: string, message: string): void {
+    if (this.sessionId && this.insertId) {
+      this.event$.next(createResourceEvent(this.sessionId, this.insertId, action, type, message));
     }
-    return this;
+  }
+
+  private emit(): void {
+    if (this.sessionId && this.insertId && this.args) {
+      this.event$.next(
+        createSession(
+          this.sessionId,
+          this.insertId,
+          this.platform,
+          this.args,
+          this.library,
+          this.userAgent,
+        ),
+      );
+    }
+
+    if (this.sessionId && this.insertId && this.project) {
+      this.event$.next(createProjectEvent(this.sessionId, this.insertId, this.project));
+    }
   }
 }

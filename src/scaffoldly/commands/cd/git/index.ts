@@ -147,6 +147,8 @@ export class GitService {
           '.git',
           '',
         );
+
+        this.eventService.withInsertId({ host, path });
         return { host, path, protocol, origin: remote };
       } catch (e) {
         throw new Error(`Unable to parse orgin from remote: ${remote}`);
