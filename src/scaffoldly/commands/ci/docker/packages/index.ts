@@ -2,7 +2,7 @@ import { CONFIG_SIGNATURE, ScaffoldlyConfig } from '../../../../../config';
 import { Copy, DockerService, RunCommand } from '..';
 import { NpmPackageService } from './npm';
 import { OsPackageService } from './os';
-import { join } from 'path';
+import { join, relative } from 'path';
 import { isLocalDeps } from '../../../../ui';
 import { PipPackageService } from './pip';
 
@@ -22,7 +22,7 @@ export class PackageService {
   get entrypoint(): Copy {
     if (isLocalDeps()) {
       return {
-        src: join(__dirname, 'awslambda-entrypoint.js'),
+        src: join(relative(this.config.baseDir, __dirname), 'awslambda-entrypoint.js'),
         dest: `.entrypoint`,
         resolve: true,
         mode: 0o755,
