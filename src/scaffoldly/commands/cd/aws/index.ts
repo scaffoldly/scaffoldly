@@ -92,7 +92,7 @@ export class AwsService {
     await this.dockerService.deploy(status, this.ecrService, options);
 
     // Deploy Lambda
-    await this.lambdaService.deploy(status, options);
+    await this.lambdaService.deploy(status, [this.resourcesService], options);
 
     // Deploy Schedules
     await this.scheduleService.deploy(status, options);

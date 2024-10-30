@@ -28,6 +28,7 @@ export type AsyncResponse = {
 
 export type RuntimeEvent = {
   requestId: string;
+  headers: Record<string, unknown>;
   event: string;
   deadline: number;
   env: Record<string, string>;

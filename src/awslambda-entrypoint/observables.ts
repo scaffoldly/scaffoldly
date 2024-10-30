@@ -14,8 +14,8 @@ import {
   throwError,
   timer,
 } from 'rxjs';
-import { Commands, CONFIG_SIGNATURE, Routes } from '../config';
-import { ALBEvent, APIGatewayProxyEventV2 } from 'aws-lambda';
+import { Commands, CONFIG_SIGNATURE, Routes, USER_AGENT } from '../config';
+import { ALBEvent, APIGatewayProxyEventV2, DynamoDBStreamEvent } from 'aws-lambda';
 import { error, info, isDebug, log } from './log';
 import {
   convertAlbQueryStringToURLSearchParams,
@@ -75,6 +75,7 @@ const next$ = (
 
       return {
         requestId,
+        headers: next.headers,
         event: next.data,
         deadline: Number.parseInt(next.headers['lambda-runtime-deadline-ms']),
         env,
@@ -207,29 +208,94 @@ const proxy$ = (
   );
 };
 
+const transformDynamoDBEvent = (
+  routes: Routes,
+  event: Partial<DynamoDBStreamEvent>,
+): Partial<APIGatewayProxyEventV2> => {
+  const host = 'dynamodb.amazonaws.com';
+  const path = routes[host];
+  if (!path) {
+    throw new Error('No handler found for dynamodb.amazonaws.com');
+  }
+  return {
+    requestContext: {
+      http: {
+        method: 'POST',
+        path,
+      },
+    },
+    headers: {
+      'content-type': 'application/json',
+      'user-agent': USER_AGENT,
+      host,
+    } as Record<string, unknown>,
+    isBase64Encoded: false,
+    body: JSON.stringify(event),
+  } as Partial<APIGatewayProxyEventV2>;
+};
+
+const transformEvent = (
+  routes: Routes,
+  headers: Record<string, unknown>,
+  event?: Partial<APIGatewayProxyEventV2 | ALBEvent | DynamoDBStreamEvent | undefined>,
+): Partial<APIGatewayProxyEventV2 | ALBEvent> => {
+  if (typeof event !== 'object') {
+    throw new Error('Event is not an object'); // TODO Maybe an error observable
+  }
+
+  const lambdaHeaders = Object.entries(headers).reduce((acc, [key, value]) => {
+    if (key.startsWith('lambda-') && typeof value === 'string') {
+      acc[key] = value;
+    }
+    return acc;
+  }, {} as Record<string, string | undefined>);
+
+  if (
+    'Records' in event &&
+    Array.isArray(event.Records) &&
+    event.Records.every((r) => 'dynamodb' in r)
+  ) {
+    event = transformDynamoDBEvent(routes, event);
+  }
+
+  if (!('requestContext' in event)) {
+    throw new Error('Request context missing in event');
+  }
+
+  event.headers = {
+    ...lambdaHeaders,
+    ...(event.headers || {}),
+  };
+
+  return event;
+};
+
 export const asyncResponse$ = (
   abortEvent: AbortEvent,
   runtimeEvent: RuntimeEvent,
   routes: Routes,
 ): Observable<AsyncResponse> => {
   const rawEvent = JSON.parse(runtimeEvent.event) as Partial<
-    APIGatewayProxyEventV2 | ALBEvent | string
+    APIGatewayProxyEventV2 | ALBEvent | DynamoDBStreamEvent | string
   >;
 
   const deadline = runtimeEvent.deadline - 1000; // Subtract 1 second to allow errors to propagate
 
-  if (typeof rawEvent === 'string' && rawEvent.startsWith(`${CONFIG_SIGNATURE}:`)) {
+  if (typeof rawEvent === 'string') {
+    if (!rawEvent.startsWith(`${CONFIG_SIGNATURE}:`)) {
+      throw new Error('Invalid command');
+    }
     return shell$(abortEvent, runtimeEvent, rawEvent, runtimeEvent.env);
   }
 
-  if (typeof rawEvent !== 'object' || !('requestContext' in rawEvent)) {
-    throw new Error('Invalid event'); // TODO Maybe an error observable
-  }
-
-  const { requestContext, headers: rawHeaders, body: rawBody, isBase64Encoded } = rawEvent;
+  const { requestContext, headers, body, isBase64Encoded } = transformEvent(
+    routes,
+    runtimeEvent.headers,
+    rawEvent,
+  );
 
   if (!requestContext) {
-    throw new Error('Invalid request context');
+    throw new Error('Missing request context');
   }
 
   let method: string | undefined = undefined;
@@ -264,8 +330,6 @@ export const asyncResponse$ = (
     throw new Error('No handler found');
   }
 
-  const decodedBody = isBase64Encoded && rawBody ? Buffer.from(rawBody, 'base64') : rawBody;
-
   return endpoint$(handler, deadline).pipe(
     switchMap((url) => {
       if (rawPath) {
@@ -279,8 +343,8 @@ export const asyncResponse$ = (
         runtimeEvent,
         url.toString(),
         method,
-        rawHeaders,
-        decodedBody,
+        headers,
+        isBase64Encoded && !!body ? Buffer.from(body, 'base64') : body,
         deadline,
       );
     }),

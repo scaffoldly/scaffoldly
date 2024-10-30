@@ -1,7 +1,7 @@
-import { CloudResource, ResourceOptions } from '..';
+import { CloudResource, ResourceOptions, Subscription } from '..';
 import { EnvProducer } from '../../ci/env';
 import { GitService } from '../git';
-import { ARN } from './arn';
+import { ARN, ManagedArn } from './arn';
 import { IamConsumer, PolicyDocument } from './iam';
 import {
   // eslint-disable-next-line import/named
@@ -13,13 +13,14 @@ import {
   CreateTableCommand,
 } from '@aws-sdk/client-dynamodb';
 import { SecretDeployStatus } from './secret';
+import { SubscriptionProducer } from './lambda';
 
 export type ResourcesDeployStatus = {
   resourceArns?: string[];
-  // TODO Subscriptions
+  subscriptionArns?: string[];
 };
 
-export class ResourcesService implements IamConsumer, EnvProducer {
+export class ResourcesService implements IamConsumer, EnvProducer, SubscriptionProducer {
   private _arns: ARN<unknown>[] = [];
 
   private dynamoDbClient: DynamoDBClient;
@@ -54,24 +55,27 @@ export class ResourcesService implements IamConsumer, EnvProducer {
     );
 
     const { uniqueId } = status;
-    if (!uniqueId) {
-      throw new Error('Unique ID is required for DynamoDB table creation');
-    }
 
     const arns = tableArns.map(
       (arn) =>
         new ARN(
           arn,
-          new CloudResource<{ arn: string } & TableDescription, DescribeTableOutput>(
+          new CloudResource<ManagedArn & TableDescription, DescribeTableOutput>(
             {
               describe: ({ arn: actualArn }) => ({
                 type: 'DynamoDB Table',
                 label: actualArn || arn,
               }),
-              read: () =>
+              read: (
+                // TODO: id is going to be the full ARN if provided (see arn.ts)
+                // we likely need to construct a new client based on the region
+                id,
+              ) =>
                 this.dynamoDbClient.send(
                   new DescribeTableCommand({
-                    TableName: `${ARN.resource(arn).name.split('/').pop()}-${uniqueId}`,
+                    TableName: id
+                      ? `${ARN.resource(`${id}`).name.split('/').pop()}`
+                      : `${ARN.resource(arn).name.split('/').pop()}-${uniqueId}`,
                   }),
                 ),
               create: () =>
@@ -119,7 +123,11 @@ export class ResourcesService implements IamConsumer, EnvProducer {
               },
             },
             (resource) => {
-              return { arn: resource.Table?.TableArn, ...(resource.Table || {}) };
+              return {
+                arn: resource.Table?.TableArn,
+                subscriptionArn: resource.Table?.LatestStreamArn,
+                ...(resource.Table || {}),
+              };
             },
           ),
           options,
@@ -152,7 +160,6 @@ export class ResourcesService implements IamConsumer, EnvProducer {
       return `arn:${partition}:${service}:${region}:${accountId}:${resource}*`;
     });
 
-    // TODO: bundle up actions from arns based on arn.hash
     const actions: string[] = this._arns
       .map((arn) => {
         const { service } = arn;
@@ -179,6 +186,7 @@ export class ResourcesService implements IamConsumer, EnvProducer {
   dynamodbActions(arn: ARN<unknown>): string[] {
     const { permissions } = arn;
     const actions: string[] = [];
+
     if (permissions.read) {
       actions.push(
         'dynamodb:*Scan*',
@@ -191,6 +199,7 @@ export class ResourcesService implements IamConsumer, EnvProducer {
         'dyanmodb:*Export*',
       );
     }
+
     if (permissions.create) {
       actions.push(
         'dynamodb:*Put*',
@@ -200,6 +209,7 @@ export class ResourcesService implements IamConsumer, EnvProducer {
         'dynamodb:*Write*',
       );
     }
+
     if (permissions.update) {
       actions.push(
         'dynamodb:*Update*',
@@ -208,15 +218,48 @@ export class ResourcesService implements IamConsumer, EnvProducer {
         'dynamodb:*Restore*',
       );
     }
+
     if (permissions.delete) {
       actions.push('dynamodb:*Delete*', 'dynamodb:*Disable*');
     }
-    if (permissions.stream) {
+
+    if (permissions.subscribe) {
       actions.push('dynamodb:*Stream*');
       actions.push('dynamodb:*Shard*');
       actions.push('dynamodb:*Records*');
     }
 
     return actions;
+  }
+
+  get subscriptions(): Promise<Subscription[]> {
+    return Promise.all(
+      this._arns.map(async (arn) => {
+        const { service } = arn;
+        const subscriptions: Subscription[] = [];
+        if (service === 'dynamodb') {
+          subscriptions.push(...(await this.dynamodbSubscriptions(arn)));
+        }
+        return subscriptions;
+      }),
+    ).then((results) => results.flat());
+  }
+
+  async dynamodbSubscriptions(arn: ARN<unknown>): Promise<Subscription[]> {
+    const { permissions } = arn;
+    const subscriptions: Subscription[] = [];
+
+    if (!permissions.subscribe) {
+      return subscriptions;
+    }
+
+    const subscriptionArn = await arn.subscriptionArn;
+    if (!subscriptionArn) {
+      return subscriptions;
+    }
+
+    subscriptions.push({ subscriptionArn, startingPosition: 'LATEST' });
+
+    return subscriptions;
   }
 }

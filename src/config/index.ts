@@ -11,6 +11,7 @@ export const DEFAULT_ROUTE = '/*';
 // - Version Consistency
 // - Scooping compiled binaries out of the container (such as awslambda-entrypoint)
 export const CONFIG_SIGNATURE = `scaffoldly/scaffoldly:1`;
+export const USER_AGENT = 'scaffoldly/1.x';
 export const DEFAULT_TASKDIR = join(sep, 'var', 'task');
 
 export const decode = <T>(config: string): T => {

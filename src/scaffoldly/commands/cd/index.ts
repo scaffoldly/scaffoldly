@@ -53,21 +53,26 @@ export type ResourceExtractor<Resource, ReadCommandOutput> = (
   output: Partial<ReadCommandOutput>,
 ) => Partial<Resource> | undefined;
 
+export type Subscription = {
+  subscriptionArn: string;
+  startingPosition: 'AT_TIMESTAMP' | 'LATEST' | 'TRIM_HORIZON';
+};
+
 export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<Partial<Resource>> {
   private options: ResourceOptions = {};
 
   private desired?: Partial<ReadCommandOutput>;
 
   constructor(
-    public readonly requests: {
+    protected readonly requests: {
       describe: (resource: Partial<Resource>) => { type: string; label: string };
-      read: () => Promise<ReadCommandOutput>;
+      read: (id?: unknown) => Promise<ReadCommandOutput>;
       create?: () => Promise<unknown>;
       update?: (resource: Partial<Resource>) => Promise<unknown>;
       dispose?: (resource: Partial<Resource>) => Promise<unknown>;
       emitPermissions?: (aware: PermissionAware) => void;
     },
-    private readonly resourceExtractor: ResourceExtractor<Resource, ReadCommandOutput>,
+    protected readonly resourceExtractor: ResourceExtractor<Resource, ReadCommandOutput>,
   ) {}
 
   then<TResult1 = Partial<Resource>, TResult2 = never>(
@@ -79,6 +84,12 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
     onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null,
   ): PromiseLike<TResult1 | TResult2> {
     return this._manage(this.options, this.desired).then(onfulfilled, onrejected);
+  }
+
+  public async read(id: unknown): Promise<Partial<Resource> | undefined> {
+    return this.requests.read(id).then((output) => {
+      return this.resourceExtractor(output);
+    });
   }
 
   public manage(
@@ -104,7 +115,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
     }
 
     this.logResource('Reading', {}, options);
-    let existing = await this.read(options);
+    let existing = await this._read(options);
 
     if (existing) {
       try {
@@ -151,7 +162,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
     }
 
     await dispose(existing).catch(() => {});
-    const current = await this.read(this.options).catch(() => ({} as Partial<Resource>));
+    const current = await this._read(this.options).catch(() => ({} as Partial<Resource>));
 
     if (!current) {
       return {} as Partial<Resource>;
@@ -160,7 +171,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
     return current;
   }
 
-  private async read(
+  private async _read(
     options: ResourceOptions,
     desired?: Partial<unknown>,
   ): Promise<Partial<Resource> | undefined> {
@@ -266,7 +277,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
       console.log(`   --> [CREATED]`, created);
     }
 
-    const resource = await this.read(options, desired);
+    const resource = await this._read(options, desired);
 
     return resource;
   }
@@ -308,7 +319,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
       console.log(`   --> [UPDATED]`, updated);
     }
 
-    const resource = await this.read(options, desired);
+    const resource = await this._read(options, desired);
 
     return resource;
   }

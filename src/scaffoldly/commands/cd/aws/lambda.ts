@@ -26,16 +26,24 @@ import {
   GetAliasCommand,
   CreateAliasCommand,
   UpdateAliasCommand,
+  CreateEventSourceMappingCommand,
+  UpdateEventSourceMappingCommand,
+  // eslint-disable-next-line import/named
+  EventSourceMappingConfiguration,
+  ListEventSourceMappingsCommand,
+  // eslint-disable-next-line import/named
+  ListEventSourceMappingsCommandOutput,
 } from '@aws-sdk/client-lambda';
 import { IamConsumer, IamDeployStatus, PolicyDocument, TrustRelationship } from './iam';
 import { DeployStatus } from '.';
-import { CloudResource, ResourceOptions } from '..';
+import { CloudResource, ResourceOptions, Subscription } from '..';
 import { EnvService } from '../../ci/env';
 import { DockerDeployStatus, DockerService } from '../docker';
 import { Architecture } from '../../ci/docker';
 import { EcrDeployStatus } from './ecr';
 import { GitDeployStatus, GitService } from '../git';
 import { SkipAction } from '../errors';
+import { ARN } from './arn';
 
 export type LambdaDeployStatus = {
   functionArn?: string;
@@ -45,6 +53,10 @@ export type LambdaDeployStatus = {
   imageUri?: string;
   url?: string;
 };
+
+export interface SubscriptionProducer {
+  get subscriptions(): Promise<Subscription[]>;
+}
 
 export class LambdaService implements IamConsumer {
   lambdaClient: LambdaClient;
@@ -64,12 +76,17 @@ export class LambdaService implements IamConsumer {
     await this.configurePermissions(status, options);
   }
 
-  public async deploy(status: LambdaDeployStatus, options: ResourceOptions): Promise<void> {
+  public async deploy(
+    status: LambdaDeployStatus,
+    producers: SubscriptionProducer[],
+    options: ResourceOptions,
+  ): Promise<void> {
     // TODO: Create Alias for PR branches?
     await this.configureFunction(status, options);
     await this.publishCode(status, options);
     await this.configureAlias(status, options);
     await this.configureUrl(status, options);
+    await this.configureSubscriptions(status, producers, options);
   }
 
   private async configureFunction(
@@ -156,6 +173,10 @@ export class LambdaService implements IamConsumer {
             'lambda:CreateFunction',
             'lambda:GetFunction',
             'lambda:UpdateFunctionConfiguration',
+            'lambda:ListEventSourceMappings',
+            'lambda:CreateEventSourceMapping',
+            'lambda:UpdateEventSourceMapping',
+            'lambda:DeleteEventSourceMapping',
           ]);
         },
       },
@@ -421,6 +442,64 @@ export class LambdaService implements IamConsumer {
     status.imageUri = imageUri;
     // TODO: warn if architecture changes?
     status.architecture = architecture;
+  }
+
+  private async configureSubscriptions(
+    status: LambdaDeployStatus,
+    producers: SubscriptionProducer[],
+    options: ResourceOptions,
+  ): Promise<void> {
+    const subscriptions = (
+      await Promise.all(producers.map((producer) => producer.subscriptions))
+    ).flat();
+
+    const cloudResources = subscriptions.map(
+      (subscription) =>
+        new CloudResource<EventSourceMappingConfiguration, ListEventSourceMappingsCommandOutput>(
+          {
+            describe: (resource) => {
+              return {
+                type: 'Function Subscription',
+                label: ARN.resource(resource.EventSourceArn || subscription.subscriptionArn).name,
+              };
+            },
+            read: () =>
+              this.lambdaClient.send(
+                new ListEventSourceMappingsCommand({
+                  FunctionName: `${status.functionArn}:${status.functionQualifier}`,
+                }),
+              ),
+            create: () =>
+              this.lambdaClient.send(
+                new CreateEventSourceMappingCommand({
+                  FunctionName: `${status.functionArn}:${status.functionQualifier}`,
+                  EventSourceArn: subscription.subscriptionArn,
+                  StartingPosition: 'LATEST',
+                  Enabled: true,
+                }),
+              ),
+            update: (existing) =>
+              this.lambdaClient.send(
+                new UpdateEventSourceMappingCommand({
+                  UUID: existing.UUID,
+                  FunctionName: `${status.functionArn}:${status.functionQualifier}`,
+                  Enabled: !!subscriptions.find(
+                    (s) => s.subscriptionArn === existing.EventSourceArn,
+                  ),
+                }),
+              ),
+          },
+          (output) => {
+            if (!output.EventSourceMappings) return undefined;
+            if (!output.EventSourceMappings.length) return undefined;
+            return output.EventSourceMappings.find(
+              (sm) => sm.EventSourceArn === subscription.subscriptionArn,
+            );
+          },
+        ),
+    );
+
+    await Promise.all(cloudResources.map((cloudResource) => cloudResource.manage(options)));
   }
 
   get trustRelationship(): TrustRelationship {
