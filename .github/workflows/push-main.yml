@@ -42,7 +42,6 @@ jobs:
           cache: 'npm'
           cache-dependency-path: packages/website/package-lock.json
 
-      # TODO Remove install and pull entrypoint from another container
       - run: npm install
         working-directory: packages/website
 
@@ -50,6 +49,8 @@ jobs:
         with:
           working-directory: packages/website
           secrets: ${{ toJSON(secrets) }}
+        env:
+          LOCAL_DEPS: 'true'
 
   deploy-docker:
     runs-on: ubuntu-latest
