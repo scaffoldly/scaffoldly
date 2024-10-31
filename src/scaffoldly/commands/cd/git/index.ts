@@ -44,6 +44,7 @@ export class GitService {
 
   setConfig(config: ScaffoldlyConfig): void {
     this._config = config;
+    this.origin.then((o) => this.eventService.withInsertId(o));
   }
 
   get baseDir(): Promise<string> {
@@ -148,7 +149,6 @@ export class GitService {
           '',
         );
 
-        this.eventService.withInsertId({ host, path });
         return { host, path, protocol, origin: remote };
       } catch (e) {
         throw new Error(`Unable to parse orgin from remote: ${remote}`);

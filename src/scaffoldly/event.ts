@@ -180,7 +180,7 @@ export class EventService {
   private post = (event: Event) =>
     axios
       .post<EventResponse>('https://events.scaffoldly.dev/api/v1/session', event, {
-        timeout: 5000,
+        timeout: 10000,
       })
       .then(() => {})
       .catch(() => {});
