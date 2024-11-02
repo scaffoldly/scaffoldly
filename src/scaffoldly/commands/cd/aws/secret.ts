@@ -99,26 +99,20 @@ export class SecretService implements IamConsumer {
       return;
     }
 
-    const { name } = this.gitService.config;
-    const { alias } = status;
-
-    const secretName = `${name}@${alias}`;
-
-    const { secretId, uniqueId } = await new CloudResource<
-      { secretId: string; uniqueId: string },
-      DescribeSecretCommandOutput
-    >(
+    await new CloudResource<{ secretId: string; uniqueId: string }, DescribeSecretCommandOutput>(
       {
         describe: (resource) => {
-          return { type: 'Secret', label: resource.secretId || secretName };
+          return { type: 'Secret', label: resource.secretId || '[computed]' };
         },
         read: () =>
-          this.secretsManagerClient.send(new DescribeSecretCommand({ SecretId: secretName })),
-        update: (existing) =>
+          this.secretsManagerClient.send(
+            new DescribeSecretCommand({ SecretId: status.secretName }),
+          ),
+        update: () =>
           consumer.secretValue.then((secretValue) =>
             this.secretsManagerClient.send(
               new PutSecretValueCommand({
-                SecretId: existing.secretId,
+                SecretId: status.secretId,
                 SecretBinary: secretValue,
               }),
             ),
@@ -138,12 +132,6 @@ export class SecretService implements IamConsumer {
         };
       },
     ).manage(options);
-
-    status.secretId = secretId;
-    status.secretName = secretName;
-    status.uniqueId = uniqueId;
-
-    this.lastDeployStatus = status;
   }
 
   get trustRelationship(): undefined {
