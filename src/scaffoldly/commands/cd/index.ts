@@ -228,6 +228,9 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
             return undefined;
           }
 
+          if (isDebug()) {
+            console.log(`   --> [ERROR]`, e);
+          }
           return retry(e);
         }
       },
@@ -265,6 +268,9 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
             throw e;
           }
 
+          if (isDebug()) {
+            console.log(`   --> [ERROR]`, e);
+          }
           return retry(e);
         }),
       {
@@ -307,6 +313,9 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
             throw e;
           }
 
+          if (isDebug()) {
+            console.log(`   --> [ERROR]`, e);
+          }
           return retry(e);
         }),
       {
