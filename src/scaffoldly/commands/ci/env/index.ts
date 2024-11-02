@@ -153,9 +153,17 @@ export class EnvService implements SecretConsumer {
         });
 
         // Secrets are any values that are still unexpanded
-        const secrets = Object.keys(unexpanded).filter(
-          (key) => unexpanded[key].includes('$') && expanded[key] === '',
-        );
+        const secrets = Object.entries(unexpanded).reduce((acc, [key, value]) => {
+          if (!value.includes('$') || expanded[key]) {
+            return acc;
+          }
+          if (value.startsWith('${') && value.endsWith('}')) {
+            // TODO handle ones with defaults
+            acc.push(value.slice(2, -1));
+          }
+          acc.push(key);
+          return acc;
+        }, [] as string[]);
 
         return { env: expanded, secrets, combinedEnv };
       },
