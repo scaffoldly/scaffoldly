@@ -67,6 +67,53 @@ export class SecretService implements IamConsumer {
               }),
             ),
           ),
+        emitPermissions: (aware) => {
+          aware.withPermissions(['secretsmanager:CreateSecret', 'secretsmanager:DescribeSecret']);
+        },
+      },
+      (output) => {
+        const arn = output.ARN;
+        if (!arn) {
+          throw new NotFoundException('Secret ARN not found');
+        }
+        return {
+          secretId: output.ARN,
+          uniqueId: createHash('sha256').update(arn).digest('hex').substring(0, 8),
+        };
+      },
+    ).manage(options);
+
+    status.secretId = secretId;
+    status.secretName = secretName;
+    status.uniqueId = uniqueId;
+
+    this.lastDeployStatus = status;
+  }
+
+  public async deploy(
+    status: SecretDeployStatus & GitDeployStatus,
+    consumer: SecretConsumer,
+    options: ResourceOptions,
+  ): Promise<void> {
+    if (options.dev || options.buildOnly) {
+      return;
+    }
+
+    const { name } = this.gitService.config;
+    const { alias } = status;
+
+    const secretName = `${name}@${alias}`;
+
+    const { secretId, uniqueId } = await new CloudResource<
+      { secretId: string; uniqueId: string },
+      DescribeSecretCommandOutput
+    >(
+      {
+        describe: (resource) => {
+          return { type: 'Secret', label: resource.secretId || secretName };
+        },
+        read: () =>
+          this.secretsManagerClient.send(new DescribeSecretCommand({ SecretId: secretName })),
         update: (existing) =>
           consumer.secretValue.then((secretValue) =>
             this.secretsManagerClient.send(
@@ -77,11 +124,7 @@ export class SecretService implements IamConsumer {
             ),
           ),
         emitPermissions: (aware) => {
-          aware.withPermissions([
-            'secretsmanager:CreateSecret',
-            'secretsmanager:PutSecretValue',
-            'secretsmanager:DescribeSecret',
-          ]);
+          aware.withPermissions(['secretsmanager:CreateSecret', 'secretsmanager:DescribeSecret']);
         },
       },
       (output) => {

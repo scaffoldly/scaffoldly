@@ -9,7 +9,7 @@ export const isHeadless = (): boolean => {
 };
 
 export const isDebug = (): boolean => {
-  return !!process.argv.find((arg) => arg === '--debug' || process.env.DEBUG);
+  return !!process.argv.find((arg) => arg === '--debug' || process.env.SLY_DEBUG);
 };
 
 export const isLocalDeps = (): boolean => {

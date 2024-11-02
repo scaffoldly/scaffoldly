@@ -88,6 +88,9 @@ export class AwsService {
     // Deploy Environment Variables
     await this.envService.deploy(status, options);
 
+    // Deploy Secret
+    await this.secretService.deploy(status, this.envService, options);
+
     // Deploy Docker Container
     await this.dockerService.deploy(status, this.ecrService, options);
 
