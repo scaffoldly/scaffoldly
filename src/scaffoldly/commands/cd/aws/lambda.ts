@@ -107,9 +107,6 @@ export class LambdaService implements IamConsumer, EnvProducer {
         Role: status.roleArn,
         Timeout: this.gitService.config.timeout,
         MemorySize: 1024,
-        Environment: {
-          Variables: status.runtimeEnv,
-        },
         LastUpdateStatus: 'Successful',
         State: 'Active',
       },
@@ -145,7 +142,7 @@ export class LambdaService implements IamConsumer, EnvProducer {
               Role: desired.Configuration?.Role,
               Timeout: desired.Configuration?.Timeout,
               MemorySize: desired.Configuration?.MemorySize,
-              Environment: desired.Configuration?.Environment,
+              Environment: status.runtimeEnv,
             }),
           ),
         update: (existing) =>
@@ -160,7 +157,7 @@ export class LambdaService implements IamConsumer, EnvProducer {
                 Role: desired.Configuration?.Role,
                 Timeout: desired.Configuration?.Timeout,
                 MemorySize: desired.Configuration?.MemorySize,
-                Environment: desired.Configuration?.Environment,
+                Environment: status.runtimeEnv,
               }),
             )
             .then((updated) => {
