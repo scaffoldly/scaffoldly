@@ -2,7 +2,7 @@ import { BuildInfo, DockerService as DockerCiService, PushInfo } from '../../ci/
 import { CloudResource, ResourceOptions } from '..';
 import { EcrDeployStatus, RegistryAuthConsumer } from '../aws/ecr';
 import { LambdaDeployStatus } from '../aws/lambda';
-import { EnvDeployStatus } from '../../ci/env';
+import { EnvDeployStatus, EnvService } from '../../ci/env';
 import { GitService } from '../git';
 import Dockerode from 'dockerode';
 
@@ -16,7 +16,11 @@ export type DockerDeployStatus = {
 };
 
 export class DockerService {
-  constructor(private gitService: GitService, public dockerCiService: DockerCiService) {}
+  constructor(
+    private gitService: GitService,
+    public dockerCiService: DockerCiService,
+    private envService: EnvService,
+  ) {}
 
   get platform(): Platform {
     return this.dockerCiService.platform;
@@ -60,14 +64,15 @@ export class DockerService {
         read: () => {
           return this.dockerCiService.describeBuild(this.gitService.config);
         },
-        update: () => {
-          return this.dockerCiService.build(
-            this.gitService.config,
-            'build',
-            status.repositoryUri,
-            status.buildEnv,
-          );
-        },
+        update: () =>
+          this.envService.buildEnv.then((buildEnv) =>
+            this.dockerCiService.build(
+              this.gitService.config,
+              'build',
+              status.repositoryUri,
+              buildEnv,
+            ),
+          ),
       },
       (existing) => existing,
     ).manage(options);

@@ -30,7 +30,11 @@ export class DeployCommand extends CdCommand<DeployCommand> {
   ) {
     super(gitService, mode);
     this.envService = new EnvService(gitService, secrets);
-    this.dockerService = new DockerService(gitService, new DockerCiService(gitService));
+    this.dockerService = new DockerService(
+      gitService,
+      new DockerCiService(gitService),
+      this.envService,
+    );
     this.awsService = new AwsService(gitService, this.envService, this.dockerService);
   }
 
@@ -117,13 +121,5 @@ export class DeployCommand extends CdCommand<DeployCommand> {
     console.log(`   📄 Env Files: ${status.envFiles?.join(', ')}`);
     console.log(`   📦 Image Size: ${filesize(status.imageSize || 0)}`);
     console.log(`   🌎 URL: ${status.url || 'unknown'}`);
-
-    if (status.producedEnv && Object.keys(status.producedEnv).length) {
-      console.log(
-        `   📃 Environment:\n${Object.entries(status.producedEnv)
-          .map(([key]) => `        ${key}`)
-          .join('\n')}`,
-      );
-    }
   }
 }

@@ -39,10 +39,10 @@ export class AwsService {
     private dockerService: DockerService,
   ) {
     this.resourcesService = new ResourcesService(gitService);
-    this.secretService = new SecretService(gitService);
+    this.secretService = new SecretService(gitService, envService);
     this.iamService = new IamService(gitService);
     this.ecrService = new EcrService(gitService);
-    this.lambdaService = new LambdaService(gitService, this.dockerService);
+    this.lambdaService = new LambdaService(gitService, this.dockerService, envService);
     this.scheduleService = new ScheduleService(gitService);
 
     this.envService.addProducer(this.resourcesService);
@@ -61,7 +61,7 @@ export class AwsService {
     await this.dockerService.predeploy(status, this.ecrService, options);
 
     // Deploy Secret
-    await this.secretService.predeploy(status, this.envService, options);
+    await this.secretService.predeploy(status, options);
 
     // Deploy Resources
     await this.resourcesService.predeploy(status, options);
@@ -92,6 +92,9 @@ export class AwsService {
 
     // Deploy Docker Container
     await this.dockerService.deploy(status, this.ecrService, options);
+
+    // Deploy Secrets
+    await this.secretService.deploy(status, options);
 
     // Deploy Lambda
     await this.lambdaService.deploy(status, [this.resourcesService], options);

@@ -37,7 +37,7 @@ import {
 import { IamConsumer, IamDeployStatus, PolicyDocument, TrustRelationship } from './iam';
 import { DeployStatus } from '.';
 import { CloudResource, ResourceOptions, Subscription } from '..';
-import { EnvDeployStatus, EnvProducer } from '../../ci/env';
+import { EnvDeployStatus, EnvProducer, EnvService } from '../../ci/env';
 import { DockerDeployStatus, DockerService } from '../docker';
 import { Architecture } from '../../ci/docker';
 import { EcrDeployStatus } from './ecr';
@@ -63,7 +63,11 @@ export class LambdaService implements IamConsumer, EnvProducer {
 
   private _url?: string;
 
-  constructor(private gitService: GitService, private dockerService: DockerService) {
+  constructor(
+    private gitService: GitService,
+    private dockerService: DockerService,
+    private envService: EnvService,
+  ) {
     this.lambdaClient = new LambdaClient();
   }
 
@@ -126,30 +130,17 @@ export class LambdaService implements IamConsumer, EnvProducer {
             }),
           ),
         create: () =>
-          this.lambdaClient.send(
-            new CreateFunctionCommand({
-              Code: {
-                ImageUri: `${repositoryUri}@${imageDigest}`,
-              },
-              FunctionName: status.functionArn || name,
-              Publish: false,
-              PackageType: 'Image',
-              Architectures: this.dockerService.platform === 'linux/arm64' ? ['arm64'] : ['x86_64'],
-              ImageConfig: {
-                EntryPoint: ['.entrypoint'],
-                Command: [],
-              },
-              Role: desired.Configuration?.Role,
-              Timeout: desired.Configuration?.Timeout,
-              MemorySize: desired.Configuration?.MemorySize,
-              Environment: status.runtimeEnv,
-            }),
-          ),
-        update: (existing) =>
-          this.lambdaClient
-            .send(
-              new UpdateFunctionConfigurationCommand({
-                FunctionName: existing.FunctionArn,
+          this.envService.runtimeEnv.then((runtimeEnv) =>
+            this.lambdaClient.send(
+              new CreateFunctionCommand({
+                Code: {
+                  ImageUri: `${repositoryUri}@${imageDigest}`,
+                },
+                FunctionName: status.functionArn || name,
+                Publish: false,
+                PackageType: 'Image',
+                Architectures:
+                  this.dockerService.platform === 'linux/arm64' ? ['arm64'] : ['x86_64'],
                 ImageConfig: {
                   EntryPoint: ['.entrypoint'],
                   Command: [],
@@ -157,13 +148,35 @@ export class LambdaService implements IamConsumer, EnvProducer {
                 Role: desired.Configuration?.Role,
                 Timeout: desired.Configuration?.Timeout,
                 MemorySize: desired.Configuration?.MemorySize,
-                Environment: status.runtimeEnv,
+                Environment: {
+                  Variables: runtimeEnv,
+                },
               }),
-            )
-            .then((updated) => {
-              status.functionVersion = updated.Version;
-              return updated;
-            }),
+            ),
+          ),
+        update: (existing) =>
+          this.envService.runtimeEnv.then((runtimeEnv) =>
+            this.lambdaClient
+              .send(
+                new UpdateFunctionConfigurationCommand({
+                  FunctionName: existing.FunctionArn,
+                  ImageConfig: {
+                    EntryPoint: ['.entrypoint'],
+                    Command: [],
+                  },
+                  Role: desired.Configuration?.Role,
+                  Timeout: desired.Configuration?.Timeout,
+                  MemorySize: desired.Configuration?.MemorySize,
+                  Environment: {
+                    Variables: runtimeEnv,
+                  },
+                }),
+              )
+              .then((updated) => {
+                status.functionVersion = updated.Version;
+                return updated;
+              }),
+          ),
         emitPermissions: (aware) => {
           aware.withPermissions([
             'lambda:CreateFunction',
@@ -264,12 +277,17 @@ export class LambdaService implements IamConsumer, EnvProducer {
           };
         },
         read: () =>
-          this.lambdaClient.send(
-            new GetFunctionUrlConfigCommand({
-              FunctionName: status.functionArn,
-              Qualifier: status.functionQualifier,
+          this.lambdaClient
+            .send(
+              new GetFunctionUrlConfigCommand({
+                FunctionName: status.functionArn,
+                Qualifier: status.functionQualifier,
+              }),
+            )
+            .then((output) => {
+              this._url = output.FunctionUrl;
+              return output;
             }),
-          ),
         create: () =>
           this.lambdaClient.send(
             new CreateFunctionUrlConfigCommand({
@@ -302,7 +320,6 @@ export class LambdaService implements IamConsumer, EnvProducer {
     ).manage(options);
 
     status.url = functionUrl;
-    this._url = functionUrl;
   }
 
   private async configurePermissions(

@@ -11,7 +11,7 @@ import { NotFoundException } from '../errors';
 import { createHash } from 'crypto';
 import { IamConsumer, PolicyDocument } from './iam';
 import { GitDeployStatus, GitService } from '../git';
-import { EnvProducer } from '../../ci/env';
+import { EnvProducer, EnvService } from '../../ci/env';
 
 export type SecretName = string;
 export type SecretVersion = string;
@@ -22,22 +22,17 @@ export type SecretDeployStatus = {
   uniqueId?: string;
 };
 
-export interface SecretConsumer {
-  get secretValue(): Promise<Uint8Array>;
-}
-
 export class SecretService implements IamConsumer, EnvProducer {
   secretsManagerClient: SecretsManagerClient;
 
-  lastDeployStatus?: SecretDeployStatus;
+  private _secretId?: string;
 
-  constructor(private gitService: GitService) {
+  constructor(private gitService: GitService, private envService: EnvService) {
     this.secretsManagerClient = new SecretsManagerClient();
   }
 
   public async predeploy(
     status: SecretDeployStatus & GitDeployStatus,
-    consumer: SecretConsumer,
     options: ResourceOptions,
   ): Promise<void> {
     if (options.dev || options.buildOnly) {
@@ -58,13 +53,18 @@ export class SecretService implements IamConsumer, EnvProducer {
           return { type: 'Secret', label: resource.secretId || secretName };
         },
         read: () =>
-          this.secretsManagerClient.send(new DescribeSecretCommand({ SecretId: secretName })),
+          this.secretsManagerClient
+            .send(new DescribeSecretCommand({ SecretId: secretName }))
+            .then((output) => {
+              this._secretId = output.ARN;
+              return output;
+            }),
         create: () =>
-          consumer.secretValue.then((secretValue) =>
+          this.envService.secretEnv.then((secretEnv) =>
             this.secretsManagerClient.send(
               new CreateSecretCommand({
                 Name: secretName,
-                SecretBinary: secretValue,
+                SecretBinary: Uint8Array.from(Buffer.from(JSON.stringify(secretEnv), 'utf-8')),
               }),
             ),
           ),
@@ -87,13 +87,10 @@ export class SecretService implements IamConsumer, EnvProducer {
     status.secretId = secretId;
     status.secretName = secretName;
     status.uniqueId = uniqueId;
-
-    this.lastDeployStatus = status;
   }
 
   public async deploy(
     status: SecretDeployStatus & GitDeployStatus,
-    consumer: SecretConsumer,
     options: ResourceOptions,
   ): Promise<void> {
     if (options.dev || options.buildOnly) {
@@ -110,11 +107,11 @@ export class SecretService implements IamConsumer, EnvProducer {
             new DescribeSecretCommand({ SecretId: status.secretName }),
           ),
         update: () =>
-          consumer.secretValue.then((secretValue) =>
+          this.envService.secretEnv.then((secretEnv) =>
             this.secretsManagerClient.send(
               new PutSecretValueCommand({
                 SecretId: status.secretId,
-                SecretBinary: secretValue,
+                SecretBinary: Uint8Array.from(Buffer.from(JSON.stringify(secretEnv), 'utf-8')),
               }),
             ),
           ),
@@ -137,7 +134,7 @@ export class SecretService implements IamConsumer, EnvProducer {
 
   get env(): Promise<Record<string, string>> {
     return Promise.resolve({
-      SLY_SECRET: this.lastDeployStatus?.secretId || '',
+      SLY_SECRET: this._secretId || '',
     });
   }
 
@@ -146,8 +143,7 @@ export class SecretService implements IamConsumer, EnvProducer {
   }
 
   get policyDocument(): PolicyDocument | undefined {
-    const { secretId } = this.lastDeployStatus || {};
-    if (!secretId) {
+    if (!this._secretId) {
       return;
     }
     return {
@@ -155,7 +151,7 @@ export class SecretService implements IamConsumer, EnvProducer {
         {
           Effect: 'Allow',
           Action: ['secretsmanager:GetSecretValue'],
-          Resource: [secretId],
+          Resource: [this._secretId],
         },
       ],
       Version: '2012-10-17',
