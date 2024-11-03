@@ -1,9 +1,8 @@
-import { DeployStatus } from '../../cd/aws';
 import { ResourceOptions } from '../../cd';
 import { config as dotenv } from 'dotenv';
 import { expand as dotenvExpand } from 'dotenv-expand';
 import { join } from 'path';
-import { GitService } from '../../cd/git';
+import { GitDeployStatus, GitService } from '../../cd/git';
 import { isDebug } from '@actions/core';
 import { SecretConsumer, SecretDeployStatus } from '../../cd/aws/secret';
 import { LambdaDeployStatus } from '../../cd/aws/lambda';
@@ -37,7 +36,9 @@ export interface EnvProducer {
 }
 
 export class EnvService implements SecretConsumer {
-  private lastStatus?: DeployStatus;
+  private _envFiles?: string[];
+
+  private _secrets?: string[];
 
   private _processEnv: Record<string, string | undefined>;
 
@@ -68,8 +69,8 @@ export class EnvService implements SecretConsumer {
   }
 
   get secretValue(): Promise<Uint8Array> {
-    return this.computeEnv().then(({ secrets, combinedEnv }) => {
-      const secretEnv = secrets.reduce((acc, secret) => {
+    return this.computeEnv().then(({ combinedEnv }) => {
+      const secretEnv = this._secrets?.reduce((acc, secret) => {
         const value = combinedEnv[secret];
         if (!value) {
           // TODO: message this better
@@ -86,17 +87,18 @@ export class EnvService implements SecretConsumer {
   }
 
   public async predeploy(
-    status: EnvDeployStatus & SecretDeployStatus & LambdaDeployStatus,
+    status: GitDeployStatus & EnvDeployStatus & SecretDeployStatus & LambdaDeployStatus,
   ): Promise<void> {
-    this.lastStatus = status;
+    const { secrets } = await this.computeEnv();
+    this._secrets = secrets;
+    status.secrets = this._secrets;
 
-    status.secrets = await this.secrets;
-    status.envFiles = this.envFiles;
-    status.buildEnv = await this.getBuildEnv(status.secrets);
-    status.runtimeEnv = await this.runtimeEnv;
+    this._envFiles = this.getEnvFiles(status);
+    status.envFiles = this._envFiles;
+
+    status.buildEnv = await this.getBuildEnv();
+    status.runtimeEnv = await this.getRuntimeEnv();
     status.producedEnv = await this.producedEnv;
-
-    this.lastStatus = status;
   }
 
   public async deploy(
@@ -104,20 +106,9 @@ export class EnvService implements SecretConsumer {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _options: ResourceOptions,
   ): Promise<void> {
-    this.lastStatus = status;
-
-    status.buildEnv = await this.getBuildEnv(status.secrets);
-    status.runtimeEnv = await this.runtimeEnv;
+    status.buildEnv = await this.getBuildEnv();
+    status.runtimeEnv = await this.getRuntimeEnv();
     status.producedEnv = await this.producedEnv;
-
-    this.lastStatus = status;
-  }
-
-  private get baseEnv(): Record<string, string> {
-    // This is separate b/c we don't want these in the generated Dockerfiles
-    return {
-      URL: this.lastStatus?.url || '',
-    };
   }
 
   private get producedEnv(): Promise<Record<string, string>> {
@@ -133,17 +124,16 @@ export class EnvService implements SecretConsumer {
   }> {
     return Promise.all([this.gitService.workDir, this.producedEnv]).then(
       async ([cwd, producedEnv]) => {
-        const processEnv = this.baseEnv;
+        const processEnv = {};
 
         const { parsed: unexpanded = {} } = dotenv({
-          path: this.envFiles.map((f) => join(cwd, f)),
+          path: this._envFiles?.map((f) => join(cwd, f)),
           debug: isDebug(),
           processEnv,
         });
 
         const combinedEnv = Object.entries({
           ...producedEnv,
-          ...this.baseEnv,
           ...this._processEnv,
           ...this._secretEnv,
         }).reduce((acc, [key, value]) => {
@@ -177,17 +167,10 @@ export class EnvService implements SecretConsumer {
     );
   }
 
-  get secrets(): Promise<string[]> {
-    if (this.lastStatus?.secrets) {
-      return Promise.resolve(this.lastStatus.secrets);
-    }
-    return this.computeEnv().then(({ secrets }) => secrets);
-  }
-
-  private getBuildEnv(secrets?: string[]): Promise<Record<string, string>> {
+  private async getBuildEnv(): Promise<Record<string, string>> {
     return this.computeEnv().then(({ env }) =>
       Object.entries(env).reduce((acc, [key, value]) => {
-        if (secrets?.includes(key)) {
+        if (this._secrets?.includes(key)) {
           return acc;
         }
         acc[key] = value;
@@ -196,32 +179,24 @@ export class EnvService implements SecretConsumer {
     );
   }
 
-  get runtimeEnv(): Promise<Record<string, string>> {
-    return Promise.all([this.producedEnv, this.getBuildEnv(this.lastStatus?.secrets)]).then(
-      ([producedEnv, buildEnv]) => {
-        return {
-          SLY_ROUTES: JSON.stringify(this.gitService.config.routes), // TODO encode
-          SLY_SERVE: this.gitService.config.serveCommands.encode(),
-          SLY_SECRET: this.lastStatus?.secretName || '',
-          SLY_DEBUG: 'true', // TODO use flag
-          ...producedEnv,
-          ...this.baseEnv,
-          ...buildEnv,
-        };
-      },
-    );
+  private async getRuntimeEnv(): Promise<Record<string, string>> {
+    return Promise.all([this.producedEnv, this.getBuildEnv()]).then(([producedEnv, buildEnv]) => {
+      return {
+        SLY_ROUTES: JSON.stringify(this.gitService.config.routes), // TODO encode
+        SLY_SERVE: this.gitService.config.serveCommands.encode(),
+        SLY_DEBUG: 'true', // TODO use flag
+        ...producedEnv,
+        ...buildEnv,
+      };
+    });
   }
 
-  get dockerEnv(): string[] {
-    return Object.entries(this.runtimeEnv).map(([k, v]) => `${k}=${v}`);
-  }
-
-  get envFiles(): string[] {
+  private getEnvFiles(status: GitDeployStatus): string[] {
     const base = '.env';
 
     const files: string[] = [];
 
-    const { branch, defaultBranch } = this.lastStatus || {};
+    const { branch, defaultBranch } = status || {};
 
     if (branch === 'tagged') {
       files.push(this.gitService.tag);

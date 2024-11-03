@@ -42,10 +42,12 @@ export class AwsService {
     this.secretService = new SecretService(gitService);
     this.iamService = new IamService(gitService);
     this.ecrService = new EcrService(gitService);
-    this.lambdaService = new LambdaService(gitService, this.envService, this.dockerService);
+    this.lambdaService = new LambdaService(gitService, this.dockerService);
     this.scheduleService = new ScheduleService(gitService);
 
     this.envService.addProducer(this.resourcesService);
+    this.envService.addProducer(this.secretService);
+    this.envService.addProducer(this.lambdaService);
   }
 
   async predeploy(status: DeployStatus, options: ResourceOptions): Promise<void> {
@@ -87,9 +89,6 @@ export class AwsService {
   async deploy(status: DeployStatus, options: ResourceOptions): Promise<void> {
     // Deploy Environment Variables
     await this.envService.deploy(status, options);
-
-    // Deploy Secret
-    await this.secretService.deploy(status, this.envService, options);
 
     // Deploy Docker Container
     await this.dockerService.deploy(status, this.ecrService, options);

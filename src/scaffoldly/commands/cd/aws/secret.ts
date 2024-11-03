@@ -11,6 +11,7 @@ import { NotFoundException } from '../errors';
 import { createHash } from 'crypto';
 import { IamConsumer, PolicyDocument } from './iam';
 import { GitDeployStatus, GitService } from '../git';
+import { EnvProducer } from '../../ci/env';
 
 export type SecretName = string;
 export type SecretVersion = string;
@@ -25,7 +26,7 @@ export interface SecretConsumer {
   get secretValue(): Promise<Uint8Array>;
 }
 
-export class SecretService implements IamConsumer {
+export class SecretService implements IamConsumer, EnvProducer {
   secretsManagerClient: SecretsManagerClient;
 
   lastDeployStatus?: SecretDeployStatus;
@@ -132,6 +133,12 @@ export class SecretService implements IamConsumer {
         };
       },
     ).manage(options);
+  }
+
+  get env(): Promise<Record<string, string>> {
+    return Promise.resolve({
+      SLY_SECRET: this.lastDeployStatus?.secretId || '',
+    });
   }
 
   get trustRelationship(): undefined {

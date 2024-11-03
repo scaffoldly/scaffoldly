@@ -37,7 +37,7 @@ import {
 import { IamConsumer, IamDeployStatus, PolicyDocument, TrustRelationship } from './iam';
 import { DeployStatus } from '.';
 import { CloudResource, ResourceOptions, Subscription } from '..';
-import { EnvService } from '../../ci/env';
+import { EnvDeployStatus, EnvProducer } from '../../ci/env';
 import { DockerDeployStatus, DockerService } from '../docker';
 import { Architecture } from '../../ci/docker';
 import { EcrDeployStatus } from './ecr';
@@ -58,14 +58,12 @@ export interface SubscriptionProducer {
   get subscriptions(): Promise<Subscription[]>;
 }
 
-export class LambdaService implements IamConsumer {
+export class LambdaService implements IamConsumer, EnvProducer {
   lambdaClient: LambdaClient;
 
-  constructor(
-    private gitService: GitService,
-    private envService: EnvService,
-    private dockerService: DockerService,
-  ) {
+  private _url?: string;
+
+  constructor(private gitService: GitService, private dockerService: DockerService) {
     this.lambdaClient = new LambdaClient();
   }
 
@@ -94,7 +92,8 @@ export class LambdaService implements IamConsumer {
       GitDeployStatus &
       IamDeployStatus &
       EcrDeployStatus &
-      DockerDeployStatus,
+      DockerDeployStatus &
+      EnvDeployStatus,
     options: ResourceOptions,
   ): Promise<void> {
     if (options.dev || options.buildOnly) {
@@ -109,7 +108,7 @@ export class LambdaService implements IamConsumer {
         Timeout: this.gitService.config.timeout,
         MemorySize: 1024,
         Environment: {
-          Variables: await this.envService.runtimeEnv,
+          Variables: status.runtimeEnv,
         },
         LastUpdateStatus: 'Successful',
         State: 'Active',
@@ -306,6 +305,7 @@ export class LambdaService implements IamConsumer {
     ).manage(options);
 
     status.url = functionUrl;
+    this._url = functionUrl;
   }
 
   private async configurePermissions(
@@ -500,6 +500,12 @@ export class LambdaService implements IamConsumer {
     );
 
     await Promise.all(cloudResources.map((cloudResource) => cloudResource.manage(options)));
+  }
+
+  get env(): Promise<Record<string, string>> {
+    return Promise.resolve({
+      URL: this._url || '',
+    });
   }
 
   get trustRelationship(): TrustRelationship {

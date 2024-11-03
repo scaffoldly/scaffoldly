@@ -2,7 +2,6 @@ import Dockerode from 'dockerode';
 import { BehaviorSubject, concatMap, Subject, Subscription, timer } from 'rxjs';
 import { DockerService } from '.';
 import { GitService } from '../../cd/git';
-import { EnvService } from '../env';
 import { RUNTIME_SERVER_PORT } from '../aws/lambda/lambda-runtime-server';
 import { uniqueId } from 'lodash';
 import { DevServer } from '../server/dev-server';
@@ -66,7 +65,6 @@ export class ContainerPool extends DevServer {
     abortController: AbortController,
     private gitService: GitService,
     dockerService: DockerService,
-    private envService: EnvService,
     protected readonly options = { lifetime: 900, maxConcurrency: 10 },
   ) {
     super('Container Pool', abortController);
@@ -145,7 +143,8 @@ export class ContainerPool extends DevServer {
 
   private async createContainer(ref: ContainerRef): Promise<ContainerRef> {
     try {
-      const env = this.envService.dockerEnv;
+      // const env = this.envService.dockerEnv;
+      const env: string[] = [];
       const mounts = await this.mounts;
       env.unshift(`AWS_LAMBDA_RUNTIME_API=${ref.runtimeApi}`);
 

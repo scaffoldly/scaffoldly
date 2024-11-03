@@ -33,12 +33,7 @@ export class DevCommand extends CiCommand<DevCommand> {
   constructor(protected gitService: GitService) {
     super(gitService, 'development');
     this.deployCommand = new DeployCommand(this.gitService, process.env, this.mode);
-    this.containerPool = new ContainerPool(
-      this.abortController,
-      gitService,
-      this.dockerService,
-      this.deployCommand.envService,
-    );
+    this.containerPool = new ContainerPool(this.abortController, gitService, this.dockerService);
     this.lambdaRuntimeServer = new LambdaRuntimeServer(gitService, this.containerPool);
     this.functionUrlServer = new FunctionUrlServer(gitService, this.lambdaRuntimeServer);
 
