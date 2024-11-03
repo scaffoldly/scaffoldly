@@ -87,13 +87,15 @@ export class EnvService {
   }
 
   get buildEnv(): Promise<Record<string, string>> {
-    return Promise.all([this.gitService.workDir, this.producedEnv]).then(
+    return Promise.all([this.gitService.workDir, this.producedEnv, this.secrets]).then(
       async ([cwd, producedEnv]) => {
-        const processEnv = { ...producedEnv };
+        const buildEnv = { ...producedEnv };
         dotenvExpand(
-          dotenv({ path: this._envFiles?.map((f) => join(cwd, f)), processEnv: processEnv }),
+          dotenv({ path: this._envFiles?.map((f) => join(cwd, f)), processEnv: buildEnv }),
         );
-        return processEnv;
+
+        // TODO: Filter secrets from build env?
+        return buildEnv;
       },
     );
   }
@@ -149,13 +151,17 @@ export class EnvService {
   }
 
   get secretEnv(): Promise<Record<string, string>> {
-    return Promise.all([this.secrets]).then(async ([secrets]) => {
+    return Promise.all([this.gitService.workDir, this.secrets]).then(async ([cwd, secrets]) => {
       const secretEnv = secrets.reduce((acc, key) => {
         // TODO: Warn if secret is unkown
         const value = this._secretEnv[key] || '';
         acc[key] = value;
         return acc;
       }, {} as Record<string, string>);
+
+      dotenvExpand(
+        dotenv({ path: this._envFiles?.map((f) => join(cwd, f)), processEnv: secretEnv }),
+      );
 
       return secretEnv;
     });
