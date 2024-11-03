@@ -70,7 +70,9 @@ export class EnvService implements SecretConsumer {
       const secretEnv = secrets.reduce((acc, secret) => {
         const value = combinedEnv[secret];
         if (!value) {
-          throw new Error(`Secret \`${secret}\` not found in environment`);
+          // TODO: message this better
+          //throw new Error(`Secret \`${secret}\` not found in environment`);
+          return acc;
         }
         ui.updateBottomBarSubtext(`Injecting secret \`${secret}\`: ${redact(value)}`);
         acc[secret] = value;
@@ -175,7 +177,15 @@ export class EnvService implements SecretConsumer {
   }
 
   get buildEnv(): Promise<Record<string, string>> {
-    return this.computeEnv().then(({ env }) => env);
+    return this.computeEnv().then(({ env, secrets }) =>
+      Object.entries(env).reduce((acc, [key, value]) => {
+        if (secrets.includes(key)) {
+          return acc;
+        }
+        acc[key] = value;
+        return acc;
+      }, {} as Record<string, string>),
+    );
   }
 
   get runtimeEnv(): Promise<Record<string, string>> {
