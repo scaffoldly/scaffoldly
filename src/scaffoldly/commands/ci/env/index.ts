@@ -12,7 +12,9 @@ import { ui } from '../../../command';
 export type EnvDeployStatus = {
   envFiles?: string[];
   buildEnv?: Record<string, string>;
+  runtimeEnv?: Record<string, string>;
   producedEnv?: Record<string, string>;
+  secrets?: string[];
 };
 
 const normalizeBranch = (branch: string) => branch.replaceAll('/', '-').replaceAll('_', '-');
@@ -37,14 +39,14 @@ export interface EnvProducer {
 export class EnvService implements SecretConsumer {
   private lastStatus?: DeployStatus;
 
-  private _env: Record<string, string | undefined>;
+  private _processEnv: Record<string, string | undefined>;
 
   private _secretEnv: Record<string, string | undefined>;
 
   private envProducers: EnvProducer[] = [];
 
   constructor(private gitService: GitService, secrets: Record<string, string | undefined>) {
-    this._env = Object.entries(process.env).reduce((acc, [key, value]) => {
+    this._processEnv = Object.entries(process.env).reduce((acc, [key, value]) => {
       if (!value) {
         return acc;
       }
@@ -88,8 +90,10 @@ export class EnvService implements SecretConsumer {
   ): Promise<void> {
     this.lastStatus = status;
 
+    status.secrets = await this.secrets;
     status.envFiles = this.envFiles;
     status.buildEnv = await this.buildEnv;
+    status.runtimeEnv = await this.runtimeEnv;
     status.producedEnv = await this.producedEnv;
 
     this.lastStatus = status;
@@ -103,6 +107,7 @@ export class EnvService implements SecretConsumer {
     this.lastStatus = status;
 
     status.buildEnv = await this.buildEnv;
+    status.runtimeEnv = await this.runtimeEnv;
     status.producedEnv = await this.producedEnv;
 
     this.lastStatus = status;
@@ -139,7 +144,7 @@ export class EnvService implements SecretConsumer {
         const combinedEnv = Object.entries({
           ...producedEnv,
           ...this.baseEnv,
-          ...this._env,
+          ...this._processEnv,
           ...this._secretEnv,
         }).reduce((acc, [key, value]) => {
           if (!value) {
@@ -173,13 +178,16 @@ export class EnvService implements SecretConsumer {
   }
 
   get secrets(): Promise<string[]> {
+    if (this.lastStatus?.secrets) {
+      return Promise.resolve(this.lastStatus.secrets);
+    }
     return this.computeEnv().then(({ secrets }) => secrets);
   }
 
   get buildEnv(): Promise<Record<string, string>> {
-    return this.computeEnv().then(({ env, secrets }) =>
+    return this.computeEnv().then(({ env }) =>
       Object.entries(env).reduce((acc, [key, value]) => {
-        if (secrets.includes(key)) {
+        if (this.lastStatus?.secrets?.includes(key)) {
           return acc;
         }
         acc[key] = value;
