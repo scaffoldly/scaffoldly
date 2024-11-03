@@ -92,7 +92,7 @@ export class EnvService implements SecretConsumer {
 
     status.secrets = await this.secrets;
     status.envFiles = this.envFiles;
-    status.buildEnv = await this.buildEnv;
+    status.buildEnv = await this.getBuildEnv(status.secrets);
     status.runtimeEnv = await this.runtimeEnv;
     status.producedEnv = await this.producedEnv;
 
@@ -106,7 +106,7 @@ export class EnvService implements SecretConsumer {
   ): Promise<void> {
     this.lastStatus = status;
 
-    status.buildEnv = await this.buildEnv;
+    status.buildEnv = await this.getBuildEnv(status.secrets);
     status.runtimeEnv = await this.runtimeEnv;
     status.producedEnv = await this.producedEnv;
 
@@ -184,10 +184,10 @@ export class EnvService implements SecretConsumer {
     return this.computeEnv().then(({ secrets }) => secrets);
   }
 
-  get buildEnv(): Promise<Record<string, string>> {
+  private getBuildEnv(secrets?: string[]): Promise<Record<string, string>> {
     return this.computeEnv().then(({ env }) =>
       Object.entries(env).reduce((acc, [key, value]) => {
-        if (this.lastStatus?.secrets?.includes(key)) {
+        if (secrets?.includes(key)) {
           return acc;
         }
         acc[key] = value;
@@ -197,17 +197,19 @@ export class EnvService implements SecretConsumer {
   }
 
   get runtimeEnv(): Promise<Record<string, string>> {
-    return Promise.all([this.producedEnv, this.buildEnv]).then(([producedEnv, buildEnv]) => {
-      return {
-        SLY_ROUTES: JSON.stringify(this.gitService.config.routes), // TODO encode
-        SLY_SERVE: this.gitService.config.serveCommands.encode(),
-        SLY_SECRET: this.lastStatus?.secretName || '',
-        SLY_DEBUG: 'true', // TODO use flag
-        ...producedEnv,
-        ...this.baseEnv,
-        ...buildEnv,
-      };
-    });
+    return Promise.all([this.producedEnv, this.getBuildEnv(this.lastStatus?.secrets)]).then(
+      ([producedEnv, buildEnv]) => {
+        return {
+          SLY_ROUTES: JSON.stringify(this.gitService.config.routes), // TODO encode
+          SLY_SERVE: this.gitService.config.serveCommands.encode(),
+          SLY_SECRET: this.lastStatus?.secretName || '',
+          SLY_DEBUG: 'true', // TODO use flag
+          ...producedEnv,
+          ...this.baseEnv,
+          ...buildEnv,
+        };
+      },
+    );
   }
 
   get dockerEnv(): string[] {
