@@ -180,13 +180,12 @@ export class EnvService implements SecretConsumer {
   }
 
   private async getRuntimeEnv(): Promise<Record<string, string>> {
-    return Promise.all([this.producedEnv, this.getBuildEnv()]).then(([producedEnv, buildEnv]) => {
+    return Promise.all([this.producedEnv]).then(([producedEnv]) => {
       return {
         SLY_ROUTES: JSON.stringify(this.gitService.config.routes), // TODO encode
         SLY_SERVE: this.gitService.config.serveCommands.encode(),
         SLY_DEBUG: 'true', // TODO use flag
         ...producedEnv,
-        ...buildEnv,
       };
     });
   }
