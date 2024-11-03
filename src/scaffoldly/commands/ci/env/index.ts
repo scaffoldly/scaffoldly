@@ -5,6 +5,8 @@ import { join } from 'path';
 import { GitDeployStatus, GitService } from '../../cd/git';
 import { SecretDeployStatus } from '../../cd/aws/secret';
 import { LambdaDeployStatus } from '../../cd/aws/lambda';
+import { ui } from '../../../command';
+import { isDebug } from '@actions/core';
 
 export type EnvDeployStatus = {
   envFiles?: string[];
@@ -12,18 +14,25 @@ export type EnvDeployStatus = {
 
 const normalizeBranch = (branch: string) => branch.replaceAll('/', '-').replaceAll('_', '-');
 
-// const redact = (input: string): string => {
-//   const length = input.length;
-//   let slice = 2;
+const redact = (input?: string): string => {
+  if (!input || input.length === 0) {
+    return '[EMPTY]';
+  }
+  const length = input.length;
+  let slice = 2;
 
-//   if (length <= 2) {
-//     slice = 0; // Fully redacted for strings with length 2 or less
-//   } else if (length <= 4) {
-//     slice = 1; // Only the first and last character visible for strings with length 3 or 4
-//   }
+  if (length === 0) {
+    return '[EMPTY]';
+  }
 
-//   return `${input.slice(0, slice)}${'.'.repeat(length - slice * 2)}${input.slice(-slice)}`;
-// };
+  if (length <= 2) {
+    slice = 0; // Fully redacted for strings with length 2 or less
+  } else if (length <= 4) {
+    slice = 1; // Only the first and last character visible for strings with length 3 or 4
+  }
+
+  return `${input.slice(0, slice)}${'.'.repeat(length - slice * 2)}${input.slice(-slice)}`;
+};
 
 export interface EnvProducer {
   get env(): Promise<Record<string, string>>;
@@ -137,11 +146,36 @@ export class EnvService {
 
       // Secrets are any values that are still unexpanded
       const secrets = Object.entries(parsed).reduce((acc, [key, value]) => {
+        if (isDebug()) {
+          console.warn(`\nChecking ${key} for expansion`);
+          console.warn(`  Original Value: ${redact(value)}`);
+          console.warn(`  Expanded Value: ${redact(expanded[key])}`);
+          console.warn(`  Secret Value: ${redact(this._secretEnv[key])}`);
+        }
+        if (value === expanded[key] && !value.includes('$')) {
+          // Raw value, do not include
+          return acc;
+        }
         if (expanded[key] === '' && parsed[key] === value) {
+          // TODO Maybe throw an error
+          console.warn(`\n🟠 Environment variable ${key} was not substituted`);
+          ui.updateBottomBarSubtext(`Marking ${key} as sensitive`);
+          acc.push(key);
+        }
+        if (value === expanded[key] && !this._secretEnv[key]) {
+          // Variable was not substituted
+          console.warn(`\n🟠 Environment variable ${key} was not substituted`);
+          ui.updateBottomBarSubtext(`Marking ${key} as sensitive`);
           acc.push(key);
         }
         if (value.startsWith('${') && value.endsWith('}')) {
-          acc.push(value.slice(2, -1));
+          // TODO: Handle default values from dotenv expand
+          const ref = value.slice(2, -1);
+          if (this._secretEnv[ref]) {
+            acc.push(ref);
+            acc.push(key);
+            ui.updateBottomBarSubtext(`Marking ${ref} and ${key} as sensitive`);
+          }
         }
         return acc;
       }, [] as string[]);
@@ -152,18 +186,37 @@ export class EnvService {
 
   get secretEnv(): Promise<Record<string, string>> {
     return Promise.all([this.gitService.workDir, this.secrets]).then(async ([cwd, secrets]) => {
-      const secretEnv = secrets.reduce((acc, key) => {
-        // TODO: Warn if secret is unkown
-        const value = this._secretEnv[key] || '';
-        acc[key] = value;
+      // Get env files with secrets and env
+      const parsed =
+        dotenv({
+          path: this._envFiles?.map((f) => join(cwd, f)),
+          processEnv: { ...this._secretEnv, ...this._processEnv },
+        }).parsed || {};
+
+      // Perform variable expansion
+      const expanded =
+        dotenvExpand({
+          parsed: { ...parsed },
+          processEnv: { ...this._secretEnv, ...this._processEnv },
+        }).parsed || {};
+
+      // Filter out non-secrets
+      const filtered = Object.entries(expanded).reduce((acc, [key, value]) => {
+        if (secrets.includes(key) && expanded[key]) {
+          acc[key] = value;
+        }
         return acc;
       }, {} as Record<string, string>);
 
-      dotenvExpand(
-        dotenv({ path: this._envFiles?.map((f) => join(cwd, f)), processEnv: secretEnv }),
-      );
+      // Add secrets back that were not expanded
+      const enriched = secrets.reduce((acc, key) => {
+        if (!acc[key]) {
+          acc[key] = this._secretEnv[key] || parsed[key] || `$\{${key}}`;
+        }
+        return acc;
+      }, filtered);
 
-      return secretEnv;
+      return enriched;
     });
   }
 
