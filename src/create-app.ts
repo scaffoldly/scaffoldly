@@ -53,6 +53,7 @@ type FrameworkVariant = {
   rm?: string[];
   handler?: string;
   main?: string;
+  setupCommands?: string[];
   devCommand?: string;
 };
 
@@ -434,7 +435,7 @@ export const run = async (): Promise<void> => {
     throw new Error(`Invalid variant: ${variant}`);
   }
 
-  const { rm: excludeFiles, type, devCommand, branch: variantBranch } = variant;
+  const { rm: excludeFiles, type, setupCommands, devCommand, branch: variantBranch } = variant;
 
   if (!type) {
     throw new Error(`Invalid or missing project type`);
@@ -511,6 +512,11 @@ export const run = async (): Promise<void> => {
   console.log(``);
   if (root !== cwd) {
     console.log(`    cd ${cdProjectName.includes(' ') ? `"${cdProjectName}"` : cdProjectName}`);
+  }
+  if (setupCommands) {
+    setupCommands.forEach((setupCommand) => {
+      console.log(`    ${setupCommand}`);
+    });
   }
   console.log(`    ${devCommand}`);
   console.log(``);
