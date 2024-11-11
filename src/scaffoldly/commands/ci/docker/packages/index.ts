@@ -5,6 +5,7 @@ import { OsPackageService } from './os';
 import { join, relative } from 'path';
 import { isLocalDeps } from '../../../../ui';
 import { PipPackageService } from './pip';
+import { HuggingfacePackageService } from './huggingface';
 
 export class PackageService {
   osPackages: OsPackageService;
@@ -13,10 +14,13 @@ export class PackageService {
 
   pipPackages: PipPackageService;
 
+  huggingfacePackages: HuggingfacePackageService;
+
   constructor(private dockerService: DockerService, private config: ScaffoldlyConfig) {
     this.osPackages = new OsPackageService(this.dockerService, config);
     this.npmPackages = new NpmPackageService(config);
     this.pipPackages = new PipPackageService(config);
+    this.huggingfacePackages = new HuggingfacePackageService(config);
   }
 
   get entrypoint(): Copy {
@@ -47,6 +51,7 @@ export class PackageService {
       this.osPackages.paths,
       this.npmPackages.paths,
       this.pipPackages.paths,
+      this.huggingfacePackages.paths,
     ]).then((paths) => [join(taskdir, src), ...paths.flat()]);
   }
 
@@ -55,6 +60,7 @@ export class PackageService {
       this.osPackages.commands,
       this.npmPackages.commands,
       this.pipPackages.commands,
+      this.huggingfacePackages.commands,
     ])
       .then((cmds) => cmds.flat())
       .catch((e) => {
@@ -63,5 +69,9 @@ export class PackageService {
         }
         throw new Error(`Error generating install commands for packages: ${e.message}`);
       });
+  }
+
+  get files(): Promise<Copy[]> {
+    return Promise.all([this.pipPackages.files]).then((files) => files.flat());
   }
 }

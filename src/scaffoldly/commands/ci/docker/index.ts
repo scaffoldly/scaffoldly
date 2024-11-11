@@ -39,6 +39,7 @@ export type Copy = {
   resolve?: boolean;
   entrypoint?: boolean;
   mode?: number;
+  prerequisite?: boolean;
 };
 
 export type RunCommand = {
@@ -369,9 +370,12 @@ export class DockerService {
       workdir: taskdir,
       shell: shell,
       cmd: undefined,
-      copy: [],
+      copy: await packageService.files,
       paths: [],
-      env,
+      env: {
+        XDG_CACHE_HOME: join(taskdir, '.cache'),
+        ...(env || {}),
+      },
       run: [],
       user,
     };
@@ -654,6 +658,13 @@ export class DockerService {
       }
     }
 
+    const prereqFiles = copy?.filter((c) => !!c.prerequisite);
+    if (prereqFiles) {
+      prereqFiles.forEach((c) => {
+        lines.push(`COPY ${c.src} ${c.dest}`);
+      });
+    }
+
     const prereqRuns = run?.filter((r) => r.prerequisite && r.cmds.length);
     if (prereqRuns) {
       prereqRuns.forEach((r) => {
@@ -673,7 +684,7 @@ export class DockerService {
     const copyLines = new Set<string>();
     if (copy) {
       copy
-        .filter((c) => !c.from)
+        .filter((c) => !c.from && !c.prerequisite)
         .forEach((c) => {
           if (c.resolve && workdir) {
             copyLines.add(`${COPY} ${c.dest}* ${join(workdir, c.dest)}`);
@@ -692,7 +703,7 @@ export class DockerService {
         });
 
       copy
-        .filter((c) => !!c.from)
+        .filter((c) => !!c.from && !c.prerequisite)
         .forEach((c) => {
           let { src } = c;
           if (src === DEFAULT_SRC_ROOT && workdir) {

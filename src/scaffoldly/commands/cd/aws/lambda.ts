@@ -110,7 +110,7 @@ export class LambdaService implements IamConsumer, EnvProducer {
       Configuration: {
         Role: status.roleArn,
         Timeout: this.gitService.config.timeout,
-        MemorySize: 1024,
+        MemorySize: this.gitService.config.memorySize,
         LastUpdateStatus: 'Successful',
         State: 'Active',
       },
