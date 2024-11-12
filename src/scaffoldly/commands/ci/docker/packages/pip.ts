@@ -80,7 +80,7 @@ export class PipPackageService {
     }
 
     if (this.requirementsFile) {
-      cmds.unshift(`pip install --no-cache-dir -r ${this.requirementsFile}`);
+      cmds.push(`pip install --no-cache-dir -r ${this.requirementsFile}`);
     }
 
     return [

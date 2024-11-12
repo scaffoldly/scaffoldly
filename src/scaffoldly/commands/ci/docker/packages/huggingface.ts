@@ -1,3 +1,4 @@
+import { join } from 'path';
 import { RunCommand } from '..';
 import { ScaffoldlyConfig } from '../../../../../config';
 
@@ -75,11 +76,30 @@ export class HuggingfacePackageService {
     const models = this.packages.filter((p) => p.type === 'model');
     const datasets = this.packages.filter((p) => p.type === 'dataset');
     const cmds = [...models.map(convertToCommand), ...datasets.map(convertToCommand)];
+    cmds.push(`echo 1 > ${this.hfCache}/version.txt`);
     return [
       {
         prerequisite: true,
         cmds,
       },
     ];
+  }
+
+  get hfHome(): string {
+    return join(this.config.taskdir, '.cache', 'huggingface');
+  }
+
+  get hfCache(): string {
+    return join(this.hfHome, 'hub');
+  }
+
+  get env(): Record<string, string> {
+    if (this.packages.length === 0) {
+      return {};
+    }
+    return {
+      HF_HOME: this.hfHome,
+      HF_HUB_CACHE: this.hfCache,
+    };
   }
 }

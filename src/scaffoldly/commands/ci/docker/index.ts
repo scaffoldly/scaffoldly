@@ -373,7 +373,7 @@ export class DockerService {
       copy: await packageService.files,
       paths: [],
       env: {
-        XDG_CACHE_HOME: join(taskdir, '.cache'),
+        ...packageService.env,
         ...(env || {}),
       },
       run: [],

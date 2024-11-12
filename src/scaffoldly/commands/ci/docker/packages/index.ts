@@ -74,4 +74,10 @@ export class PackageService {
   get files(): Promise<Copy[]> {
     return Promise.all([this.pipPackages.files]).then((files) => files.flat());
   }
+
+  get env(): Record<string, string> {
+    return {
+      ...this.huggingfacePackages.env,
+    };
+  }
 }
