@@ -17,6 +17,7 @@ import { DotnetProject } from './config/projects/dotnet';
 import { PythonProject } from './config/projects/python';
 import { RustProject } from './config/projects/rust';
 import ejs from 'ejs';
+import { StandaloneProject } from './config/projects/standalone';
 
 const cwd = process.cwd();
 
@@ -35,7 +36,7 @@ type Framework = {
   downloadUrl: string;
 };
 
-type ProjectType = 'dotnet' | 'go' | 'node' | 'python' | 'rust';
+type ProjectType = 'dotnet' | 'go' | 'node' | 'python' | 'rust' | 'standalone';
 
 type Choice = {
   projectName: string;
@@ -299,6 +300,8 @@ const getProject = (projectType: ProjectType, workdir: string): AbstractProject 
       return new PythonProject(undefined, workdir);
     case 'rust':
       return new RustProject(undefined, workdir);
+    case 'standalone':
+      return new StandaloneProject(undefined, workdir);
     default:
       return undefined;
   }
