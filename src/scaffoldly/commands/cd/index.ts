@@ -6,6 +6,10 @@ import _ from 'lodash';
 import { NotFoundException, SkipAction } from './errors';
 import { Mode } from '../../../config';
 import { GitService } from './git';
+import {
+  // eslint-disable-next-line import/named
+  AddPermissionRequest,
+} from '@aws-sdk/client-lambda';
 
 type Differences = {
   [key: string]: unknown | Differences;
@@ -54,8 +58,9 @@ export type ResourceExtractor<Resource, ReadCommandOutput> = (
 ) => Partial<Resource> | undefined;
 
 export type Subscription = {
-  subscriptionArn: string;
-  startingPosition: 'AT_TIMESTAMP' | 'LATEST' | 'TRIM_HORIZON';
+  subscriptionArn?: string;
+  createSubscription?: (destinationArn: string) => CloudResource<Subscription, unknown>;
+  lambdaPermission?: (functionArn?: string) => Promise<AddPermissionRequest | undefined>;
 };
 
 export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<Partial<Resource>> {

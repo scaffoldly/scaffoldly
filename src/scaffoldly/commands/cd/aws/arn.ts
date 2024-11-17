@@ -9,7 +9,7 @@ export class ARN<ReadCommandOutput> implements EnvProducer {
 
   private _arn: string;
 
-  private _resource: string;
+  private _name: string;
 
   private _searchParams: URLSearchParams;
 
@@ -24,12 +24,17 @@ export class ARN<ReadCommandOutput> implements EnvProducer {
     this._arn = arn.toLowerCase();
 
     const { name, searchParams, hash } = ARN.resource(this._arn);
-    this._resource = name;
+    this._name = name;
     this._searchParams = searchParams;
     this._hash = hash;
   }
 
-  static resource(arn: string): { name: string; searchParams: URLSearchParams; hash: string } {
+  static resource(arn: string): {
+    service: string;
+    name: string;
+    searchParams: URLSearchParams;
+    hash: string;
+  } {
     const { partition, service, resource: rawResource } = parse(arn.toLowerCase());
     const url = new URL(`${partition || 'aws'}://${service}/${rawResource}`);
 
@@ -37,7 +42,7 @@ export class ARN<ReadCommandOutput> implements EnvProducer {
     const searchParams = url.searchParams;
     const hash = url.hash.split('#').slice(1).join('#');
 
-    return { name, searchParams, hash };
+    return { service, name, searchParams, hash };
   }
 
   get managedArn(): Promise<ManagedArn | undefined> {
@@ -68,7 +73,7 @@ export class ARN<ReadCommandOutput> implements EnvProducer {
   }
 
   get partition(): string | undefined {
-    return parse(this._arn).partition;
+    return parse(this._arn).partition || undefined;
   }
 
   get service(): string {
@@ -84,8 +89,8 @@ export class ARN<ReadCommandOutput> implements EnvProducer {
     return parse(this._arn).accountId;
   }
 
-  get resource(): string {
-    return this._resource;
+  get name(): string {
+    return this._name;
   }
 
   get hash(): string {
@@ -115,8 +120,8 @@ export class ARN<ReadCommandOutput> implements EnvProducer {
   }
 
   get env(): Promise<Record<string, string>> {
-    return Promise.all([this.arn, this.partition, this.service, this.resource]).then(
-      ([arn, partition = 'aws', service, resource]) => {
+    return Promise.all([this.arn, this.partition, this.service, this.name]).then(
+      ([arn, partition = 'aws', service, name]) => {
         if (!arn) {
           // ui.updateBottomBar('');
           // console.warn(`🟠 Unable to determine ARN for ${this._arn}`);
@@ -125,7 +130,7 @@ export class ARN<ReadCommandOutput> implements EnvProducer {
 
         // Split resource into parts on non-word characters
         const partitionParts = partition.split(/[^a-zA-Z0-9]/);
-        const resourceParts = resource.split(/[^a-zA-Z0-9]/);
+        const resourceParts = name.split(/[^a-zA-Z0-9]/);
 
         // arn:aws:dynamodb:us-east-1:123456789012:table/my-table ==> AWS_DYNAMODB_TABLE_MY_TABLE
         // arn:aws:s3:::my-bucket ==> AWS_S3_BUCKET_MY_BUCKET

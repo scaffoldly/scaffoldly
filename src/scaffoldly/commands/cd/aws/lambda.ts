@@ -75,7 +75,6 @@ export class LambdaService implements IamConsumer, EnvProducer {
     await this.configureFunction(status, options);
     await this.configureAlias(status, options);
     await this.configureUrl(status, options);
-    await this.configurePermissions(status, options);
   }
 
   public async deploy(
@@ -87,8 +86,12 @@ export class LambdaService implements IamConsumer, EnvProducer {
     await this.configureFunction(status, options);
     await this.publishCode(status, options);
     await this.configureAlias(status, options);
+    await this.configurePermissions(
+      status,
+      await this.configureSubscriptions(status, producers, options),
+      options,
+    );
     await this.configureUrl(status, options);
-    await this.configureSubscriptions(status, producers, options);
   }
 
   private async configureFunction(
@@ -324,6 +327,7 @@ export class LambdaService implements IamConsumer, EnvProducer {
 
   private async configurePermissions(
     status: DeployStatus,
+    subscriptions: Subscription[],
     options: ResourceOptions,
   ): Promise<void> {
     if (options.dev || options.buildOnly) {
@@ -332,23 +336,26 @@ export class LambdaService implements IamConsumer, EnvProducer {
 
     const requests: AddPermissionRequest[] = [
       {
-        FunctionName: status.functionArn,
-        Qualifier: status.functionQualifier,
+        FunctionName: `${status.functionArn}:${status.functionQualifier}`,
         StatementId: 'InvokeFunctionUrl',
         Action: 'lambda:InvokeFunctionUrl',
         Principal: '*',
         FunctionUrlAuthType: 'NONE',
       },
+      ...(await Promise.all(
+        subscriptions
+          .map((s) => s.lambdaPermission)
+          .filter((fn) => !!fn)
+          .map((fn) => fn(`${status.functionArn}:${status.functionQualifier}`)),
+      ).then((rs) => rs.filter((r) => !!r))),
     ];
 
     await new CloudResource<{ policy: PolicyDocument }, GetPolicyCommandOutput>(
       {
-        describe: (resource) => {
+        describe: () => {
           return {
             type: 'Function Policies',
-            label: (
-              resource.policy?.Statement?.map((s) => s.Sid) || requests.map((r) => r.StatementId)
-            ).join(', '),
+            label: requests.map((r) => r.StatementId).join(', '),
           };
         },
         read: () =>
@@ -358,13 +365,8 @@ export class LambdaService implements IamConsumer, EnvProducer {
               Qualifier: status.functionQualifier,
             }),
           ),
-        create: () =>
-          Promise.all(
-            requests.map((request) => this.lambdaClient.send(new AddPermissionCommand(request))),
-          ),
         update: (existing) => {
           return Promise.all(
-            // TODO: Diff check
             requests
               .filter(
                 (request) =>
@@ -372,7 +374,9 @@ export class LambdaService implements IamConsumer, EnvProducer {
                     (statement) => statement.Sid === request.StatementId,
                   ),
               )
-              .map((request) => this.lambdaClient.send(new AddPermissionCommand(request))),
+              .map((request) => {
+                return this.lambdaClient.send(new AddPermissionCommand(request));
+              }),
           );
         },
         emitPermissions: (aware) => {
@@ -462,58 +466,66 @@ export class LambdaService implements IamConsumer, EnvProducer {
     status: LambdaDeployStatus,
     producers: SubscriptionProducer[],
     options: ResourceOptions,
-  ): Promise<void> {
+  ): Promise<Subscription[]> {
     const subscriptions = (
       await Promise.all(producers.map((producer) => producer.subscriptions))
     ).flat();
 
-    const cloudResources = subscriptions.map(
-      (subscription) =>
-        new CloudResource<EventSourceMappingConfiguration, ListEventSourceMappingsCommandOutput>(
-          {
-            describe: (resource) => {
-              return {
-                type: 'Function Subscription',
-                label: ARN.resource(resource.EventSourceArn || subscription.subscriptionArn).name,
-              };
-            },
-            read: () =>
-              this.lambdaClient.send(
-                new ListEventSourceMappingsCommand({
-                  FunctionName: `${status.functionArn}:${status.functionQualifier}`,
-                }),
-              ),
-            create: () =>
-              this.lambdaClient.send(
-                new CreateEventSourceMappingCommand({
-                  FunctionName: `${status.functionArn}:${status.functionQualifier}`,
-                  EventSourceArn: subscription.subscriptionArn,
-                  StartingPosition: 'LATEST',
-                  Enabled: true,
-                }),
-              ),
-            update: (existing) =>
-              this.lambdaClient.send(
-                new UpdateEventSourceMappingCommand({
-                  UUID: existing.UUID,
-                  FunctionName: `${status.functionArn}:${status.functionQualifier}`,
-                  Enabled: !!subscriptions.find(
-                    (s) => s.subscriptionArn === existing.EventSourceArn,
-                  ),
-                }),
-              ),
+    const cloudResources = subscriptions.map((subscription) => {
+      if (subscription.createSubscription) {
+        return subscription.createSubscription(`${status.functionArn}:${status.functionQualifier}`);
+      }
+
+      return new CloudResource<
+        EventSourceMappingConfiguration,
+        ListEventSourceMappingsCommandOutput
+      >(
+        {
+          describe: (resource) => {
+            return {
+              type: 'Function Subscription',
+              label: resource.EventSourceArn
+                ? ARN.resource(resource.EventSourceArn).name
+                : '[computed]',
+            };
           },
-          (output) => {
-            if (!output.EventSourceMappings) return undefined;
-            if (!output.EventSourceMappings.length) return undefined;
-            return output.EventSourceMappings.find(
-              (sm) => sm.EventSourceArn === subscription.subscriptionArn,
-            );
-          },
-        ),
-    );
+          read: () =>
+            this.lambdaClient.send(
+              new ListEventSourceMappingsCommand({
+                FunctionName: `${status.functionArn}:${status.functionQualifier}`,
+              }),
+            ),
+          create: () =>
+            this.lambdaClient.send(
+              new CreateEventSourceMappingCommand({
+                FunctionName: `${status.functionArn}:${status.functionQualifier}`,
+                EventSourceArn: subscription.subscriptionArn,
+                StartingPosition: 'LATEST',
+                Enabled: true,
+              }),
+            ),
+          update: (existing) =>
+            this.lambdaClient.send(
+              new UpdateEventSourceMappingCommand({
+                UUID: existing.UUID,
+                FunctionName: `${status.functionArn}:${status.functionQualifier}`,
+                Enabled: !!subscriptions.find((s) => s.subscriptionArn === existing.EventSourceArn),
+              }),
+            ),
+        },
+        (output) => {
+          if (!output.EventSourceMappings) return undefined;
+          if (!output.EventSourceMappings.length) return undefined;
+          return output.EventSourceMappings.find(
+            (sm) => sm.EventSourceArn === subscription.subscriptionArn,
+          );
+        },
+      );
+    });
 
     await Promise.all(cloudResources.map((cloudResource) => cloudResource.manage(options)));
+
+    return subscriptions;
   }
 
   get env(): Promise<Record<string, string>> {

@@ -15,7 +15,7 @@ import {
   timer,
 } from 'rxjs';
 import { Commands, CONFIG_SIGNATURE, Routes, USER_AGENT } from '../config';
-import { ALBEvent, APIGatewayProxyEventV2, DynamoDBStreamEvent } from 'aws-lambda';
+import { ALBEvent, APIGatewayProxyEventV2, DynamoDBStreamEvent, S3Event } from 'aws-lambda';
 import { error, info, isDebug, log } from './log';
 import {
   convertAlbQueryStringToURLSearchParams,
@@ -234,10 +234,36 @@ const transformDynamoDBEvent = (
   } as Partial<APIGatewayProxyEventV2>;
 };
 
+const transformS3Event = (
+  routes: Routes,
+  event: Partial<S3Event>,
+): Partial<APIGatewayProxyEventV2> => {
+  const host = 's3.amazonaws.com';
+  const path = routes[host];
+  if (!path) {
+    throw new Error('No handler found for s3.amazonaws.com');
+  }
+  return {
+    requestContext: {
+      http: {
+        method: 'POST',
+        path,
+      },
+    },
+    headers: {
+      'content-type': 'application/json',
+      'user-agent': USER_AGENT,
+      host,
+    } as Record<string, unknown>,
+    isBase64Encoded: false,
+    body: JSON.stringify(event),
+  } as Partial<APIGatewayProxyEventV2>;
+};
+
 const transformEvent = (
   routes: Routes,
   headers: Record<string, unknown>,
-  event?: Partial<APIGatewayProxyEventV2 | ALBEvent | DynamoDBStreamEvent | undefined>,
+  event?: Partial<APIGatewayProxyEventV2 | ALBEvent | DynamoDBStreamEvent | S3Event | undefined>,
 ): Partial<APIGatewayProxyEventV2 | ALBEvent> => {
   if (typeof event !== 'object') {
     throw new Error('Event is not an object'); // TODO Maybe an error observable
@@ -250,12 +276,12 @@ const transformEvent = (
     return acc;
   }, {} as Record<string, string | undefined>);
 
-  if (
-    'Records' in event &&
-    Array.isArray(event.Records) &&
-    event.Records.every((r) => 'dynamodb' in r)
-  ) {
-    event = transformDynamoDBEvent(routes, event);
+  if ('Records' in event && Array.isArray(event.Records)) {
+    if (event.Records.every((r) => 'dynamodb' in r)) {
+      event = transformDynamoDBEvent(routes, event as Partial<DynamoDBStreamEvent>);
+    } else if (event.Records.every((r) => 's3' in r)) {
+      event = transformS3Event(routes, event as Partial<S3Event>);
+    }
   }
 
   if (!('requestContext' in event)) {
