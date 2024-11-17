@@ -7,6 +7,7 @@ import { SecretDeployStatus } from '../secret';
 import { SubscriptionProducer } from '../lambda';
 import { S3Resource } from './s3';
 import { DynamoDBResource } from './dynamodb';
+import { AbstractResourceService } from './resource';
 
 export type ResourcesDeployStatus = {
   resourceArns?: string[];
@@ -16,13 +17,13 @@ export type ResourcesDeployStatus = {
 export class ResourcesService implements IamConsumer, EnvProducer, SubscriptionProducer {
   private _arns: ARN<unknown>[] = [];
 
-  private dynamoDbResource: DynamoDBResource;
-
-  private s3Resource: S3Resource;
+  private abstractResources: AbstractResourceService[] = [];
 
   constructor(private gitService: GitService) {
-    this.dynamoDbResource = new DynamoDBResource(this.gitService);
-    this.s3Resource = new S3Resource(this.gitService);
+    this.abstractResources = [
+      new DynamoDBResource(this.gitService),
+      new S3Resource(this.gitService),
+    ];
   }
 
   public async predeploy(
@@ -33,10 +34,11 @@ export class ResourcesService implements IamConsumer, EnvProducer, SubscriptionP
       return;
     }
 
-    await this.dynamoDbResource.configure(status, options);
-    await this.s3Resource.configure(status, options);
+    await Promise.all(
+      this.abstractResources.map((resource) => resource.configure(status, options)),
+    );
 
-    this._arns = [...this.dynamoDbResource.arns, ...this.s3Resource.arns];
+    this._arns = this.abstractResources.map((resource) => resource.arns).flat();
 
     status.resourceArns = (await Promise.all(this._arns.map((arn) => arn.arn))).reduce(
       (acc, arn) => {
@@ -65,39 +67,17 @@ export class ResourcesService implements IamConsumer, EnvProducer, SubscriptionP
       return;
     }
 
-    const resources = this._arns.map((arn) => {
-      let region = '*';
-      const { partition = '*', service, accountId = '*', name } = arn;
-      if (service === 's3') {
-        region = '';
-      }
-      return `arn:${partition}:${service}:${region}:${accountId}:${name}*`;
-    });
-
-    const actions: string[] = this._arns
-      .map((arn) => {
-        const serviceActions: string[] = [];
-        serviceActions.push(...this.dynamoDbResource.createActions(arn));
-        serviceActions.push(...this.s3Resource.createActions(arn));
-        return serviceActions;
-      })
-      .flat();
+    const statements = this.abstractResources.map((r) => r.policyStatements).flat();
 
     return {
       Version: '2012-10-17',
-      Statement: [
-        {
-          Effect: 'Allow',
-          Action: actions,
-          Resource: resources,
-        },
-      ],
+      Statement: statements,
     };
   }
 
   get subscriptions(): Promise<Subscription[]> {
-    return Promise.all([this.s3Resource.subscriptions, this.dynamoDbResource.subscriptions]).then(
-      (subscriptions) => subscriptions.flat(),
+    return Promise.all(this.abstractResources.map((r) => r.subscriptions)).then((subscriptions) =>
+      subscriptions.flat(),
     );
   }
 }

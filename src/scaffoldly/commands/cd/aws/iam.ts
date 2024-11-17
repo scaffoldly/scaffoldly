@@ -51,17 +51,19 @@ const mergeTrustRelationships = (
   };
 };
 
+export type PolicyStatement = {
+  Sid?: string;
+  Effect: 'Allow';
+  Action: string[];
+  Resource: string[];
+  Condition?: {
+    StringEquals?: Record<string, string | string[]>;
+  };
+};
+
 export type PolicyDocument = {
   Version: string;
-  Statement: {
-    Sid?: string;
-    Effect: 'Allow';
-    Action: string[];
-    Resource: string[];
-    Condition?: {
-      StringEquals?: Record<string, string | string[]>;
-    };
-  }[];
+  Statement: PolicyStatement[];
 };
 
 const mergePolicyDocuments = (policyDocuments: (PolicyDocument | undefined)[]): PolicyDocument => {

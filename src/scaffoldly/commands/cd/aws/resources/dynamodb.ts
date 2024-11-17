@@ -11,16 +11,13 @@ import { ARN, ManagedArn } from '../arn';
 import { CloudResource, ResourceOptions, Subscription } from '../..';
 import { GitService } from '../../git';
 import { SecretDeployStatus } from '../secret';
-import { IamConsumer, PolicyDocument } from '../iam';
-import { EnvProducer } from '../../../ci/env';
-import { SubscriptionProducer } from '../lambda';
+import { AbstractResourceService } from './resource';
 
-export class DynamoDBResource implements IamConsumer, EnvProducer, SubscriptionProducer {
-  private _arns: ARN<unknown>[] = [];
-
+export class DynamoDBResource extends AbstractResourceService {
   private dynamoDbClient: DynamoDBClient;
 
-  constructor(private gitService: GitService) {
+  constructor(gitService: GitService) {
+    super(gitService);
     this.dynamoDbClient = new DynamoDBClient({});
   }
 
@@ -112,57 +109,7 @@ export class DynamoDBResource implements IamConsumer, EnvProducer, SubscriptionP
     this._arns.push(...arns);
   }
 
-  get arns(): ARN<unknown>[] {
-    return this._arns;
-  }
-
-  get env(): Promise<Record<string, string>> {
-    return Promise.all(this._arns.map((arn) => arn.env)).then((envs) => {
-      return envs.reduce((acc, env) => {
-        return { ...acc, ...env };
-      }, {} as Record<string, string>);
-    });
-  }
-
-  get trustRelationship(): undefined {
-    return;
-  }
-
-  get policyDocument(): PolicyDocument | undefined {
-    if (!this._arns.length) {
-      return;
-    }
-
-    const resources = this._arns.map((arn) => {
-      let region = '*';
-      const { partition = '*', service, accountId = '*', name } = arn;
-      if (service === 's3') {
-        region = '';
-      }
-      return `arn:${partition}:${service}:${region}:${accountId}:${name}*`;
-    });
-
-    const actions: string[] = this._arns
-      .map((arn) => {
-        const serviceActions: string[] = [];
-        serviceActions.push(...this.createActions(arn));
-        return serviceActions;
-      })
-      .flat();
-
-    return {
-      Version: '2012-10-17',
-      Statement: [
-        {
-          Effect: 'Allow',
-          Action: actions,
-          Resource: resources,
-        },
-      ],
-    };
-  }
-
-  createActions(arn: ARN<unknown>): string[] {
+  protected createActions(arn: ARN<unknown>): string[] {
     const { permissions } = arn;
     const actions: string[] = [];
 
@@ -215,17 +162,7 @@ export class DynamoDBResource implements IamConsumer, EnvProducer, SubscriptionP
     return actions;
   }
 
-  get subscriptions(): Promise<Subscription[]> {
-    return Promise.all(
-      this._arns.map(async (arn) => {
-        const subscriptions: Subscription[] = [];
-        subscriptions.push(...(await this.createSubscriptions(arn)));
-        return subscriptions;
-      }),
-    ).then((results) => results.flat());
-  }
-
-  private async createSubscriptions(arn: ARN<unknown>): Promise<Subscription[]> {
+  protected async createSubscriptions(arn: ARN<unknown>): Promise<Subscription[]> {
     const { permissions } = arn;
     const subscriptions: Subscription[] = [];
 

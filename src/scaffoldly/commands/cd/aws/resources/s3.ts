@@ -9,19 +9,17 @@ import {
   PutBucketNotificationConfigurationCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
-import { EnvProducer } from '../../../ci/env';
-import { SubscriptionProducer } from '../lambda';
 import { SecretDeployStatus } from '../secret';
 import { CloudResource, ResourceOptions, Subscription } from '../..';
 import { ARN, ManagedArn } from '../arn';
 import { GitService } from '../../git';
+import { AbstractResourceService } from './resource';
 
-export class S3Resource implements EnvProducer, SubscriptionProducer {
-  private _arns: ARN<unknown>[] = [];
-
+export class S3Resource extends AbstractResourceService {
   private s3Client: S3Client;
 
-  constructor(private gitService: GitService) {
+  constructor(gitService: GitService) {
+    super(gitService);
     this.s3Client = new S3Client({});
   }
 
@@ -102,29 +100,7 @@ export class S3Resource implements EnvProducer, SubscriptionProducer {
     this._arns.push(...arns);
   }
 
-  get arns(): ARN<unknown>[] {
-    return this._arns;
-  }
-
-  get env(): Promise<Record<string, string>> {
-    return Promise.all(this._arns.map((arn) => arn.env)).then((envs) => {
-      return envs.reduce((acc, env) => {
-        return { ...acc, ...env };
-      }, {} as Record<string, string>);
-    });
-  }
-
-  get subscriptions(): Promise<Subscription[]> {
-    return Promise.all(
-      this._arns.map(async (arn) => {
-        const subscriptions: Subscription[] = [];
-        subscriptions.push(...(await this.createSubscriptions(arn)));
-        return subscriptions;
-      }),
-    ).then((results) => results.flat());
-  }
-
-  private async createSubscriptions(arn: ARN<unknown>): Promise<Subscription[]> {
+  protected async createSubscriptions(arn: ARN<unknown>): Promise<Subscription[]> {
     const { permissions } = arn;
     const subscriptions: Subscription[] = [];
 
@@ -254,7 +230,7 @@ export class S3Resource implements EnvProducer, SubscriptionProducer {
     return subscriptions;
   }
 
-  createActions(arn: ARN<unknown>): string[] {
+  protected createActions(arn: ARN<unknown>): string[] {
     const { permissions } = arn;
     const actions: string[] = [];
 
