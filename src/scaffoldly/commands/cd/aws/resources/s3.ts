@@ -9,11 +9,10 @@ import {
   PutBucketNotificationConfigurationCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
-import { SecretDeployStatus } from '../secret';
 import { CloudResource, ResourceOptions, Subscription } from '../..';
 import { ARN, ManagedArn } from '../arn';
 import { GitService } from '../../git';
-import { AbstractResourceService } from './resource';
+import { AbstractResourceService, ResourcesDeployStatus } from './resource';
 
 export class S3Resource extends AbstractResourceService {
   private s3Client: S3Client;
@@ -23,7 +22,7 @@ export class S3Resource extends AbstractResourceService {
     this.s3Client = new S3Client({});
   }
 
-  async configure(status: SecretDeployStatus, options: ResourceOptions): Promise<void> {
+  async configure(status: ResourcesDeployStatus, options: ResourceOptions): Promise<void> {
     const bucketArns = this.gitService.config.resources.filter((resource) =>
       resource.includes(':s3:'),
     );
@@ -265,5 +264,9 @@ export class S3Resource extends AbstractResourceService {
     }
 
     return actions;
+  }
+
+  protected async createEnv(): Promise<Record<string, string>> {
+    return {};
   }
 }

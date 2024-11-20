@@ -28,6 +28,10 @@ function getDifferences(subset: any, superset: any): Differences {
       if (!_.isEmpty(nestedDifferences)) {
         differences[key] = nestedDifferences;
       }
+    } else if (_.isArray(value) && _.isArray(supersetValue)) {
+      if (!_.isEqual(value.sort(), supersetValue.sort())) {
+        differences[key] = { expected: value, actual: supersetValue };
+      }
     } else if (!_.isEqual(value, supersetValue)) {
       differences[key] = { expected: value, actual: supersetValue };
     }
@@ -144,7 +148,7 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
       if (options.dryRun) {
         return {} as Partial<Resource>;
       }
-      throw new Error('Failed to manage resource');
+      throw new Error(`Failed to manage ${this.requests.describe({}).type}`);
     }
 
     return existing;

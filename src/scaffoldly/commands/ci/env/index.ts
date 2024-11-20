@@ -90,9 +90,11 @@ export class EnvService {
   }
 
   private get producedEnv(): Promise<Record<string, string>> {
-    return Promise.all(this.envProducers.map((producer) => producer.env)).then((envs) =>
-      envs.reduce((acc, env) => ({ ...acc, ...env }), {}),
-    );
+    return Promise.all(
+      this.envProducers.map((producer) => {
+        return producer.env;
+      }),
+    ).then((envs) => envs.reduce((acc, env) => ({ ...acc, ...env }), {}));
   }
 
   get buildEnv(): Promise<Record<string, string>> {

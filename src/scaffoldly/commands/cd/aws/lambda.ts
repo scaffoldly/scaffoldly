@@ -44,6 +44,8 @@ import { EcrDeployStatus } from './ecr';
 import { GitDeployStatus, GitService } from '../git';
 import { SkipAction } from '../errors';
 import { ARN } from './arn';
+import { ResourcesDeployStatus } from './resources/resource';
+import { join, sep } from 'path';
 
 export type LambdaDeployStatus = {
   functionArn?: string;
@@ -100,7 +102,8 @@ export class LambdaService implements IamConsumer, EnvProducer {
       IamDeployStatus &
       EcrDeployStatus &
       DockerDeployStatus &
-      EnvDeployStatus,
+      EnvDeployStatus &
+      ResourcesDeployStatus,
     options: ResourceOptions,
   ): Promise<void> {
     if (options.dev || options.buildOnly) {
@@ -114,6 +117,21 @@ export class LambdaService implements IamConsumer, EnvProducer {
         Role: status.roleArn,
         Timeout: this.gitService.config.timeout,
         MemorySize: this.gitService.config.memorySize,
+        VpcConfig: status.vpc
+          ? {
+              VpcId: status.vpc.vpcId,
+              SecurityGroupIds: status.vpc.securityGroupIds,
+              SubnetIds: status.vpc.subnetIds,
+            }
+          : undefined,
+        FileSystemConfigs: status.efs
+          ? [
+              {
+                Arn: status.efs.accessPoint,
+                LocalMountPath: join(sep, 'mnt', status.efs.fileSystemName || 'efs'),
+              },
+            ]
+          : undefined,
         LastUpdateStatus: 'Successful',
         State: 'Active',
       },
@@ -154,6 +172,8 @@ export class LambdaService implements IamConsumer, EnvProducer {
                 Environment: {
                   Variables: runtimeEnv,
                 },
+                VpcConfig: desired.Configuration?.VpcConfig,
+                FileSystemConfigs: desired.Configuration?.FileSystemConfigs,
               }),
             ),
           ),
@@ -173,6 +193,8 @@ export class LambdaService implements IamConsumer, EnvProducer {
                   Environment: {
                     Variables: runtimeEnv,
                   },
+                  VpcConfig: desired.Configuration?.VpcConfig,
+                  FileSystemConfigs: desired.Configuration?.FileSystemConfigs,
                 }),
               )
               .then((updated) => {
@@ -336,7 +358,8 @@ export class LambdaService implements IamConsumer, EnvProducer {
 
     const requests: AddPermissionRequest[] = [
       {
-        FunctionName: `${status.functionArn}:${status.functionQualifier}`,
+        FunctionName: status.functionArn,
+        Qualifier: status.functionQualifier,
         StatementId: 'InvokeFunctionUrl',
         Action: 'lambda:InvokeFunctionUrl',
         Principal: '*',
@@ -365,8 +388,12 @@ export class LambdaService implements IamConsumer, EnvProducer {
               Qualifier: status.functionQualifier,
             }),
           ),
-        update: (existing) => {
-          return Promise.all(
+        create: () =>
+          Promise.all(
+            requests.map((request) => this.lambdaClient.send(new AddPermissionCommand(request))),
+          ),
+        update: (existing) =>
+          Promise.all(
             requests
               .filter(
                 (request) =>
@@ -374,11 +401,8 @@ export class LambdaService implements IamConsumer, EnvProducer {
                     (statement) => statement.Sid === request.StatementId,
                   ),
               )
-              .map((request) => {
-                return this.lambdaClient.send(new AddPermissionCommand(request));
-              }),
-          );
-        },
+              .map((request) => this.lambdaClient.send(new AddPermissionCommand(request))),
+          ),
         emitPermissions: (aware) => {
           aware.withPermissions(['lambda:AddPermission', 'lambda:GetPolicy']);
         },
@@ -561,6 +585,12 @@ export class LambdaService implements IamConsumer, EnvProducer {
             'logs:PutLogEvents',
             'xray:PutTraceSegments',
             'xray:PutTelemetryRecords',
+            'ec2:CreateNetworkInterface',
+            'ec2:DescribeNetworkInterfaces',
+            'ec2:DescribeSubnets',
+            'ec2:DeleteNetworkInterface',
+            'ec2:AssignPrivateIpAddresses',
+            'ec2:UnassignPrivateIpAddresses',
           ],
           Resource: ['*'],
           Effect: 'Allow',

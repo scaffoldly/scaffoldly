@@ -10,8 +10,7 @@ import {
 import { ARN, ManagedArn } from '../arn';
 import { CloudResource, ResourceOptions, Subscription } from '../..';
 import { GitService } from '../../git';
-import { SecretDeployStatus } from '../secret';
-import { AbstractResourceService } from './resource';
+import { AbstractResourceService, ResourcesDeployStatus } from './resource';
 
 export class DynamoDBResource extends AbstractResourceService {
   private dynamoDbClient: DynamoDBClient;
@@ -21,7 +20,7 @@ export class DynamoDBResource extends AbstractResourceService {
     this.dynamoDbClient = new DynamoDBClient({});
   }
 
-  async configure(status: SecretDeployStatus, options: ResourceOptions): Promise<void> {
+  async configure(status: ResourcesDeployStatus, options: ResourceOptions): Promise<void> {
     const tableArns = this.gitService.config.resources.filter((resource) =>
       resource.includes(':dynamodb:'),
     );
@@ -182,5 +181,9 @@ export class DynamoDBResource extends AbstractResourceService {
     subscriptions.push({ subscriptionArn });
 
     return subscriptions;
+  }
+
+  protected async createEnv(): Promise<Record<string, string>> {
+    return {};
   }
 }

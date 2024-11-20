@@ -1,35 +1,25 @@
 import { ResourceOptions, Subscription } from '../..';
 import { EnvProducer } from '../../../ci/env';
 import { GitService } from '../../git';
-import { ARN } from '../arn';
 import { IamConsumer, PolicyDocument } from '../iam';
-import { SecretDeployStatus } from '../secret';
 import { SubscriptionProducer } from '../lambda';
 import { S3Resource } from './s3';
 import { DynamoDBResource } from './dynamodb';
-import { AbstractResourceService } from './resource';
-
-export type ResourcesDeployStatus = {
-  resourceArns?: string[];
-  subscriptionArns?: string[];
-};
+import { AbstractResourceService, ResourcesDeployStatus } from './resource';
+import { EfsResource } from './efs';
 
 export class ResourcesService implements IamConsumer, EnvProducer, SubscriptionProducer {
-  private _arns: ARN<unknown>[] = [];
-
   private abstractResources: AbstractResourceService[] = [];
 
   constructor(private gitService: GitService) {
     this.abstractResources = [
       new DynamoDBResource(this.gitService),
       new S3Resource(this.gitService),
+      new EfsResource(this.gitService),
     ];
   }
 
-  public async predeploy(
-    status: ResourcesDeployStatus & SecretDeployStatus,
-    options: ResourceOptions,
-  ): Promise<void> {
+  public async predeploy(status: ResourcesDeployStatus, options: ResourceOptions): Promise<void> {
     if (options.dev || options.buildOnly) {
       return;
     }
@@ -38,20 +28,17 @@ export class ResourcesService implements IamConsumer, EnvProducer, SubscriptionP
       this.abstractResources.map((resource) => resource.configure(status, options)),
     );
 
-    this._arns = this.abstractResources.map((resource) => resource.arns).flat();
+    const arns = this.abstractResources.map((resource) => resource.arns).flat();
 
-    status.resourceArns = (await Promise.all(this._arns.map((arn) => arn.arn))).reduce(
-      (acc, arn) => {
-        if (!arn) return acc;
-        acc.push(arn);
-        return acc;
-      },
-      [] as string[],
-    );
+    status.resourceArns = (await Promise.all(arns.map((arn) => arn.arn))).reduce((acc, arn) => {
+      if (!arn) return acc;
+      acc.push(arn);
+      return acc;
+    }, [] as string[]);
   }
 
   get env(): Promise<Record<string, string>> {
-    return Promise.all(this._arns.map((arn) => arn.env)).then((envs) => {
+    return Promise.all(this.abstractResources.map((r) => r.env)).then((envs) => {
       return envs.reduce((acc, env) => {
         return { ...acc, ...env };
       }, {} as Record<string, string>);
@@ -63,11 +50,11 @@ export class ResourcesService implements IamConsumer, EnvProducer, SubscriptionP
   }
 
   get policyDocument(): PolicyDocument | undefined {
-    if (!this._arns.length) {
+    const statements = this.abstractResources.map((r) => r.policyStatements).flat();
+
+    if (!statements.length) {
       return;
     }
-
-    const statements = this.abstractResources.map((r) => r.policyStatements).flat();
 
     return {
       Version: '2012-10-17',

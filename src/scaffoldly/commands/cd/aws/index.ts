@@ -7,7 +7,8 @@ import { SecretDeployStatus, SecretService } from './secret';
 import { GitDeployStatus, GitService } from '../git';
 import { EnvDeployStatus, EnvService } from '../../ci/env';
 import { ScheduleService, ScheduleDeployStatus } from './schedule';
-import { ResourcesDeployStatus, ResourcesService } from './resources';
+import { ResourcesService } from './resources';
+import { ResourcesDeployStatus } from './resources/resource';
 
 export type DeployStatus = GitDeployStatus &
   EnvDeployStatus &
