@@ -184,8 +184,8 @@ export class EfsResource extends AbstractResourceService {
       return this.fileSystemStatus(fileSystem, accessPointId);
     }
 
-    if (!filesystems.NextMarker) {
-      throw new NotFoundException(`Unable to find an EFS file system: ${name}`);
+    if (!fileSystem && !filesystems.NextMarker) {
+      throw new Error(`EFS file system not found: ${fileSystemId}`);
     }
 
     return this.efsStatus(fileSystemId, accessPointId, filesystems.NextMarker);
