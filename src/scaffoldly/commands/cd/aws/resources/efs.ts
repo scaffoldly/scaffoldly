@@ -14,7 +14,6 @@ import { CloudResource, ResourceOptions, Subscription } from '../..';
 import { GitService } from '../../git';
 import { AbstractResourceService, EfsStatus, ResourcesDeployStatus, VpcStatus } from './resource';
 import { ARN, ManagedArn } from '../arn';
-import { NotFoundException } from '../../errors';
 import { join, sep } from 'path';
 
 const parseId = (id: unknown): { fileSystemId?: string } => {
