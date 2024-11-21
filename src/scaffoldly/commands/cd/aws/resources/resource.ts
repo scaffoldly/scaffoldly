@@ -13,9 +13,9 @@ export type VpcStatus = {
 };
 
 export type EfsStatus = {
-  fileSystem?: string;
-  fileSystemName?: string;
-  accessPoint?: string;
+  fileSystemId?: string;
+  mountPath?: string;
+  accessPointArn?: string;
 };
 
 export type ResourcesDeployStatus = SecretDeployStatus & {

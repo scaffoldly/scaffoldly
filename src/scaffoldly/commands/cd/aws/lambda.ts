@@ -45,15 +45,28 @@ import { GitDeployStatus, GitService } from '../git';
 import { SkipAction } from '../errors';
 import { ARN } from './arn';
 import { ResourcesDeployStatus } from './resources/resource';
-import { join, sep } from 'path';
+import {
+  DescribeNetworkInterfacesCommand,
+  EC2Client,
+  // eslint-disable-next-line import/named
+  NetworkInterfaceAssociation,
+  AllocateAddressCommand,
+  AssociateAddressCommand,
+  DescribeAddressesCommand,
+} from '@aws-sdk/client-ec2';
 
 export type LambdaDeployStatus = {
+  functionName?: string;
   functionArn?: string;
   functionVersion?: string;
   functionQualifier?: string;
   architecture?: Architecture;
   imageUri?: string;
   url?: string;
+  vpcId?: string;
+  subnetIds?: string[];
+  securityGroupIds?: string[];
+  ips?: string[];
 };
 
 export interface SubscriptionProducer {
@@ -63,7 +76,11 @@ export interface SubscriptionProducer {
 export class LambdaService implements IamConsumer, EnvProducer {
   lambdaClient: LambdaClient;
 
+  ec2Client: EC2Client;
+
   private _url?: string;
+
+  private _cacheHome?: string;
 
   constructor(
     private gitService: GitService,
@@ -71,6 +88,7 @@ export class LambdaService implements IamConsumer, EnvProducer {
     private envService: EnvService,
   ) {
     this.lambdaClient = new LambdaClient();
+    this.ec2Client = new EC2Client();
   }
 
   public async predeploy(status: LambdaDeployStatus, options: ResourceOptions): Promise<void> {
@@ -94,6 +112,7 @@ export class LambdaService implements IamConsumer, EnvProducer {
       options,
     );
     await this.configureUrl(status, options);
+    await this.configureNetwork(status, options);
   }
 
   private async configureFunction(
@@ -127,8 +146,8 @@ export class LambdaService implements IamConsumer, EnvProducer {
         FileSystemConfigs: status.efs
           ? [
               {
-                Arn: status.efs.accessPoint,
-                LocalMountPath: join(sep, 'mnt', status.efs.fileSystemName || 'efs'),
+                Arn: status.efs.accessPointArn,
+                LocalMountPath: status.efs.mountPath,
               },
             ]
           : undefined,
@@ -224,7 +243,13 @@ export class LambdaService implements IamConsumer, EnvProducer {
     );
 
     status.functionArn = configuration.FunctionArn;
+    if (status.functionArn) {
+      status.functionName = ARN.resource(status.functionArn).name.split(':').slice(-1)[0];
+    }
     status.architecture = configuration.Architectures?.[0];
+    status.vpcId = configuration.VpcConfig?.VpcId;
+    status.subnetIds = configuration.VpcConfig?.SubnetIds || undefined;
+    status.securityGroupIds = configuration.VpcConfig?.SecurityGroupIds || undefined;
   }
 
   private async configureAlias(
@@ -552,10 +577,134 @@ export class LambdaService implements IamConsumer, EnvProducer {
     return subscriptions;
   }
 
-  get env(): Promise<Record<string, string>> {
-    return Promise.resolve({
-      URL: this._url || '',
+  private async configureNetwork(
+    status: LambdaDeployStatus,
+    options: ResourceOptions,
+  ): Promise<void> {
+    const { vpcId, subnetIds, securityGroupIds } = status;
+    if (!vpcId || !subnetIds || !securityGroupIds) {
+      return;
+    }
+
+    const eips = subnetIds.map((subnetId) => {
+      return new CloudResource<
+        { ipAddress?: string; interfaceId?: string },
+        (NetworkInterfaceAssociation & { interfaceId?: string })[]
+      >(
+        {
+          describe: (resource) => {
+            return {
+              type: 'Network Interface',
+              label: resource.interfaceId || '[computed]',
+            };
+          },
+          read: () =>
+            this.ec2Client
+              .send(
+                new DescribeNetworkInterfacesCommand({
+                  Filters: [
+                    {
+                      Name: 'vpc-id',
+                      Values: [vpcId],
+                    },
+                    {
+                      Name: 'subnet-id',
+                      Values: [subnetId],
+                    },
+                    {
+                      Name: 'group-id',
+                      Values: securityGroupIds,
+                    },
+                    {
+                      Name: 'interface-type',
+                      Values: ['lambda'],
+                    },
+                  ],
+                }),
+              )
+              .then((response) => {
+                return (response.NetworkInterfaces || [])
+                  .filter((ni) => {
+                    return ni.Description?.indexOf(`-${status.functionName}-`) !== -1;
+                  })
+                  .map((ni) => {
+                    return {
+                      interfaceId: ni.NetworkInterfaceId,
+                      ...(ni.Association || {}),
+                    };
+                  });
+              }),
+          update: async (existing) => {
+            if (existing.ipAddress) {
+              return existing;
+            }
+            return this.ec2Client
+              .send(
+                new DescribeAddressesCommand({
+                  Filters: [
+                    { Name: 'tag:Name', Values: [status.functionName || ''] },
+                    { Name: 'tag:InterfaceType', Values: ['lambda'] },
+                  ],
+                }),
+              )
+              .then(
+                (response) =>
+                  (response.Addresses || []).find((a) => !a.AssociationId)?.AllocationId,
+              )
+              .then((allocationId) => {
+                return (
+                  allocationId ||
+                  this.ec2Client
+                    .send(
+                      new AllocateAddressCommand({
+                        TagSpecifications: [
+                          {
+                            ResourceType: 'elastic-ip',
+                            Tags: [
+                              { Key: 'Name', Value: status.functionName },
+                              { Key: 'InterfaceType', Value: 'lambda' },
+                            ],
+                          },
+                        ],
+                      }),
+                    )
+                    .then((response) => response.AllocationId)
+                );
+              })
+              .then((allocationId) =>
+                this.ec2Client.send(
+                  new AssociateAddressCommand({
+                    AllocationId: allocationId,
+                    NetworkInterfaceId: existing.interfaceId,
+                    AllowReassociation: true,
+                  }),
+                ),
+              );
+          },
+        },
+        (output) => {
+          if (!output) {
+            return undefined;
+          }
+          return { interfaceId: output[0]?.interfaceId, ipAddress: output[0]?.PublicIp };
+        },
+      ).manage(options);
     });
+
+    status.ips = (await Promise.all(eips))
+      .map((eip) => eip.ipAddress)
+      .filter((ip) => !!ip) as string[];
+  }
+
+  get env(): Promise<Record<string, string>> {
+    const env: Record<string, string> = {};
+    if (this._url) {
+      env.URL = this._url;
+    }
+    if (this._cacheHome) {
+      env.XDG_CACHE_HOME = this._cacheHome;
+    }
+    return Promise.resolve(env);
   }
 
   get trustRelationship(): TrustRelationship {

@@ -41,7 +41,7 @@ export abstract class Command<T> implements PermissionAware {
           return projectJson;
         }
 
-        console.warn('🟠 Framework not detected. Using `scaffoldly.json` for configuration.');
+        console.warn('🟠 App framework not detected. Using `scaffoldly.json` for configuration.\n');
         return standalone;
       })
       .then((projectJson) => {

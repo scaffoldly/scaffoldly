@@ -1,4 +1,5 @@
 import {
+  CreateAccessPointCommand,
   DescribeAccessPointsCommand,
   DescribeFileSystemsCommand,
   DescribeMountTargetsCommand,
@@ -25,21 +26,23 @@ const parseId = (id: unknown): { fileSystemId?: string } => {
   };
 };
 
+const mountPath = (name?: string): string => {
+  return join(sep, 'mnt', name || 'efs');
+};
+
 /**
  * TODO:
- *  - Mount The EFS at /mnt/efs/{tag:Name}
- *  - Create an Access Point instead of looking up
  *  - Only choose a few subnets?
  *  - Set Lambda EIPs
  *  - Optional seed "resources" with Access Point IDs, VPC IDs, Subnet IDs, and Security Group IDs
  */
 
 export class EfsResource extends AbstractResourceService {
-  private _env: Record<string, string> = {};
-
   private efsClient: EFSClient;
 
   private ec2Client: EC2Client;
+
+  private _cacheHome?: string;
 
   constructor(gitService: GitService) {
     super(gitService);
@@ -59,61 +62,92 @@ export class EfsResource extends AbstractResourceService {
       (resource) => resource.includes(':elasticfilesystem:') && resource.includes(':file-system/'),
     );
 
+    const { name } = this.gitService.config;
+    const { uniqueId } = status;
+    // TODO: support Access Point ID from this.gitService.config.resources
+    const accessPointId = `${name}-${uniqueId}`;
+
     const arns = await Promise.all(
-      efsArns.map(
-        (arn) =>
-          new ARN(
-            arn,
-            new CloudResource<ManagedArn, EfsStatus & VpcStatus>(
-              {
-                describe: ({ arn: actualArn }) => ({
-                  type: 'EFS Access Point',
-                  label: actualArn || arn,
-                }),
-                read: async () => {
-                  const { fileSystemId } = parseId(arn);
-                  return this.efsStatus(fileSystemId);
-                },
-                // TODO: create/update EFS
-                emitPermissions: (aware) => {
-                  aware.withPermissions([
-                    'elasticfilesystem:DescribeFileSystems',
-                    'elasticfilesystem:DescribeAccessPoints',
-                    'elasticfilesystem:DescribeMountTargets',
-                    'ec2:DescribeNetworkInterfaces',
-                  ]);
-                },
+      efsArns.map((arn) => {
+        const { fileSystemId } = parseId(arn);
+
+        if (fileSystemId === '.cache') {
+          this._cacheHome = mountPath(fileSystemId);
+        }
+
+        return new ARN(
+          arn,
+          new CloudResource<ManagedArn & EfsStatus, EfsStatus & VpcStatus>(
+            {
+              describe: ({ arn: actualArn }) => ({
+                type: 'EFS Access Point',
+                label: actualArn || arn,
+              }),
+              read: async () => {
+                return this.efsStatus(fileSystemId, accessPointId);
               },
-              (output) => {
-                if (!output.fileSystem) {
-                  return {};
+              update: (existing) => {
+                if (existing.accessPointArn) {
+                  // Don't mutate the existing access point
+                  return Promise.resolve(existing);
                 }
-
-                if (output.fileSystemName === 'cache') {
-                  output.fileSystemName = 'efs';
-                  this._env.XDG_CACHE_HOME = join(sep, 'mnt', output.fileSystemName, `.cache`);
-                }
-
-                status.efs = {
-                  accessPoint: output.accessPoint,
-                  fileSystem: output.fileSystem,
-                  fileSystemName: output.fileSystemName,
-                };
-
-                status.vpc = {
-                  vpcId: output.vpcId,
-                  subnetIds: output.subnetIds,
-                  securityGroupIds: output.securityGroupIds,
-                };
-
-                return {
-                  arn: output.accessPoint,
-                };
+                // Create an access point
+                return this.efsClient.send(
+                  new CreateAccessPointCommand({
+                    FileSystemId: existing.fileSystemId,
+                    Tags: [{ Key: 'Name', Value: accessPointId }],
+                    PosixUser: {
+                      Gid: 1000,
+                      Uid: 1000,
+                    },
+                    RootDirectory: {
+                      Path: join(sep, accessPointId),
+                      CreationInfo: {
+                        OwnerGid: 1000,
+                        OwnerUid: 1000,
+                        Permissions: '0755',
+                      },
+                    },
+                  }),
+                );
               },
-            ),
-            options,
+              // TODO: create/update EFS
+              emitPermissions: (aware) => {
+                aware.withPermissions([
+                  'elasticfilesystem:DescribeFileSystems',
+                  'elasticfilesystem:DescribeAccessPoints',
+                  'elasticfilesystem:CreateAccessPoint',
+                  'elasticfilesystem:DescribeMountTargets',
+                  'ec2:DescribeNetworkInterfaces',
+                ]);
+              },
+            },
+            (output) => {
+              if (!output.fileSystemId) {
+                return {};
+              }
+
+              status.efs = {
+                accessPointArn: output.accessPointArn,
+                fileSystemId: output.fileSystemId,
+                mountPath: output.mountPath,
+              };
+
+              status.vpc = {
+                vpcId: output.vpcId,
+                subnetIds: output.subnetIds,
+                securityGroupIds: output.securityGroupIds,
+              };
+
+              return {
+                arn: output.accessPointArn,
+                ...status.efs,
+              };
+            },
           ),
-      ),
+          options,
+        );
+      }),
     );
 
     this._arns.push(...arns);
@@ -129,7 +163,11 @@ export class EfsResource extends AbstractResourceService {
     return Promise.resolve([]);
   }
 
-  private efsStatus = async (fileSystemId?: string, marker?: string): Promise<EfsStatus> => {
+  private efsStatus = async (
+    fileSystemId?: string,
+    accessPointId?: string,
+    marker?: string,
+  ): Promise<EfsStatus> => {
     if (!fileSystemId) {
       return {};
     }
@@ -143,33 +181,46 @@ export class EfsResource extends AbstractResourceService {
     );
 
     if (fileSystem) {
-      return this.fileSystemStatus(fileSystem);
+      return this.fileSystemStatus(fileSystem, accessPointId);
     }
 
     if (!filesystems.NextMarker) {
       throw new NotFoundException(`Unable to find an EFS file system: ${name}`);
     }
 
-    return this.efsStatus(fileSystemId, filesystems.NextMarker);
+    return this.efsStatus(fileSystemId, accessPointId, filesystems.NextMarker);
   };
 
   private fileSystemStatus = async (
     fileSystem: FileSystemDescription,
+    accessPointId?: string,
+    nextToken?: string,
   ): Promise<EfsStatus & VpcStatus> => {
+    const status: EfsStatus & VpcStatus = {
+      fileSystemId: fileSystem.FileSystemId,
+      mountPath: mountPath(fileSystem.Name),
+    };
+
     const accessPoints = await this.efsClient.send(
-      new DescribeAccessPointsCommand({ FileSystemId: fileSystem.FileSystemId }),
+      new DescribeAccessPointsCommand({
+        FileSystemId: fileSystem.FileSystemId,
+        NextToken: nextToken,
+      }),
     );
 
-    if (!accessPoints.AccessPoints || accessPoints.AccessPoints.length === 0) {
-      return {};
+    const accessPoint = accessPoints.AccessPoints?.find(
+      (ap) => ap.AccessPointId === accessPointId || ap.Name === accessPointId,
+    );
+
+    if (!accessPoint && accessPoints.NextToken) {
+      return this.fileSystemStatus(fileSystem, accessPointId, accessPoints.NextToken);
     }
 
-    if (accessPoints.AccessPoints.length > 1) {
-      // TODO Support AP Seeding in resources
-      throw new Error(`Multiple access points found for EFS ${fileSystem.FileSystemId}`);
+    if (!accessPoint) {
+      return status;
     }
 
-    const accessPoint = accessPoints.AccessPoints[0];
+    status.accessPointArn = accessPoint.AccessPointArn;
 
     const mountTargets = await this.efsClient.send(
       new DescribeMountTargetsCommand({
@@ -178,28 +229,22 @@ export class EfsResource extends AbstractResourceService {
     );
 
     if (!mountTargets.MountTargets || mountTargets.MountTargets.length === 0) {
-      return {};
+      return status;
     }
 
-    const vpcIds = [...new Set(mountTargets.MountTargets.map((mt) => mt.VpcId))];
+    const vpcId = [...new Set(mountTargets.MountTargets.map((mt) => mt.VpcId))].pop();
 
-    if (vpcIds.length > 1) {
-      // TODO Support VPC Seeding in resources
-      throw new Error(`Multiple VPCs found for EFS ${fileSystem.FileSystemId}`);
-    }
-
-    const vpcId = vpcIds[0];
     const networkDetails = await Promise.all(
       mountTargets.MountTargets.map(this.lookupNetworkDetail),
     );
 
-    const subnetIds = [...new Set(networkDetails.map((nd) => nd.subnetIds).flat())];
-    const securityGroupIds = [...new Set(networkDetails.map((nd) => nd.securityGroupIds).flat())];
+    const subnetIds = [...new Set(networkDetails.map((nd) => nd.subnetIds).flat())].sort();
+    const securityGroupIds = [
+      ...new Set(networkDetails.map((nd) => nd.securityGroupIds).flat()),
+    ].sort();
 
     return {
-      fileSystem: fileSystem.FileSystemArn,
-      accessPoint: accessPoint.AccessPointArn,
-      fileSystemName: fileSystem.Name,
+      ...status,
       vpcId,
       subnetIds,
       securityGroupIds,
@@ -220,10 +265,12 @@ export class EfsResource extends AbstractResourceService {
       }),
     );
 
+    // TODO: support seeding subnet IDs from resources
     const subnetIds = (networkInterfaces.NetworkInterfaces || [])
       .map((ni) => ni.SubnetId || '')
       .filter((s) => !!s);
 
+    // TODO: support seeding security group IDs from resources
     const securityGroupIds = (networkInterfaces.NetworkInterfaces || [])
       .map((ni) => (ni.Groups || []).map((g) => g.GroupId || ''))
       .flat()
@@ -236,6 +283,10 @@ export class EfsResource extends AbstractResourceService {
   };
 
   protected async createEnv(): Promise<Record<string, string>> {
-    return this._env;
+    const env: Record<string, string> = {};
+    if (this._cacheHome) {
+      env.XDG_CACHE_HOME = this._cacheHome;
+    }
+    return Promise.resolve(env);
   }
 }
