@@ -118,6 +118,9 @@ export class EfsResource extends AbstractResourceService {
                   'elasticfilesystem:CreateAccessPoint',
                   'elasticfilesystem:DescribeMountTargets',
                   'ec2:DescribeNetworkInterfaces',
+                  'ec2:DescribeAddresses',
+                  'ec2:AllocateAddress',
+                  'ec2:AssociateAddress',
                 ]);
               },
             },

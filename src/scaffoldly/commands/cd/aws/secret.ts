@@ -116,7 +116,11 @@ export class SecretService implements IamConsumer, EnvProducer {
             ),
           ),
         emitPermissions: (aware) => {
-          aware.withPermissions(['secretsmanager:CreateSecret', 'secretsmanager:DescribeSecret']);
+          aware.withPermissions([
+            'secretsmanager:CreateSecret',
+            'secretsmanager:DescribeSecret',
+            'secretsmanager:PutSecretValue',
+          ]);
         },
       },
       (output) => {
