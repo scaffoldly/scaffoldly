@@ -310,10 +310,6 @@ const getProject = (projectType: ProjectType, workdir: string): AbstractProject 
 };
 
 export const run = async (): Promise<void> => {
-  const eventService = new EventService('Create-App', '0.0.0-0') // TDOO: Version
-    .withArgs(process.argv.slice(2))
-    .withSessionId(ulid());
-
   const frameworks = await fetchFrameworks();
 
   const argv = minimist<{
@@ -438,6 +434,11 @@ export const run = async (): Promise<void> => {
 
   // user choice associated with prompts
   const { overwrite, packageName, variant: branch } = result as Choice;
+
+  const eventService = new EventService('Create-App', branch || argTemplate)
+    .withArgs(process.argv.slice(2))
+    .withSessionId(ulid());
+
   const { framework, variant } = getVariant(frameworks, branch || argTemplate);
   eventService.withInsertId({ framework, variant });
 
