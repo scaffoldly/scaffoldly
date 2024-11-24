@@ -77,7 +77,7 @@ const eventId = () => {
 const createSession = (
   sessionId: string,
   insertId: string,
-  platform: 'Cli' | 'Gha' | 'Ale',
+  platform: 'Cli' | 'Gha' | 'Ale' | 'Create-App',
   args: string[],
   library: string,
   userAgent: string,
@@ -198,7 +198,7 @@ export class EventService {
   // Cli == Command Line Interface
   // Gha == GitHub Action
   // Ale == AWS Lambda Entrypoint
-  constructor(private platform: 'Cli' | 'Gha' | 'Ale', private version?: string) {
+  constructor(private platform: 'Cli' | 'Gha' | 'Ale' | 'Create-App', private version?: string) {
     if (process.env.SCAFFOLDLY_DNT) {
       return;
     }
