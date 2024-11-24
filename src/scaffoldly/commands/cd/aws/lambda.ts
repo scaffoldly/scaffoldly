@@ -37,7 +37,7 @@ import {
 import { IamConsumer, IamDeployStatus, PolicyDocument, TrustRelationship } from './iam';
 import { DeployStatus } from '.';
 import { CloudResource, ResourceOptions, Subscription } from '..';
-import { EnvDeployStatus, EnvProducer, EnvService } from '../../ci/env';
+import { EnvDeployStatus, EnvProducer, EnvService, redact } from '../../ci/env';
 import { DockerDeployStatus, DockerService } from '../docker';
 import { Architecture } from '../../ci/docker';
 import { EcrDeployStatus } from './ecr';
@@ -390,23 +390,25 @@ export class LambdaService implements IamConsumer, EnvProducer {
       return;
     }
 
-    await new CloudResource<{ statusCode?: string }, AxiosResponse<unknown>>(
+    await new CloudResource<{ statusText?: string }, AxiosResponse<unknown>>(
       {
         describe: (resource) => {
           return {
-            type: `GET ${url}`,
-            label: resource.statusCode || '[computed]',
+            type: `HTTP GET on ${redact(url, 15, true)}`,
+            label: resource.statusText || '[computed]',
           };
         },
-        read: () => axios.get(url),
+        read: () => axios.get(url, { validateStatus: (s) => s >= 200 && s < 500 }),
       },
       (output) => {
-        if (!output.status) {
+        if (!output.statusText || !output.status) {
           return undefined;
         }
-        return { statusCode: `${output.status}` };
+        return {
+          statusText: `${output.status} ${output.statusText}`,
+        };
       },
-    ).manage(options);
+    ).manage({ ...options, retries: 5 });
   }
 
   private async configurePermissions(

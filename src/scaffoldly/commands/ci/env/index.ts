@@ -14,12 +14,11 @@ export type EnvDeployStatus = {
 
 const normalizeBranch = (branch: string) => branch.replaceAll('/', '-').replaceAll('_', '-');
 
-const redact = (input?: string): string => {
+export const redact = (input?: string, slice = 2, short = false): string => {
   if (!input || input.length === 0) {
     return '[EMPTY]';
   }
   const length = input.length;
-  let slice = 2;
 
   if (length === 0) {
     return '[EMPTY]';
@@ -29,6 +28,10 @@ const redact = (input?: string): string => {
     slice = 0; // Fully redacted for strings with length 2 or less
   } else if (length <= 4) {
     slice = 1; // Only the first and last character visible for strings with length 3 or 4
+  }
+
+  if (short) {
+    return `${input.slice(0, slice)}...${input.slice(-slice)}`;
   }
 
   return `${input.slice(0, slice)}${'.'.repeat(length - slice * 2)}${input.slice(-slice)}`;
