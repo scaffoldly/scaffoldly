@@ -70,7 +70,7 @@ export class EfsResource extends AbstractResourceService {
       efsArns.map((arn) => {
         const { fileSystemId } = parseId(arn);
 
-        if (fileSystemId === '.cache') {
+        if (fileSystemId === '.cache' || fileSystemId === 'cache') {
           this._cacheHome = mountPath(fileSystemId);
         }
 
@@ -110,7 +110,6 @@ export class EfsResource extends AbstractResourceService {
                   }),
                 );
               },
-              // TODO: create/update EFS
               emitPermissions: (aware) => {
                 aware.withPermissions([
                   'elasticfilesystem:DescribeFileSystems',
@@ -121,6 +120,11 @@ export class EfsResource extends AbstractResourceService {
                   'ec2:DescribeAddresses',
                   'ec2:AllocateAddress',
                   'ec2:AssociateAddress',
+                  'ec2:DescribeSecurityGroups',
+                  'ec2:DescribeSubnets',
+                  'ec2:DescribeVpcs',
+                  'ec2:CreateTags',
+                  'elasticfilesystem:TagResource',
                 ]);
               },
             },

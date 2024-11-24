@@ -42,7 +42,7 @@ import { DockerDeployStatus, DockerService } from '../docker';
 import { Architecture } from '../../ci/docker';
 import { EcrDeployStatus } from './ecr';
 import { GitDeployStatus, GitService } from '../git';
-import { SkipAction } from '../errors';
+import { NotFoundException, SkipAction } from '../errors';
 import { ARN } from './arn';
 import { ResourcesDeployStatus } from './resources/resource';
 import {
@@ -662,16 +662,17 @@ export class LambdaService implements IamConsumer, EnvProducer {
                 }),
               )
               .then((response) => {
-                return (response.NetworkInterfaces || [])
-                  .filter((ni) => {
-                    return ni.Description?.indexOf(`-${status.functionName}-`) !== -1;
-                  })
-                  .map((ni) => {
-                    return {
-                      interfaceId: ni.NetworkInterfaceId,
-                      ...(ni.Association || {}),
-                    };
-                  });
+                if (!response.NetworkInterfaces || !response.NetworkInterfaces.length) {
+                  throw new NotFoundException('Network Interface not found');
+                }
+                return response.NetworkInterfaces.filter((ni) => {
+                  return ni.Description?.indexOf(`-${status.functionName}-`) !== -1;
+                }).map((ni) => {
+                  return {
+                    interfaceId: ni.NetworkInterfaceId,
+                    ...(ni.Association || {}),
+                  };
+                });
               }),
           update: async (existing) => {
             if (existing.ipAddress) {
@@ -727,7 +728,7 @@ export class LambdaService implements IamConsumer, EnvProducer {
           }
           return { interfaceId: output[0]?.interfaceId, ipAddress: output[0]?.PublicIp };
         },
-      ).manage(options);
+      ).manage({ ...options, retries: Infinity });
     });
 
     status.ips = (await Promise.all(eips))
