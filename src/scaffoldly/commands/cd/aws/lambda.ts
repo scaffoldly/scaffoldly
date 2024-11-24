@@ -54,6 +54,10 @@ import {
   AssociateAddressCommand,
   DescribeAddressesCommand,
 } from '@aws-sdk/client-ec2';
+import axios, {
+  // eslint-disable-next-line import/named
+  AxiosResponse,
+} from 'axios';
 
 export type LambdaDeployStatus = {
   functionName?: string;
@@ -113,6 +117,10 @@ export class LambdaService implements IamConsumer, EnvProducer {
     );
     await this.configureUrl(status, options);
     await this.configureNetwork(status, options);
+  }
+
+  public async verify(status: LambdaDeployStatus, options: ResourceOptions): Promise<void> {
+    await this.verifyUrl(status, options);
   }
 
   private async configureFunction(
@@ -370,6 +378,35 @@ export class LambdaService implements IamConsumer, EnvProducer {
     ).manage(options);
 
     status.url = functionUrl;
+  }
+
+  private async verifyUrl(status: LambdaDeployStatus, options: ResourceOptions): Promise<void> {
+    if (options.dev || options.buildOnly) {
+      return;
+    }
+
+    const { url } = status;
+    if (!url) {
+      return;
+    }
+
+    await new CloudResource<{ statusCode?: string }, AxiosResponse<unknown>>(
+      {
+        describe: (resource) => {
+          return {
+            type: `GET ${url}`,
+            label: resource.statusCode || '[computed]',
+          };
+        },
+        read: () => axios.get(url),
+      },
+      (output) => {
+        if (!output.status) {
+          return undefined;
+        }
+        return { statusCode: `${output.status}` };
+      },
+    ).manage(options);
   }
 
   private async configurePermissions(

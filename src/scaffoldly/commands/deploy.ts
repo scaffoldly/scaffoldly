@@ -100,6 +100,7 @@ export class DeployCommand extends CdCommand<DeployCommand> {
     await this.gitService.predeploy(status, this.options);
     await this.awsService.predeploy(status, this.options);
     await this.awsService.deploy(status, this.options);
+    await this.awsService.verify(status, this.options);
 
     ui.updateBottomBar('');
     if (isDebug()) {

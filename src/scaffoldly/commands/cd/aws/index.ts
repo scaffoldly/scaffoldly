@@ -103,4 +103,8 @@ export class AwsService {
     // Deploy Schedules
     await this.scheduleService.deploy(status, options);
   }
+
+  async verify(status: DeployStatus, options: ResourceOptions): Promise<void> {
+    await this.lambdaService.verify(status, options);
+  }
 }
