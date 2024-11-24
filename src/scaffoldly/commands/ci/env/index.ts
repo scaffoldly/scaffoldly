@@ -160,14 +160,15 @@ export class EnvService {
         }
         if (expanded[key] === '' && parsed[key] === value) {
           // TODO Maybe throw an error
-          console.warn(`\n🟠 Environment variable ${key} was not substituted`);
-          ui.updateBottomBarSubtext(`Marking ${key} as sensitive`);
+          ui.updateBottomBarSubtext(`⚠️  WARNING: Environment variable '${key}' is not set.`);
           acc.push(key);
         }
         if (value === expanded[key] && !this._secretEnv[key]) {
           // Variable was not substituted
-          console.warn(`\n🟠 Environment variable ${key} was not substituted`);
-          ui.updateBottomBarSubtext(`Marking ${key} as sensitive`);
+          // console.warn();
+          ui.updateBottomBarSubtext(
+            `⚠️  WARNING: Environment variable '${key}' was not substituted.`,
+          );
           acc.push(key);
         }
         if (value.startsWith('${') && value.endsWith('}')) {
@@ -176,7 +177,11 @@ export class EnvService {
           if (this._secretEnv[ref]) {
             acc.push(ref);
             acc.push(key);
-            ui.updateBottomBarSubtext(`Marking ${ref} and ${key} as sensitive`);
+            if (ref === key) {
+              ui.updateBottomBarSubtext(`Marking ${key} as sensitive`);
+            } else {
+              ui.updateBottomBarSubtext(`Marking ${ref} and ${key} as sensitive`);
+            }
           }
         }
         return acc;
