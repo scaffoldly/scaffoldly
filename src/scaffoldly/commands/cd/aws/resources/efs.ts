@@ -15,6 +15,7 @@ import { GitService } from '../../git';
 import { AbstractResourceService, EfsStatus, ResourcesDeployStatus, VpcStatus } from './resource';
 import { ARN, ManagedArn } from '../arn';
 import { join, sep } from 'path';
+import { Behavior, ScaffoldlyBehavior } from '../../../../../behavior';
 
 const parseId = (id: unknown): { fileSystemId?: string } => {
   const parts = ARN.resource(`${id}`).name.split('/');
@@ -37,6 +38,8 @@ const mountPath = (name?: string): string => {
  */
 
 export class EfsResource extends AbstractResourceService {
+  private behavior: Behavior = ScaffoldlyBehavior.load();
+
   private efsClient: EFSClient;
 
   private ec2Client: EC2Client;
@@ -140,9 +143,9 @@ export class EfsResource extends AbstractResourceService {
               };
 
               status.vpc = {
-                vpcId: output.vpcId,
-                subnetIds: output.subnetIds,
-                securityGroupIds: output.securityGroupIds,
+                vpcId: this.behavior.aws.vpc.vpcId(output.vpcId),
+                subnetIds: this.behavior.aws.vpc.subnets.subnetIds(output.subnetIds),
+                securityGroupIds: this.behavior.aws.vpc.securityGroupIds(output.securityGroupIds),
               };
 
               return {

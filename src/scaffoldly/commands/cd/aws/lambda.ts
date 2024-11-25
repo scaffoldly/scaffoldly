@@ -58,6 +58,7 @@ import axios, {
   // eslint-disable-next-line import/named
   AxiosResponse,
 } from 'axios';
+import { ScaffoldlyBehavior } from '../../../../behavior';
 
 export type LambdaDeployStatus = {
   functionName?: string;
@@ -78,6 +79,8 @@ export interface SubscriptionProducer {
 }
 
 export class LambdaService implements IamConsumer, EnvProducer {
+  behavior: ScaffoldlyBehavior = ScaffoldlyBehavior.load();
+
   lambdaClient: LambdaClient;
 
   ec2Client: EC2Client;
