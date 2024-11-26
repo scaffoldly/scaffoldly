@@ -40,7 +40,7 @@ export class AwsVpcBehaviorImpl implements AwsVpcBehavior {
       });
     }
 
-    if (!vpcId || (this._vpcId && !vpcId)) {
+    if (!vpcId) {
       throw new BehaviorException({
         type: 'AwsVpcId',
         effect: 'removed',

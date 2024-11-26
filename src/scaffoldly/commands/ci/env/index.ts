@@ -181,9 +181,9 @@ export class EnvService {
             acc.push(ref);
             acc.push(key);
             if (ref === key) {
-              ui.updateBottomBarSubtext(`Marking ${key} as sensitive`);
+              ui.updateBottomBarSubtext(`Storing ${key} in secrets`);
             } else {
-              ui.updateBottomBarSubtext(`Marking ${ref} and ${key} as sensitive`);
+              ui.updateBottomBarSubtext(`Storing ${ref} and ${key} in secrets`);
             }
           }
         }

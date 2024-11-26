@@ -3,7 +3,7 @@ import { isDebug } from '../../ui';
 import { ui } from '../../command';
 import promiseRetry from 'promise-retry';
 import _ from 'lodash';
-import { NotFoundException, SkipAction } from './errors';
+import { FatalException, NotFoundException, SkipAction } from './errors';
 import { Mode } from '../../../config';
 import { GitService } from './git';
 import {
@@ -204,6 +204,8 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
               ui.updateBottomBarSubtext(
                 `Waiting for resource to be ready: ${JSON.stringify(difference)}`,
               );
+            } else {
+              ui.updateBottomBarSubtext('Waiting for resource to be ready...');
             }
 
             return retry(new Error('Resource is not ready'));
@@ -240,6 +242,11 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
           if (isDebug()) {
             console.log(`   --> [ERROR]`, e.message);
           }
+
+          if (e instanceof FatalException) {
+            throw e;
+          }
+
           return retry(e);
         }
       },
@@ -280,6 +287,11 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
           if (isDebug()) {
             console.log(`   --> [ERROR]`, e.message);
           }
+
+          if (e instanceof FatalException) {
+            throw e;
+          }
+
           return retry(e);
         }),
       {
@@ -325,6 +337,11 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
           if (isDebug()) {
             console.log(`   --> [ERROR]`, e.message);
           }
+
+          if (e instanceof FatalException) {
+            throw e;
+          }
+
           return retry(e);
         }),
       {

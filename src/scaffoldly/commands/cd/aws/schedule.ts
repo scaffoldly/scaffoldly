@@ -323,7 +323,7 @@ export class ScheduleService implements IamConsumer {
       await new CloudResource<InvokeOutput, InvokeOutput>(
         {
           describe: (resource) => {
-            const type = 'Invocation for @immediately';
+            const type = `Invocation of \`${schedules['@immediately'].toString()}\``;
             if (resource.failed) {
               // Don't show lines they will be in the error when it's outputted
               return { type, label: '' };

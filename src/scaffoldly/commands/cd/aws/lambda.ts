@@ -42,7 +42,7 @@ import { DockerDeployStatus, DockerService } from '../docker';
 import { Architecture } from '../../ci/docker';
 import { EcrDeployStatus } from './ecr';
 import { GitDeployStatus, GitService } from '../git';
-import { NotFoundException, SkipAction } from '../errors';
+import { FatalException, NotFoundException, SkipAction } from '../errors';
 import { ARN } from './arn';
 import { ResourcesDeployStatus } from './resources/resource';
 import {
@@ -182,30 +182,37 @@ export class LambdaService implements IamConsumer, EnvProducer {
           ),
         create: () =>
           this.envService.runtimeEnv.then((runtimeEnv) =>
-            this.lambdaClient.send(
-              new CreateFunctionCommand({
-                Code: {
-                  ImageUri: `${repositoryUri}@${imageDigest}`,
-                },
-                FunctionName: status.functionArn || name,
-                Publish: false,
-                PackageType: 'Image',
-                Architectures:
-                  this.dockerService.platform === 'linux/arm64' ? ['arm64'] : ['x86_64'],
-                ImageConfig: {
-                  EntryPoint: ['.entrypoint'],
-                  Command: [],
-                },
-                Role: desired.Configuration?.Role,
-                Timeout: desired.Configuration?.Timeout,
-                MemorySize: desired.Configuration?.MemorySize,
-                Environment: {
-                  Variables: runtimeEnv,
-                },
-                VpcConfig: desired.Configuration?.VpcConfig,
-                FileSystemConfigs: desired.Configuration?.FileSystemConfigs,
+            this.lambdaClient
+              .send(
+                new CreateFunctionCommand({
+                  Code: {
+                    ImageUri: `${repositoryUri}@${imageDigest}`,
+                  },
+                  FunctionName: status.functionArn || name,
+                  Publish: false,
+                  PackageType: 'Image',
+                  Architectures:
+                    this.dockerService.platform === 'linux/arm64' ? ['arm64'] : ['x86_64'],
+                  ImageConfig: {
+                    EntryPoint: ['.entrypoint'],
+                    Command: [],
+                  },
+                  Role: desired.Configuration?.Role,
+                  Timeout: desired.Configuration?.Timeout,
+                  MemorySize: desired.Configuration?.MemorySize,
+                  Environment: {
+                    Variables: runtimeEnv,
+                  },
+                  VpcConfig: desired.Configuration?.VpcConfig,
+                  FileSystemConfigs: desired.Configuration?.FileSystemConfigs,
+                }),
+              )
+              .catch((error) => {
+                if (error.$metadata?.httpStatusCode === 400) {
+                  throw new FatalException(error.message);
+                }
+                throw error;
               }),
-            ),
           ),
         update: (existing) =>
           this.envService.runtimeEnv.then((runtimeEnv) =>
@@ -230,6 +237,12 @@ export class LambdaService implements IamConsumer, EnvProducer {
               .then((updated) => {
                 status.functionVersion = updated.Version;
                 return updated;
+              })
+              .catch((error) => {
+                if (error.$metadata?.httpStatusCode === 400) {
+                  throw new FatalException(error.message);
+                }
+                throw error;
               }),
           ),
         emitPermissions: (aware) => {
@@ -668,9 +681,7 @@ export class LambdaService implements IamConsumer, EnvProducer {
                 if (!response.NetworkInterfaces || !response.NetworkInterfaces.length) {
                   throw new NotFoundException('Network Interface not found');
                 }
-                return response.NetworkInterfaces.filter((ni) => {
-                  return ni.Description?.indexOf(`-${status.functionName}-`) !== -1;
-                }).map((ni) => {
+                return response.NetworkInterfaces.map((ni) => {
                   return {
                     interfaceId: ni.NetworkInterfaceId,
                     ...(ni.Association || {}),

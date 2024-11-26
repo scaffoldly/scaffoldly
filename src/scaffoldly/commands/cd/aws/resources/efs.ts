@@ -142,11 +142,13 @@ export class EfsResource extends AbstractResourceService {
                 mountPath: output.mountPath,
               };
 
-              status.vpc = {
-                vpcId: this.behavior.aws.vpc.vpcId(output.vpcId),
-                subnetIds: this.behavior.aws.vpc.subnets.subnetIds(output.subnetIds),
-                securityGroupIds: this.behavior.aws.vpc.securityGroupIds(output.securityGroupIds),
-              };
+              if (output.vpcId) {
+                status.vpc = {
+                  vpcId: this.behavior.aws.vpc.vpcId(output.vpcId),
+                  subnetIds: this.behavior.aws.vpc.subnets.subnetIds(output.subnetIds),
+                  securityGroupIds: this.behavior.aws.vpc.securityGroupIds(output.securityGroupIds),
+                };
+              }
 
               return {
                 arn: output.accessPointArn,
