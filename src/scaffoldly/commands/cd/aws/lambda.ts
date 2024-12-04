@@ -209,6 +209,12 @@ export class LambdaService implements IamConsumer, EnvProducer {
               )
               .catch((error) => {
                 if (error.$metadata?.httpStatusCode === 400) {
+                  if (
+                    error.message ===
+                    'The role defined for the function cannot be assumed by Lambda.'
+                  ) {
+                    throw new NotFoundException(error.message);
+                  }
                   throw new FatalException(error.message);
                 }
                 throw error;

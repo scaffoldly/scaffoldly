@@ -77,7 +77,7 @@ export const run = async (abortEvent: AbortEvent): Promise<void> => {
     shell: true,
     detached: true,
     stdout: process.stdout,
-    stderr: process.stderr,
+    stderr: process.stdout,
     env: { ...process.env, ...env },
     verbose: isDebug,
     signal: abortEvent.signal,
