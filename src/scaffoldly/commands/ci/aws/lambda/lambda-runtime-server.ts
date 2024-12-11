@@ -16,7 +16,7 @@ import { GitService } from '../../../cd/git';
 import { buffer } from 'stream/consumers';
 import {
   fromResponseStream,
-  RESPONSE_STREAM_HEADERS,
+  // RESPONSE_STREAM_HEADERS,
 } from '../../../../../awslambda-entrypoint/util';
 import { convertHeaders } from './function-url-server';
 import { Readable } from 'stream';
@@ -107,18 +107,18 @@ export class LambdaRuntimeServer extends HttpServer {
         const duration = end - start;
 
         try {
-          const { headers } = responseReq;
-          Object.entries(RESPONSE_STREAM_HEADERS).forEach(([key, value]) => {
-            if (Array.isArray(value)) {
-              value = value.join(', ');
-            }
+          // const { headers } = responseReq;
+          // Object.entries(RESPONSE_STREAM_HEADERS).forEach(([key, value]) => {
+          //   if (Array.isArray(value)) {
+          //     value = value.join(', ');
+          //   }
 
-            const headerValue = headers[key.toLowerCase()];
+          //   const headerValue = headers[key.toLowerCase()];
 
-            if (headerValue !== value) {
-              throw new Error(`Invalid header: ${key}, got ${headerValue}, expected ${value}`);
-            }
-          });
+          //   if (headerValue !== value) {
+          //     throw new Error(`Invalid header: ${key}, got ${headerValue}, expected ${value}`);
+          //   }
+          // });
 
           const { prelude, payload } = await fromResponseStream(new Readable().wrap(responseReq));
           const body = (await buffer(payload)).toString('base64');

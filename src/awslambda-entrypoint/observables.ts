@@ -68,12 +68,15 @@ const next$ = (
       const response$ = new AsyncSubject<AsyncResponse>();
       const completed$ = new Subject<AsyncResponse>();
 
-      response$.pipe(mapAsyncResponse(abortEvent, runtimeApi)).subscribe((response) => {
-        log('Response sent to Runtime API', { requestId });
-        completed$.next(response);
-      });
+      response$
+        .pipe(mapAsyncResponse(abortEvent, runtimeApi, requestId, response$, completed$))
+        .subscribe((response) => {
+          log('Response sent to Runtime API', { requestId });
+          completed$.next(response);
+        });
 
       return {
+        runtimeApi,
         requestId,
         headers: next.headers,
         event: next.data,
@@ -146,6 +149,10 @@ const proxy$ = (
   info('Proxy request', { method, url });
   log('Proxying request', { headers, data, deadline });
 
+  if (method === 'GET' && headers?.['sec-websocket-version'] && headers?.['sec-websocket-key']) {
+    return throwError(() => new Error('Websockets are not supported'));
+  }
+
   const proxyHeaders = { ...(headers || {}) };
 
   return defer(() => {
@@ -199,8 +206,6 @@ const proxy$ = (
         requestId: runtimeEvent.requestId,
         response$: runtimeEvent.response$,
         completed$: runtimeEvent.completed$,
-        method,
-        url,
         prelude,
         payload: responseData,
       };
@@ -309,7 +314,7 @@ export const asyncResponse$ = (
 
   if (typeof rawEvent === 'string') {
     if (!rawEvent.startsWith(`${CONFIG_SIGNATURE}:`)) {
-      throw new Error('Invalid command');
+      return throwError(() => new Error(`Raw event is missing ${CONFIG_SIGNATURE}`));
     }
     return shell$(abortEvent, runtimeEvent, rawEvent, runtimeEvent.env);
   }
@@ -321,7 +326,7 @@ export const asyncResponse$ = (
   );
 
   if (!requestContext) {
-    throw new Error('Missing request context');
+    return throwError(() => new Error('Missing request context'));
   }
 
   let method: string | undefined = undefined;
@@ -353,7 +358,7 @@ export const asyncResponse$ = (
 
   const handler = findHandler(routes, rawPath);
   if (!handler) {
-    throw new Error('No handler found');
+    return throwError(() => new Error(`No handler found for ${rawPath}`));
   }
 
   return endpoint$(handler, deadline).pipe(

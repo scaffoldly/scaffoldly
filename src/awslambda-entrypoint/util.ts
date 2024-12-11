@@ -4,40 +4,12 @@ import { Routes } from '../config';
 import { ALBEventQueryStringParameters } from 'aws-lambda';
 import {
   // eslint-disable-next-line import/named
-  AxiosRequestConfig,
-  // eslint-disable-next-line import/named
   AxiosResponseHeaders,
   // eslint-disable-next-line import/named
   RawAxiosResponseHeaders,
 } from 'axios';
-import { PassThrough, Readable } from 'stream';
-import { AbortEvent, AsyncPrelude } from './types';
-import { log } from './log';
-
-export const RESPONSE_STREAM_HEADERS = {
-  'Transfer-Encoding': 'chunked',
-  'Lambda-Runtime-Function-Response-Mode': 'streaming',
-  'Content-Type': 'application/vnd.awslambda.http-integration-response',
-  Trailer: ['Lambda-Runtime-Function-Error-Type', 'Lambda-Runtime-Function-Error-Body'],
-};
-
-export const intoResponseStream = (prelude: AsyncPrelude, payload: Readable): Readable => {
-  const stream = new PassThrough();
-
-  // Add the application/vnd.awslambda.http-integration-response prelude
-  // Ref: Similar to StreamingResponse in https://github.com/awslabs/aws-lambda-rust-runtime/blob/main/lambda-runtime/src/requests.rs
-  new Readable({
-    read() {
-      this.push(Buffer.from(JSON.stringify(prelude))); // Write a stringified prelude
-      this.push(Buffer.alloc(8)); // Write 8-byte delimiter
-      this.push(null); // End the initial stream
-    },
-  }).pipe(stream, { end: false });
-
-  payload.pipe(stream);
-
-  return stream;
-};
+import { AsyncPrelude } from './types';
+import { Readable } from 'stream';
 
 export const fromResponseStream = (
   stream: Readable,
@@ -48,30 +20,33 @@ export const fromResponseStream = (
     const parts = stream.pipe(binarySplit(delimiter));
     let prelude: AsyncPrelude | undefined;
 
+    const handleEnd = () => {
+      if (!prelude) {
+        reject(new Error('Stream ended before a valid prelude was received'));
+      }
+    };
+
+    const handleError = (err: Error) => {
+      reject(err);
+    };
+
     parts.on('data', (chunk: Buffer) => {
       if (!prelude) {
-        prelude = JSON.parse(chunk.toString('utf8')) as AsyncPrelude;
-        resolve({ prelude, payload: new Readable().wrap(parts) });
+        try {
+          prelude = JSON.parse(chunk.toString('utf8')) as AsyncPrelude;
+          resolve({ prelude, payload: new Readable().wrap(parts) });
+        } catch (err) {
+          reject(new Error(`Failed to parse prelude: ${err.message}`));
+        } finally {
+          parts.off('end', handleEnd);
+          parts.off('error', handleError);
+        }
       }
     });
 
-    parts.on('error', reject);
+    parts.once('end', handleEnd);
+    parts.once('error', handleError);
   });
-};
-
-export const intoResponseStreamOptions = (
-  abortEvent: AbortEvent,
-  requestId?: string,
-): AxiosRequestConfig<Readable> => {
-  return {
-    headers: RESPONSE_STREAM_HEADERS,
-    maxBodyLength: Infinity,
-    maxContentLength: Infinity,
-    onUploadProgress: (progress) => {
-      log('Stream progress', { requestId, progress });
-    },
-    signal: abortEvent.signal,
-  };
 };
 
 export const findHandler = (routes: Routes, rawPath?: string): string | undefined => {

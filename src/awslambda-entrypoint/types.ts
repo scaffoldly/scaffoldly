@@ -20,13 +20,10 @@ export type AsyncResponse = {
   payload: Readable;
   response$: AsyncSubject<AsyncResponse>;
   completed$: Subject<AsyncResponse>;
-  method?: string;
-  url?: string;
-  statusCode?: number;
-  headers?: Record<string, unknown>;
 };
 
 export type RuntimeEvent = {
+  runtimeApi: string;
   requestId: string;
   headers: Record<string, unknown>;
   event: string;
