@@ -14,10 +14,15 @@ export type AsyncPrelude = {
   cookies?: string[];
 };
 
+export type SyncPrelude = AsyncPrelude & {
+  body: string;
+  isBase64Encoded: true;
+};
+
 export type AsyncResponse = {
   requestId?: string;
   prelude: AsyncPrelude;
-  payload: Readable;
+  payload: Readable | Promise<Buffer>;
   response$: AsyncSubject<AsyncResponse>;
   completed$: Subject<AsyncResponse>;
 };

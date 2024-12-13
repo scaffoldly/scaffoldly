@@ -28,7 +28,8 @@ import axios, { isAxiosError } from 'axios';
 import { execa } from 'execa';
 import { mapAsyncResponse, mapRuntimeEvent } from './mappers';
 import { isReadableStream } from 'is-stream';
-import { Readable } from 'stream';
+import { PassThrough } from 'stream';
+import { buffer } from 'stream/consumers';
 
 const next$ = (
   abortEvent: AbortEvent,
@@ -105,13 +106,15 @@ const shell$ = (
 ): Observable<AsyncResponse> => {
   const commands = Commands.decode(rawEvent);
   const command = commands.toString();
+  const payload = new PassThrough();
 
   return from(
     execa(command, {
       shell: true,
       env: { ...process.env, ...env },
       verbose: isDebug,
-      all: true,
+      stderr: payload,
+      stdout: payload,
       signal: abortEvent.signal,
     }),
   ).pipe(
@@ -124,12 +127,13 @@ const shell$ = (
         response$: runtimeEvent.response$,
         completed$: runtimeEvent.completed$,
         prelude: {
-          statusCode: 200,
+          statusCode: output.exitCode === 0 ? 200 : 500,
           headers: {
             'Content-Type': 'text/plain',
+            'X-Exit-Code': `${output.exitCode || 0}`,
           },
         },
-        payload: Readable.from(output.all || ''),
+        payload,
       };
     }),
   );
@@ -138,6 +142,7 @@ const shell$ = (
 const proxy$ = (
   abortEvent: AbortEvent,
   runtimeEvent: RuntimeEvent,
+  stream: boolean,
   url?: string,
   method?: string,
   headers?: {
@@ -147,7 +152,7 @@ const proxy$ = (
   deadline?: number,
 ): Observable<AsyncResponse> => {
   info('Proxy request', { method, url });
-  log('Proxying request', { headers, data, deadline });
+  log('Proxying request', { headers, data, deadline, stream });
 
   if (method === 'GET' && headers?.['sec-websocket-version'] && headers?.['sec-websocket-key']) {
     return throwError(() => new Error('Websockets are not supported'));
@@ -207,7 +212,7 @@ const proxy$ = (
         response$: runtimeEvent.response$,
         completed$: runtimeEvent.completed$,
         prelude,
-        payload: responseData,
+        payload: stream ? responseData : buffer(responseData),
       };
     }),
   );
@@ -311,6 +316,7 @@ export const asyncResponse$ = (
   >;
 
   const deadline = runtimeEvent.deadline - 1000; // Subtract 1 second to allow errors to propagate
+  let stream = false;
 
   if (typeof rawEvent === 'string') {
     if (!rawEvent.startsWith(`${CONFIG_SIGNATURE}:`)) {
@@ -327,6 +333,10 @@ export const asyncResponse$ = (
 
   if (!requestContext) {
     return throwError(() => new Error('Missing request context'));
+  }
+
+  if ('domainName' in requestContext) {
+    stream = requestContext.domainName.indexOf('.lambda-url.') !== -1;
   }
 
   let method: string | undefined = undefined;
@@ -372,6 +382,7 @@ export const asyncResponse$ = (
       return proxy$(
         abortEvent,
         runtimeEvent,
+        stream,
         url.toString(),
         method,
         headers,

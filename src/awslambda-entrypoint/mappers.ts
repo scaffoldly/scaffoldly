@@ -1,9 +1,9 @@
-import { AbortEvent, AsyncResponse, RuntimeEvent } from './types';
+import { AbortEvent, AsyncResponse, RuntimeEvent, SyncPrelude } from './types';
 import { AsyncSubject, catchError, Observable, of, Subject, switchMap } from 'rxjs';
 import type { OperatorFunction } from 'rxjs';
 import { Routes } from '../config';
 import { asyncResponse$ } from './observables';
-import axios from 'axios';
+import axios, { AxiosHeaders } from 'axios';
 import { PassThrough, Readable } from 'stream';
 import { log } from './log';
 
@@ -28,7 +28,7 @@ export const mapError = (
                   'access-control-allow-methods': '*',
                 },
               },
-              payload: Readable.from([Buffer.from(err.message)]),
+              payload: Promise.resolve(Buffer.from(err.message)),
               response$: runtimeEvent.response$,
               completed$: runtimeEvent.completed$,
             };
@@ -102,55 +102,68 @@ export const mapResponse = (
           switchMap(async (asyncResponse) => {
             const { prelude, payload } = asyncResponse;
 
-            // Prepare the response stream
-            const responseStreamWithPrelude = new PassThrough();
-            responseStreamWithPrelude.write(JSON.stringify(prelude));
-            responseStreamWithPrelude.write(Buffer.alloc(8)); // 8 NULL characters
+            const headers: AxiosHeaders = new AxiosHeaders();
+            headers.set('Content-Type', 'application/json');
 
-            // Pipe the response payload into the stream
-            payload.on('data', (chunk) => {
-              responseStreamWithPrelude.write(chunk);
-            });
+            let body: Readable | SyncPrelude | undefined = undefined;
 
-            // Handle errors in the payload stream
-            payload.on('error', (err) => {
-              console.error('Payload stream error:', err);
-              responseStreamWithPrelude.write('\r\n'); // End the body
-              responseStreamWithPrelude.write(
-                `Lambda-Runtime-Function-Error-Type: stream.error\r\n`,
-              );
-              responseStreamWithPrelude.write(
-                `Lambda-Runtime-Function-Error-Body: ${Buffer.from(err.message).toString(
-                  'base64',
-                )}\r\n`,
-              );
-              responseStreamWithPrelude.write('\r\n');
-              responseStreamWithPrelude.end();
-            });
+            if (payload instanceof Promise) {
+              body = {
+                statusCode: prelude.statusCode,
+                headers: prelude.headers,
+                cookies: prelude.cookies,
+                body: (await payload).toString('base64'),
+                isBase64Encoded: true,
+              };
+            } else {
+              const data = new PassThrough();
+              body = data;
 
-            // Finalize the stream
-            payload.on('end', () => {
-              responseStreamWithPrelude.write('\r\n\r\n'); // End chunked transfer
-              responseStreamWithPrelude.end();
-            });
+              headers.set('Content-Type', 'application/vnd.awslambda.http-integration-response');
+              headers.set('Lambda-Runtime-Function-Response-Mode', 'streaming');
+              headers.set('Transfer-Encoding', 'chunked');
+              headers.set('Trailer', [
+                'Lambda-Runtime-Function-Error-Type',
+                'Lambda-Runtime-Function-Error-Body',
+              ]);
+
+              data.write(JSON.stringify(prelude));
+              data.write(Buffer.alloc(8)); // 8 NULL characters
+
+              payload.on('data', (chunk) => {
+                data.write(chunk);
+              });
+
+              payload.on('error', (err) => {
+                console.error('Payload stream error:', err);
+                data.write('\r\n'); // End the body
+                data.write(`Lambda-Runtime-Function-Error-Type: stream.error\r\n`);
+                data.write(
+                  `Lambda-Runtime-Function-Error-Body: ${Buffer.from(err.message).toString(
+                    'base64',
+                  )}\r\n`,
+                );
+                data.write('\r\n');
+                data.end();
+              });
+
+              payload.on('end', () => {
+                data.write('\0');
+                data.end();
+              });
+            }
+
+            const maxBodyLength = Buffer.isBuffer(payload) ? 6 * 1024 * 1024 : 20 * 1024 * 1024;
 
             await axios.post(
               `http://${runtimeApi}/2018-06-01/runtime/invocation/${requestId}/response`,
-              responseStreamWithPrelude,
+              body,
               {
-                headers: {
-                  'Content-Type': 'application/vnd.awslambda.http-integration-response',
-                  'Lambda-Runtime-Function-Response-Mode': 'streaming',
-                  'Transfer-Encoding': 'chunked',
-                  Trailer: [
-                    'Lambda-Runtime-Function-Error-Type',
-                    'Lambda-Runtime-Function-Error-Body',
-                  ],
-                },
+                headers,
                 signal: abortEvent.signal,
-                maxBodyLength: 20 * 1024 * 1024, // 20 MiB
+                maxBodyLength,
                 onUploadProgress: (progress) => {
-                  log('Stream progress', { requestId, progress });
+                  log('Progress', { requestId, progress });
                 },
               },
             );
