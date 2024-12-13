@@ -43,9 +43,9 @@ if (require.main === module) {
                 target,
                 '--output',
                 path.join('bin', `${path.basename(entry, '.ts')}-${arch}`),
-                // '--compress',
-                // 'Brotli',
-                // '--build',
+                '--compress',
+                'Brotli',
+                '--build',
               ];
             });
 
