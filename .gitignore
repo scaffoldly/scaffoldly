@@ -12,3 +12,4 @@ tests/integration/monorepo-go-next/*
 .nx/workspace-data
 
 dist/*.node
+bin/*

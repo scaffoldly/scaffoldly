@@ -12,17 +12,37 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # node: ['18', '20', '22']
-        node: ['22']
+        node: ['18', '20', '22']
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
           cache: 'yarn'
-      - run: yarn
-      - run: yarn build
-      - if: ${{ matrix.node == '22' }}
+
+      - name: Cache Pkg Builds
+        id: pkg-cache
+        uses: actions/cache@v4
+        with:
+          path: '~/.pkg-cache'
+          key: ${{ runner.os }}-pkg-cache
+
+      - name: Fetch Dependenciess
+        run: yarn
+
+      - name: Build
+        if: ${{ matrix.node != '18' }}
+        run: yarn build
+
+      - name: Build w/Native Bins
+        if: ${{ matrix.node == '18' }}
+        run: yarn build:native
+
+      - name: Bump Version
+        if: ${{ matrix.node == '22' }}
         uses: scaffoldly/bump-version-action@v1
         with:
           action: prerelease
