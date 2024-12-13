@@ -32,9 +32,9 @@ if (require.main === module) {
         const builds = ['x86_64', 'aarch64']
           .map((arch) => {
             console.log(`Building for ${arch}`);
-            let target = `linuxstatic-x64`;
+            let target = `linux-x64`;
             if (arch === 'aarch64') {
-              target = `linuxstatic-arm64`;
+              target = `linux-arm64`;
             }
             const args = nativeEntries.map((entry) => {
               return [
