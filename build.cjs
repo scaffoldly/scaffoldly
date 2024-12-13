@@ -9,56 +9,20 @@ const entry = [...nativeEntries, 'src/github-action.ts', 'src/create-app.ts', 's
 
 if (require.main === module) {
   (async () => {
-    await tsup
-      .build({
-        entry: entry,
-        bundle: true,
-        outDir: outDir,
-        minify: true,
-        sourcemap: 'inline',
-        dts: true,
-        platform: 'node',
-        target: 'node18',
-        watch: process.argv.includes('--watch'),
-        loader: {
-          '.md': 'text',
-        },
-        external: ['*.node'],
-      })
-      .then((build) => {
-        if (!process.argv.includes('--native')) {
-          return Promise.resolve();
-        }
-        const builds = ['x86_64', 'aarch64']
-          .map((arch) => {
-            console.log(`Building for ${arch}`);
-            let target = `linux-x64`;
-            if (arch === 'aarch64') {
-              target = `linux-arm64`;
-            }
-            const args = nativeEntries.map((entry) => {
-              return [
-                entry.replace('src/', `${outDir}/`).replace('.ts', '.js'),
-                '--target',
-                target,
-                '--output',
-                path.join('bin', `${path.basename(entry, '.ts')}-${arch}`),
-                '--compress',
-                'Brotli',
-                '--build',
-              ];
-            });
-
-            return args;
-          })
-          .flat();
-
-        return Promise.all(
-          builds.map(async (args) => {
-            console.log(`Native packaging with args: ${args.join(' ')}`);
-            await pkg(args);
-          }),
-        );
-      });
+    await tsup.build({
+      entry: entry,
+      bundle: true,
+      outDir: outDir,
+      minify: true,
+      sourcemap: 'inline',
+      dts: true,
+      platform: 'node',
+      target: 'node18',
+      watch: process.argv.includes('--watch'),
+      loader: {
+        '.md': 'text',
+      },
+      external: ['*.node'],
+    });
   })();
 }

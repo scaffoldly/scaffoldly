@@ -13,7 +13,6 @@
   "scripts": {
     "dev": "./build.cjs --watch",
     "build": "./build.cjs",
-    "build:native": "./build.cjs --native",
     "scaffoldly": "node dist/scaffoldly.cjs"
   },
   "main": "dist/index.js",
