@@ -42,7 +42,7 @@ if (require.main === module) {
                 '--target',
                 target,
                 '--output',
-                path.join(outDir, `${path.basename(entry, '.ts')}-${arch}`),
+                path.join('bin', `${path.basename(entry, '.ts')}-${arch}`),
                 '--compress',
                 'Brotli',
                 '--build',
