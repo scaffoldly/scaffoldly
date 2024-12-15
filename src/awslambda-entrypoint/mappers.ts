@@ -130,7 +130,10 @@ export const mapResponse = (
               data.write(JSON.stringify(prelude));
               data.write(Buffer.alloc(8)); // 8 NULL characters
 
+              let bytes = 0;
+
               payload.on('data', (chunk) => {
+                bytes += chunk.length;
                 data.write(chunk);
               });
 
@@ -148,7 +151,9 @@ export const mapResponse = (
               });
 
               payload.on('end', () => {
-                data.write('\0');
+                if (bytes === 0) {
+                  data.write('\0');
+                }
                 data.end();
               });
             }

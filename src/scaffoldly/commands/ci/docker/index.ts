@@ -388,7 +388,7 @@ export class DockerService {
       runCommands.push({
         cmds: scripts.prepare ? [scripts.prepare] : [],
         prerequisite: true,
-        workdir: taskdir,
+        workdir: join(taskdir, src),
       });
 
       // runCommands.push({
@@ -431,16 +431,16 @@ export class DockerService {
         {
           cmds: scripts.install ? [scripts.install] : [],
           prerequisite: false,
-          workdir: taskdir,
+          workdir: join(taskdir, src),
         },
         {
           cmds: scripts.build ? [scripts.build] : [],
           prerequisite: false,
-          workdir: taskdir,
+          workdir: join(taskdir, src),
         },
       ];
 
-      const copy: Copy[] = [{ src, dest: src }];
+      const copy: Copy[] = [{ src: DEFAULT_SRC_ROOT, dest: taskdir }];
       // if (src !== DEFAULT_SRC_ROOT) {
       //   files.forEach((file) => {
       //     const [from, f] = file.split(':');
@@ -475,7 +475,7 @@ export class DockerService {
           };
           return cp;
         }
-        const cp: Copy = { from: fromStage?.as, src: file, dest: file };
+        const cp: Copy = { from: fromStage?.as, src: join(src, file), dest: join(src, file) };
         return cp;
       });
 
