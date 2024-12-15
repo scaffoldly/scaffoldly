@@ -87,6 +87,7 @@ export class S3Resource extends AbstractResourceService {
                 }
                 return {
                   // TODO: infer partition from region
+                  name: output.Bucket,
                   arn: `arn:aws:s3:::${output.Bucket}`,
                 };
               },

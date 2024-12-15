@@ -152,6 +152,7 @@ export class EfsResource extends AbstractResourceService {
 
               return {
                 arn: output.accessPointArn,
+                name: output.fileSystemName,
                 ...status.efs,
               };
             },
@@ -208,6 +209,7 @@ export class EfsResource extends AbstractResourceService {
     nextToken?: string,
   ): Promise<EfsStatus & VpcStatus> => {
     const status: EfsStatus & VpcStatus = {
+      fileSystemName: fileSystem.Name,
       fileSystemId: fileSystem.FileSystemId,
       mountPath: mountPath(fileSystem.Name),
     };

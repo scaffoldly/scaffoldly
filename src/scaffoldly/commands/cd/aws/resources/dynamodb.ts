@@ -96,6 +96,7 @@ export class DynamoDBResource extends AbstractResourceService {
             (resource) => {
               return {
                 arn: resource.Table?.TableArn,
+                name: resource.Table?.TableName,
                 subscriptionArn: resource.Table?.LatestStreamArn,
                 ...(resource.Table || {}),
               };

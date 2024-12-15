@@ -13,6 +13,7 @@ export type VpcStatus = {
 };
 
 export type EfsStatus = {
+  fileSystemName?: string;
   fileSystemId?: string;
   mountPath?: string;
   accessPointArn?: string;
@@ -59,11 +60,11 @@ export abstract class AbstractResourceService implements EnvProducer, Subscripti
 
     const resources = this._arns.map((arn) => {
       let region = '*';
-      const { partition = '*', service, accountId = '*', name } = arn;
+      const { partition = '*', service, accountId = '*', resource } = arn;
       if (service === 's3') {
         region = '';
       }
-      return `arn:${partition}:${service}:${region}:${accountId}:${name}*`;
+      return `arn:${partition}:${service}:${region}:${accountId}:${resource}*`;
     });
 
     const actions: string[] = this._arns.map((arn) => this.createActions(arn)).flat();

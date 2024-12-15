@@ -2,10 +2,12 @@ import { parse } from '@aws-sdk/util-arn-parser';
 import { EnvProducer } from '../../ci/env';
 import { CloudResource, ResourceOptions } from '..';
 
-export type ManagedArn = { arn?: string; subscriptionArn?: string };
+export type ManagedArn = { arn?: string; name?: string; subscriptionArn?: string };
 
 export class ARN<ReadCommandOutput> implements EnvProducer {
   private _managedArn?: ManagedArn;
+
+  private readonly _originalArn: string;
 
   private _arn: string;
 
@@ -22,6 +24,7 @@ export class ARN<ReadCommandOutput> implements EnvProducer {
     private desired?: ReadCommandOutput,
   ) {
     this._arn = arn.toLowerCase();
+    this._originalArn = arn;
 
     const { name, searchParams, hash } = ARN.resource(this._arn);
     this._name = name;
@@ -60,6 +63,7 @@ export class ARN<ReadCommandOutput> implements EnvProducer {
       .then((managedArn) => {
         this._managedArn = managedArn;
         this._arn = managedArn?.arn || this._arn;
+        this._name = managedArn?.name || this._name;
         return managedArn;
       });
   }
@@ -87,6 +91,10 @@ export class ARN<ReadCommandOutput> implements EnvProducer {
 
   get accountId(): string | undefined {
     return parse(this._arn).accountId;
+  }
+
+  get resource(): string {
+    return parse(this._arn).resource;
   }
 
   get name(): string {
@@ -120,6 +128,7 @@ export class ARN<ReadCommandOutput> implements EnvProducer {
   }
 
   get env(): Promise<Record<string, string>> {
+    const originalName = ARN.resource(this._originalArn).name;
     return Promise.all([this.arn, this.partition, this.service, this.name]).then(
       ([arn, partition = 'aws', service, name]) => {
         if (!arn) {
@@ -130,7 +139,7 @@ export class ARN<ReadCommandOutput> implements EnvProducer {
 
         // Split resource into parts on non-word characters
         const partitionParts = partition.split(/[^a-zA-Z0-9]/);
-        const resourceParts = name.split(/[^a-zA-Z0-9]/);
+        const resourceParts = originalName.split(/[^a-zA-Z0-9]/);
 
         // arn:aws:dynamodb:us-east-1:123456789012:table/my-table ==> AWS_DYNAMODB_TABLE_MY_TABLE
         // arn:aws:s3:::my-bucket ==> AWS_S3_BUCKET_MY_BUCKET
@@ -143,6 +152,7 @@ export class ARN<ReadCommandOutput> implements EnvProducer {
 
         return {
           [key]: arn,
+          [`${key}__NAME`]: name,
         };
       },
     );
