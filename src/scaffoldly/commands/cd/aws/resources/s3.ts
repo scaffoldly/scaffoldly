@@ -89,7 +89,12 @@ export class S3Resource extends AbstractResourceService {
                   return Promise.resolve(existing);
                 },
                 emitPermissions: (aware) => {
-                  aware.withPermissions(['s3:ListBucket', 's3:CreateBucket']);
+                  aware.withPermissions([
+                    's3:ListBucket',
+                    's3:CreateBucket',
+                    's3:GetBucketNotification',
+                    's3:PutBucketNotification',
+                  ]);
                 },
               },
               (output) => {
@@ -201,13 +206,6 @@ export class S3Resource extends AbstractResourceService {
                   },
                 }),
               );
-            },
-
-            emitPermissions: (aware) => {
-              aware.withPermissions([
-                's3:GetBucketNotificationConfiguration',
-                's3:PutBucketNotificationConfiguration',
-              ]);
             },
           },
           (output) => {
