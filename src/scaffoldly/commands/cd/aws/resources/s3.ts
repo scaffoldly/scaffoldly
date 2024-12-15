@@ -72,7 +72,7 @@ export class S3Resource extends AbstractResourceService {
                   return Promise.resolve(existing);
                 },
                 emitPermissions: (aware) => {
-                  aware.withPermissions(['s3:HeadBucket', 's3:CreateBucket']);
+                  aware.withPermissions(['s3:ListBucket', 's3:CreateBucket']);
                 },
               },
               (output) => {
