@@ -6,6 +6,7 @@ import {
   HeadBucketOutput,
   // eslint-disable-next-line import/named
   NotificationConfiguration,
+  PutBucketCorsCommand,
   PutBucketNotificationConfigurationCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
@@ -64,7 +65,23 @@ export class S3Resource extends AbstractResourceService {
                         Bucket: `${ARN.resource(arn).name.split('/').pop()}-${uniqueId}`,
                       }),
                     )
-                    .then((created) => {
+                    .then(async (created) => {
+                      await this.s3Client.send(
+                        new PutBucketCorsCommand({
+                          Bucket: created.Location?.split('/').pop(),
+                          CORSConfiguration: {
+                            CORSRules: [
+                              {
+                                AllowedHeaders: ['*'],
+                                AllowedMethods: ['GET', 'PUT', 'POST', 'DELETE'],
+                                AllowedOrigins: ['*'],
+                                ExposeHeaders: ['ETag'],
+                                MaxAgeSeconds: 3600,
+                              },
+                            ],
+                          },
+                        }),
+                      );
                       return created;
                     }),
                 update: (existing) => {
