@@ -21,8 +21,8 @@ export class DynamoDBResource extends AbstractResourceService {
   }
 
   async configure(status: ResourcesDeployStatus, options: ResourceOptions): Promise<void> {
-    const tableArns = this.gitService.config.resources.filter((resource) =>
-      resource.includes(':dynamodb:'),
+    const tableArns = this.gitService.config.resources.filter(
+      (resource) => resource.includes(':dynamodb:') && resource.includes(':table/'),
     );
 
     const { uniqueId } = status;
