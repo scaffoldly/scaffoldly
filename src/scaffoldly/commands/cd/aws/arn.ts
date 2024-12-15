@@ -54,11 +54,12 @@ export class ARN<ReadCommandOutput> implements EnvProducer {
     }
 
     return Promise.resolve(this.partition)
-      .then((partition) => {
+      .then(async (partition) => {
         if (partition) {
           return this.cloudResource.read(this._arn);
         }
-        return this.cloudResource.manage(this.options, this.desired);
+        const managed = await this.cloudResource.manage(this.options, this.desired);
+        return managed;
       })
       .then((managedArn) => {
         this._managedArn = managedArn;
