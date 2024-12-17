@@ -27,14 +27,19 @@ export abstract class Command<T> implements PermissionAware {
 
   get projectJson(): Promise<ProjectJson | undefined> {
     return Promise.all([
+      new StandaloneProject(this.gitService).projectJson,
       new NodeProject(this.gitService).projectJson,
       new DotnetProject(this.gitService).projectJson,
       new GolangProject(this.gitService).projectJson,
       new RustProject(this.gitService).projectJson,
       new PythonProject(this.gitService).projectJson,
-      new StandaloneProject(this.gitService).projectJson,
     ])
-      .then(([node, dotnet, golang, rust, python, standalone]) => {
+      .then(([standalone, node, dotnet, golang, rust, python]) => {
+        if (standalone) {
+          console.warn('🟠 Using `scaffoldly.json` for configuration.\n');
+          return standalone;
+        }
+
         const projectJson = node || dotnet || golang || rust || python;
 
         if (projectJson) {
