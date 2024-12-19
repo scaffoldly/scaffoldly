@@ -10,13 +10,16 @@
     }
   },
   "waitFor": "onCreateCommand",
-  "postCreateCommand": {
+  "initializeCommand": {
     "gitConfig": "git config --global pull.rebase true",
     "gitClone": "cd /workspaces && gh repo clone scaffoldly/scaffoldly-examples"
   },
-  "postStartCommand": "echo postStart",
-  "onCreateCommand": "echo onCreate",
+  "onCreateCommand": {
+    "openWorkspace": "code /workspaces/.code-workspace"
+  },
   "updateContentCommand": "yarn",
+  "postCreateCommand": "echo postCreate",
+  "postStartCommand": "echo postStart",
   "postAttachCommand": {
     "dev": "yarn dev"
   },
