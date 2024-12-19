@@ -39,5 +39,5 @@
     }
   },
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace/scaffoldly,type=bind,consistency=cached",
-  "workspaceFolder": "/workspace/scaffoldly"
+  "workspaceFolder": "/workspace/scaffoldly/scaffoldly"
 }
