@@ -11,7 +11,8 @@
   },
   "waitFor": "onCreateCommand",
   "postCreateCommand": {
-    "gitConfig": "git config --global pull.rebase true"
+    "gitConfig": "git config --global pull.rebase true",
+    "gitClone": "cd /workspaces && gh repo clone scaffoldly/scaffoldly-examples"
   },
   "postStartCommand": "echo postStart",
   "onCreateCommand": "echo onCreate",
@@ -37,9 +38,5 @@
         "git.autofetch": true
       }
     }
-  },
-  "mounts": [
-    "source=${localWorkspaceFolder}/scaffoldly,target=/code/scaffoldly,type=bind,consistency=cached",
-    "source=${localWorkspaceFolder}/scaffoldly-examples,target=/code/scaffoldly-examples,type=bind,consistency=cached"
-  ]
+  }
 }
