@@ -9,8 +9,11 @@
       "role": "aws-examples"
     }
   },
+  "workspaceFolder": "/workspace/scaffoldly/scaffoldly",
   "waitFor": "onCreateCommand",
-  "postCreateCommand": "echo postCreate",
+  "postCreateCommand": {
+    "gitConfig": "git config --global pull.rebase true"
+  },
   "postStartCommand": "echo postStart",
   "onCreateCommand": "echo onCreate",
   "updateContentCommand": "yarn",
@@ -30,8 +33,10 @@
       "settings": {
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "esbenp.prettier-vscode",
-        "editor.tabSize": 2
+        "editor.tabSize": 2,
+        "workbench.colorTheme": "Visual Studio Dark"
       }
     }
-  }
+  },
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
 }
