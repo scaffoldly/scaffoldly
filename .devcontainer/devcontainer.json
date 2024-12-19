@@ -38,10 +38,8 @@
       }
     }
   },
-  "workspaceFolder": "/workspaces/scaffoldly/scaffoldly",
-  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace/scaffoldly,type=bind,consistency=cached",
   "mounts": [
-    "source=${localWorkspaceFolder}/scaffoldly,target=/workspaces/scaffoldly/scaffoldly,type=bind,consistency=cached",
-    "source=${localWorkspaceFolder}/scaffoldly-examples,target=/workspaces/scaffoldly/scaffoldly-examples,type=bind,consistency=cached"
+    "source=${localWorkspaceFolder}/scaffoldly,target=/code/scaffoldly,type=bind,consistency=cached",
+    "source=${localWorkspaceFolder}/scaffoldly-examples,target=/code/scaffoldly-examples,type=bind,consistency=cached"
   ]
 }
