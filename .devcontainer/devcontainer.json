@@ -1,4 +1,4 @@
-{
+c{
   "name": "scaffoldly",
   "image": "mcr.microsoft.com/devcontainers/universal:linux",
   "features": {
@@ -16,8 +16,8 @@
     "gitClone": "cd /workspaces && gh repo clone scaffoldly/scaffoldly-examples"
   },
   "updateContentCommand": "code /workspaces/.code-workspace",
-  "postCreateCommand": "yarn",
-  "postStartCommand": "echo postStart",
+  "postCreateCommand": "echo postCreate",
+  "postStartCommand": "yarn",
   "postAttachCommand": {
     "dev": "yarn dev"
   },
