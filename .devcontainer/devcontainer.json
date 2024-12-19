@@ -1,4 +1,4 @@
-c{
+{
   "name": "scaffoldly",
   "image": "mcr.microsoft.com/devcontainers/universal:linux",
   "features": {
