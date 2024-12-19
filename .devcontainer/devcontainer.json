@@ -12,14 +12,15 @@
   "waitFor": "updateContentCommand",
   "initializeCommand": "echo initialize",
   "onCreateCommand": {
-    "gitConfig": "git config --global pull.rebase true",
-    "gitClone": "cd /workspaces && gh repo clone scaffoldly/scaffoldly-examples"
+    "configureGit": "git config --global pull.rebase true",
+    "cloneExamples": "cd /workspaces && gh repo clone scaffoldly/scaffoldly-examples"
   },
   "updateContentCommand": "yarn",
   "postCreateCommand": "echo postCreate",
-  "postStartCommand": "code /workspaces/scaffoldly/.devcontainer/default.code-workspace",
+  "postStartCommand": "echo postStart",
   "postAttachCommand": {
-    "dev": "yarn dev"
+    "switchWorkspace": "code /workspaces/scaffoldly/.devcontainer/default.code-workspace",
+    "buildProject": "yarn dev"
   },
   "customizations": {
     "codespaces": {
