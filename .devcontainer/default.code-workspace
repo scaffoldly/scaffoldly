@@ -2,11 +2,11 @@
   "folders": [
     {
       "name": "scaffoldly",
-      "path": "../scaffoldly"
+      "path": "../../scaffoldly"
     },
     {
       "name": "scaffoldly-examples",
-      "path": "../scaffoldly-examples"
+      "path": "../../scaffoldly-examples"
     }
   ]
 }

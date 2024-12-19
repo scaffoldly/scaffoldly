@@ -9,15 +9,15 @@
       "role": "aws-examples"
     }
   },
-  "waitFor": "onCreateCommand",
+  "waitFor": "updateContentCommand",
   "initializeCommand": "echo initialize",
   "onCreateCommand": {
     "gitConfig": "git config --global pull.rebase true",
     "gitClone": "cd /workspaces && gh repo clone scaffoldly/scaffoldly-examples"
   },
-  "updateContentCommand": "code /workspaces/scaffoldly/.code-workspace",
+  "updateContentCommand": "yarn",
   "postCreateCommand": "echo postCreate",
-  "postStartCommand": "yarn",
+  "postStartCommand": "code /workspaces/scaffoldly/.devcontainer/default.code-workspace",
   "postAttachCommand": {
     "dev": "yarn dev"
   },
