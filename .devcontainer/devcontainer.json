@@ -1,0 +1,25 @@
+{
+    "name": "scaffoldly",
+    "image": "mcr.microsoft.com/devcontainers/universal:linux",
+    "features": {
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+        "ghcr.io/devcontainers/features/github-cli:1": {},
+        "ghcr.io/devcontainers/features/aws-cli:1": {},
+        "ghcr.io/saml-to/devcontainer-features/assume-aws-role:2": {
+            "role": "aws-examples"
+        }
+    },
+    "postCreateCommand": "echo postCreate",
+    "postStartCommand": "echo postStart",
+    "onCreateCommand": "echo onCreate",
+    "postAttachCommand": "echo postAttach",
+    "updateContentCommand": "echo updateContent",
+    "customizations": {
+        "vscode": {
+            "extensions": [],
+            "settings": {
+                "editor.formatOnSave": true
+            }
+        }
+    }
+}
