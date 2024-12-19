@@ -15,7 +15,7 @@ c{
     "gitConfig": "git config --global pull.rebase true",
     "gitClone": "cd /workspaces && gh repo clone scaffoldly/scaffoldly-examples"
   },
-  "updateContentCommand": "code /workspaces/.code-workspace",
+  "updateContentCommand": "code /workspaces/scaffoldly/.code-workspace",
   "postCreateCommand": "echo postCreate",
   "postStartCommand": "yarn",
   "postAttachCommand": {
