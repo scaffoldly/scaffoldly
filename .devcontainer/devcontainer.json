@@ -9,7 +9,7 @@
       "role": "aws-examples"
     }
   },
-  "workspaceFolder": "/workspace/scaffoldly/scaffoldly",
+  "workspaceFolder": "/workspace/scaffoldly",
   "waitFor": "onCreateCommand",
   "postCreateCommand": {
     "gitConfig": "git config --global pull.rebase true"
@@ -39,5 +39,5 @@
       }
     }
   },
-  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
+  "workspaceMount": "source=${localWorkspaceFolder}/scaffoldly,target=/workspace/scaffoldly,type=bind,consistency=cached"
 }
