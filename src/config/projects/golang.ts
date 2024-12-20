@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { ProjectJson } from '..';
 import { join } from 'path';
-import { AbstractProject } from '.';
+import { AbstractProject } from './abstract';
 
 type GoMod = {
   module?: string;

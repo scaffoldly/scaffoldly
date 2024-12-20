@@ -1,65 +1,52 @@
-import { existsSync, readFileSync } from 'fs';
-import { Commands, IScaffoldlyConfig, ProjectJson, ScaffoldlyConfig } from '..';
+import { NodeProject } from '../../config/projects/node';
+import { DotnetProject } from '../../config/projects/dotnet';
+import { GolangProject } from '../../config/projects/golang';
+import { RustProject } from '../../config/projects/rust';
+import { StandaloneProject } from '../../config/projects/standalone';
+import { PythonProject } from '../../config/projects/python';
+import { ProjectJson } from '..';
 import { GitService } from '../../scaffoldly/commands/cd/git';
-import { join } from 'path';
 
-export abstract class AbstractProject {
-  constructor(private gitService?: GitService, private workDir?: string) {}
+export class ProjectFactory {
+  constructor(private gitService: GitService) {}
 
-  get workdir(): Promise<string> {
-    if (this.gitService) {
-      return this.gitService.workDir;
-    }
-    if (this.workDir) {
-      return Promise.resolve(this.workDir);
-    }
-    throw new Error('Workdir is unknown');
-  }
+  get projectJson(): Promise<ProjectJson | undefined> {
+    return Promise.all([
+      new StandaloneProject(this.gitService).projectJson,
+      new NodeProject(this.gitService).projectJson,
+      new DotnetProject(this.gitService).projectJson,
+      new GolangProject(this.gitService).projectJson,
+      new RustProject(this.gitService).projectJson,
+      new PythonProject(this.gitService).projectJson,
+    ])
+      .then(([standalone, node, dotnet, golang, rust, python]) => {
+        const projectJson = node || dotnet || golang || rust || python;
+        const name =
+          standalone?.name ||
+          node?.name ||
+          dotnet?.name ||
+          golang?.name ||
+          rust?.name ||
+          python?.name;
 
-  abstract setProject(name: string): Promise<void>;
+        if (standalone) {
+          console.warn(`🟠 [${name}] Using \`scaffoldly.json\` for configuration.\n`);
+          if (!standalone.name) {
+            standalone.name = name;
+          }
+          return standalone;
+        }
 
-  abstract get projectJson(): Promise<ProjectJson | undefined>;
+        if (projectJson) {
+          return projectJson;
+        }
 
-  get standaloneConfigFile(): Promise<string | undefined> {
-    return this.workdir.then((workDir) => {
-      const standaloneConfigFile = join(workDir, 'scaffoldly.json');
-      if (!existsSync(standaloneConfigFile)) {
-        return undefined;
-      }
-      return standaloneConfigFile;
-    });
-  }
-
-  get standaloneConfig(): Promise<Partial<IScaffoldlyConfig> | undefined> {
-    return this.standaloneConfigFile.then((standaloneConfigFile) => {
-      if (!standaloneConfigFile) {
-        return undefined;
-      }
-
-      const scaffoldlyConfig: Partial<IScaffoldlyConfig> = {};
-
-      // TODO: Support YAML
-      const parsed = JSON.parse(readFileSync(standaloneConfigFile, 'utf-8'));
-
-      Object.assign(scaffoldlyConfig, parsed);
-
-      return scaffoldlyConfig;
-    });
-  }
-
-  get installCommands(): Promise<Commands | undefined> {
-    return Promise.all([this.workDir, this.projectJson]).then(([workDir, projectJson]) => {
-      if (!projectJson) {
-        return;
-      }
-
-      if (!workDir) {
-        return;
-      }
-
-      const config = new ScaffoldlyConfig(workDir, workDir, { projectJson });
-
-      return config.installCommands;
-    });
+        console.warn('🟠 App framework not detected. Using `scaffoldly.json` for configuration.\n');
+        return standalone;
+      })
+      .then((projectJson) => {
+        this.gitService.eventService.withProject(projectJson);
+        return projectJson;
+      });
   }
 }

@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { IScaffoldlyConfig, ProjectJson } from '..';
 import { join } from 'path';
-import { AbstractProject } from '.';
+import { AbstractProject } from './abstract';
 import { parse, stringify } from 'smol-toml';
 
 type CargoToml = {

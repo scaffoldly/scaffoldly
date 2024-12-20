@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'fs';
 import { IServiceConfig, ProjectJson, ProjectJsonBin, Script, Scripts } from '..';
 import { join } from 'path';
-import { AbstractProject } from '.';
+import { AbstractProject } from './abstract';
 import { parseStringPromise } from 'xml2js';
 
 export type CsProj = {

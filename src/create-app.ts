@@ -11,7 +11,7 @@ import proc from 'child_process';
 import which from 'which';
 import { NodeProject } from './config/projects/node';
 import { load } from 'js-yaml';
-import { AbstractProject } from './config/projects';
+import { AbstractProject } from './config/projects/abstract';
 import { GolangProject } from './config/projects/golang';
 import { DotnetProject } from './config/projects/dotnet';
 import { PythonProject } from './config/projects/python';

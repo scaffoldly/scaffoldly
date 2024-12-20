@@ -1,59 +1,28 @@
-import { Mode, ProjectJson, ScaffoldlyConfig } from '../../config';
+import { Mode, ScaffoldlyConfig } from '../../config';
 import { NextJsPreset } from '../../config/presets/nextjs';
 import { PermissionAware } from './cd';
 import { PolicyDocument } from './cd/aws/iam';
 import { Preset } from '../../config/presets';
 import { PresetType } from './deploy';
 import { GitService } from './cd/git';
-import { NodeProject } from '../../config/projects/node';
-import { DotnetProject } from '../../config/projects/dotnet';
-import { GolangProject } from '../../config/projects/golang';
-import { RustProject } from '../../config/projects/rust';
-import { StandaloneProject } from '../../config/projects/standalone';
-import { PythonProject } from '../../config/projects/python';
+import { ProjectFactory } from 'src/config/projects';
 
 export type Cwd = string;
 
 export abstract class Command<T> implements PermissionAware {
+  private projectFactory: ProjectFactory;
+
   private _config?: ScaffoldlyConfig;
 
   private _preset?: Preset;
 
   private _permissions: string[] = [];
 
-  constructor(protected gitService: GitService, private _mode: Mode) {}
+  constructor(protected gitService: GitService, private _mode: Mode) {
+    this.projectFactory = new ProjectFactory(gitService);
+  }
 
   abstract handle(subcommand?: string): Promise<void>;
-
-  get projectJson(): Promise<ProjectJson | undefined> {
-    return Promise.all([
-      new StandaloneProject(this.gitService).projectJson,
-      new NodeProject(this.gitService).projectJson,
-      new DotnetProject(this.gitService).projectJson,
-      new GolangProject(this.gitService).projectJson,
-      new RustProject(this.gitService).projectJson,
-      new PythonProject(this.gitService).projectJson,
-    ])
-      .then(([standalone, node, dotnet, golang, rust, python]) => {
-        if (standalone) {
-          console.warn('🟠 Using `scaffoldly.json` for configuration.\n');
-          return standalone;
-        }
-
-        const projectJson = node || dotnet || golang || rust || python;
-
-        if (projectJson) {
-          return projectJson;
-        }
-
-        console.warn('🟠 App framework not detected. Using `scaffoldly.json` for configuration.\n');
-        return standalone;
-      })
-      .then((projectJson) => {
-        this.gitService.eventService.withProject(projectJson);
-        return projectJson;
-      });
-  }
 
   async withPreset(preset?: PresetType): Promise<Command<T>> {
     if (preset === 'nextjs') {
@@ -87,28 +56,30 @@ export abstract class Command<T> implements PermissionAware {
       return Promise.resolve(this._config);
     }
 
-    return Promise.all([this.gitService.baseDir, this.gitService.workDir, this.projectJson]).then(
-      ([baseDir, workDir, projectJson]) => {
-        // TODO: Other config places
-        if (projectJson) {
-          try {
-            this._config = new ScaffoldlyConfig(
-              baseDir,
-              workDir,
-              { projectJson: projectJson },
-              this._mode,
-            );
-            return this._config;
-          } catch (e) {
-            throw new Error('Unable to locate scaffoldly configuration', {
-              cause: e,
-            });
-          }
+    return Promise.all([
+      this.gitService.baseDir,
+      this.gitService.workDir,
+      this.projectFactory.projectJson,
+    ]).then(([baseDir, workDir, projectJson]) => {
+      // TODO: Other config places
+      if (projectJson) {
+        try {
+          this._config = new ScaffoldlyConfig(
+            baseDir,
+            workDir,
+            { projectJson: projectJson },
+            this._mode,
+          );
+          return this._config;
+        } catch (e) {
+          throw new Error('Unable to locate scaffoldly configuration', {
+            cause: e,
+          });
         }
+      }
 
-        throw new Error('No Scaffoldly Config Found');
-      },
-    );
+      throw new Error('No Scaffoldly Config Found');
+    });
   }
 
   withPermissions(permissions: string[]): void {

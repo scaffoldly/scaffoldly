@@ -13,7 +13,7 @@
   "initializeCommand": "echo initialize",
   "onCreateCommand": {
     "configureGit": "git config --global pull.rebase true",
-    "cloneExamples": "cd /workspaces && gh repo clone scaffoldly/scaffoldly-examples"
+    "cloneExamples": "cd /workspaces && gh repo clone scaffoldly/scaffoldly-examples || true"
   },
   "updateContentCommand": "yarn",
   "postCreateCommand": "echo postCreate",
@@ -30,7 +30,10 @@
       }
     },
     "vscode": {
-      "extensions": ["esbenp.prettier-vscode"],
+      "extensions": [
+        "esbenp.prettier-vscode",
+        "golang.Go"
+      ],
       "settings": {
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "esbenp.prettier-vscode",

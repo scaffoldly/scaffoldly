@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { IScaffoldlyConfig, IServiceConfig, ProjectJson } from '..';
 import { join } from 'path';
-import { AbstractProject } from '.';
+import { AbstractProject } from './abstract';
 import { parse, stringify } from 'smol-toml';
 
 type ScaffoldlyConfigWithServiceMap = IScaffoldlyConfig & {

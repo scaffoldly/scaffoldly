@@ -1,5 +1,5 @@
 import { ProjectJson } from '..';
-import { AbstractProject } from '.';
+import { AbstractProject } from './abstract';
 import { readFileSync, writeFileSync } from 'fs';
 
 export class StandaloneProject extends AbstractProject {

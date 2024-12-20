@@ -192,7 +192,10 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
     this.projectJson = projectJson;
 
     if (projectJson) {
-      const { scaffoldly = {}, name = 'unknown', version = '0.0.0-0' } = projectJson;
+      const { scaffoldly = {}, name, version = '0.0.0-0' } = projectJson;
+      if (!name) {
+        throw new Error('Project name is not set');
+      }
       this.scaffoldly = scaffoldly;
       this._name = name;
       this._version = version;
