@@ -19,7 +19,6 @@
   "postCreateCommand": "echo postCreate",
   "postStartCommand": "echo postStart",
   "postAttachCommand": {
-    "switchWorkspace": "code /workspaces/scaffoldly/.devcontainer/default.code-workspace",
     "buildProject": "yarn dev"
   },
   "customizations": {
