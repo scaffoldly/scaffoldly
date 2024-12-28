@@ -31,6 +31,7 @@ import { isReadableStream } from 'is-stream';
 import { PassThrough } from 'stream';
 import { buffer } from 'stream/consumers';
 import { Agent } from 'https';
+import { readFileSync } from 'fs';
 
 const next$ = (
   abortEvent: AbortEvent,
@@ -163,6 +164,17 @@ const proxy$ = (
   }
 
   const proxyHeaders = { ...(headers || {}) };
+  let httpsAgent: Agent | undefined = undefined;
+
+  if (url?.startsWith('https://')) {
+    const { TLS_CERT_FILE, TLS_KEY_FILE } = process.env;
+    httpsAgent = new Agent({
+      checkServerIdentity: url?.startsWith('https://localhost:') ? () => undefined : undefined,
+      rejectUnauthorized: url?.startsWith('https://localhost:') ? false : undefined,
+      cert: TLS_CERT_FILE ? readFileSync(TLS_CERT_FILE) : undefined,
+      key: TLS_KEY_FILE ? readFileSync(TLS_KEY_FILE) : undefined,
+    });
+  }
 
   return defer(() => {
     return axios.request({
@@ -170,9 +182,7 @@ const proxy$ = (
       url,
       headers: proxyHeaders,
       data,
-      httpsAgent: url?.startsWith('https://localhost:')
-        ? new Agent({ checkServerIdentity: () => undefined, rejectUnauthorized: false })
-        : undefined,
+      httpsAgent,
       timeout: deadline ? deadline - Date.now() : undefined,
       maxRedirects: 0,
       transformRequest: (req) => req,
