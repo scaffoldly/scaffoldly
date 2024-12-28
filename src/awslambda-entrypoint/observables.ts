@@ -30,6 +30,7 @@ import { mapAsyncResponse, mapRuntimeEvent } from './mappers';
 import { isReadableStream } from 'is-stream';
 import { PassThrough } from 'stream';
 import { buffer } from 'stream/consumers';
+import { Agent } from 'https';
 
 const next$ = (
   abortEvent: AbortEvent,
@@ -94,6 +95,9 @@ const endpoint$ = (handler: string, deadline: number): Observable<URL> => {
   // TODO: We can do some preflight checks here if necessary
   if (Date.now() > deadline) {
     return throwError(() => new Error(`Deadline exceeded`));
+  }
+  if (handler.startsWith('http://') || handler.startsWith('https://')) {
+    return of(new URL(handler));
   }
   return of(new URL(`http://${handler}`));
 };
@@ -166,6 +170,9 @@ const proxy$ = (
       url,
       headers: proxyHeaders,
       data,
+      httpsAgent: url?.startsWith('https://localhost:')
+        ? new Agent({ checkServerIdentity: () => undefined })
+        : undefined,
       timeout: deadline ? deadline - Date.now() : undefined,
       maxRedirects: 0,
       transformRequest: (req) => req,
