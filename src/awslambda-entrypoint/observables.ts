@@ -171,7 +171,7 @@ const proxy$ = (
       headers: proxyHeaders,
       data,
       httpsAgent: url?.startsWith('https://localhost:')
-        ? new Agent({ checkServerIdentity: () => undefined })
+        ? new Agent({ checkServerIdentity: () => undefined, rejectUnauthorized: false })
         : undefined,
       timeout: deadline ? deadline - Date.now() : undefined,
       maxRedirects: 0,

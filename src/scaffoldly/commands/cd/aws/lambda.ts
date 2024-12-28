@@ -211,7 +211,8 @@ export class LambdaService implements IamConsumer, EnvProducer {
                 if (error.$metadata?.httpStatusCode === 400) {
                   if (
                     error.message ===
-                    'The role defined for the function cannot be assumed by Lambda.'
+                      'The role defined for the function cannot be assumed by Lambda.' ||
+                    error.message.indexOf('KMS key is invalid for CreateGrant')
                   ) {
                     throw new NotFoundException(error.message);
                   }
