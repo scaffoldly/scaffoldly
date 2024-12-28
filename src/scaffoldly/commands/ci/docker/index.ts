@@ -9,7 +9,11 @@ import {
   Shell,
   ServiceName,
 } from '../../../../config';
-import { join, relative, sep } from 'path';
+import {
+  join,
+  // relative,
+  sep,
+} from 'path';
 import { ui } from '../../../command';
 import { isDebug } from '../../../ui';
 import { Platform } from '../../cd/docker';
@@ -227,11 +231,13 @@ export class DockerService {
 
     ui.updateBottomBarSubtext('Creating tarball');
     const stream = tar.pack(baseDir, {
-      filter: (path) => {
-        const relativePath = relative(baseDir, path);
-        const filter = !config.ignoreFilter(relativePath);
-        return filter;
-      },
+      // Disabled filter, super buggy with symlinked files
+      // IIRC I did this for local development speedup
+      // filter: (path) => {
+      //   const relativePath = relative(baseDir, path);
+      //   const filter = !config.ignoreFilter(relativePath);
+      //   return filter;
+      // },
     });
 
     stream.entry(
@@ -475,7 +481,11 @@ export class DockerService {
           };
           return cp;
         }
-        const cp: Copy = { from: fromStage?.as, src: join(src, file), dest: join(src, file) };
+        const cp: Copy = {
+          from: fromStage?.as,
+          src: join(src, file),
+          dest: join(src, file),
+        };
         return cp;
       });
 
