@@ -3,19 +3,23 @@
 
 # AMD64
 FROM node:18 AS build-linux-amd64
-ARG CACHE_DIR=/cache
-ENV PKG_CACHE_PATH=${CACHE_DIR}
+ENV NPX_CACHE=/cache/npx
+ENV PKG_CACHE_PATH=/cache/pkg
 WORKDIR /linux/amd64
 COPY dist/* .
-RUN npx pkg awslambda-entrypoint.js --target linuxstatic-x64 --compress Brotli
+RUN --mount=type=cache,id=npx,target=/cache/npx \
+    --mount=type=cache,id=pkg,target=/cache/pkg \
+    npx pkg awslambda-entrypoint.js --target linuxstatic-x64 --compress Brotli
 
 # ARM64
 FROM node:18 AS build-linux-arm64
-ARG CACHE_DIR=/cache
-ENV PKG_CACHE_PATH=${CACHE_DIR}
+ENV NPX_CACHE=/cache/npx
+ENV PKG_CACHE_PATH=/cache/pkg
 WORKDIR /linux/arm64
 COPY dist/* .
-RUN npx pkg awslambda-entrypoint.js --target linuxstatic-arm64 --compress Brotli
+RUN --mount=type=cache,id=npx,target=/cache/npx \
+    --mount=type=cache,id=pkg,target=/cache/pkg \
+    npx pkg awslambda-entrypoint.js --target linuxstatic-arm64 --compress Brotli
 
 # Final
 FROM scratch
