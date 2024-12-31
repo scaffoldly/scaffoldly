@@ -2,7 +2,7 @@
 import { info, isDebug, log } from './awslambda-entrypoint/log';
 import { poll } from './awslambda-entrypoint/observables';
 import { AbortEvent } from './awslambda-entrypoint/types';
-import { Routes, Commands } from './config';
+import { Routes, Commands, decode } from './config';
 import { GetSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
 import { execa } from 'execa';
 
@@ -62,7 +62,7 @@ export const run = async (abortEvent: AbortEvent): Promise<void> => {
   }
 
   try {
-    routes = JSON.parse(SLY_ROUTES);
+    routes = decode(SLY_ROUTES);
   } catch (e) {
     throw new Error('Unable to parse SLY_ROUTES', { cause: e });
   }

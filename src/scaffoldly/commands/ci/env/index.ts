@@ -7,6 +7,7 @@ import { SecretDeployStatus } from '../../cd/aws/secret';
 import { LambdaDeployStatus } from '../../cd/aws/lambda';
 import { ui } from '../../../command';
 import { isDebug } from '@actions/core';
+import { encode } from '../../../../config';
 
 export type EnvDeployStatus = {
   envFiles?: string[];
@@ -36,6 +37,15 @@ export const redact = (input?: string, slice = 2, short = false): string => {
 
   return `${input.slice(0, slice)}${'.'.repeat(length - slice * 2)}${input.slice(-slice)}`;
 };
+
+export function shellEscape(value: string): string {
+  // Escape backslashes, quotes, and special characters
+  return value
+    .replace(/\\/g, '\\\\') // Escape backslashes
+    .replace(/"/g, '\\"') // Escape double quotes
+    .replace(/'/g, "\\'") // Escape single quotes
+    .replace(/\$/g, '\\$'); // Escape dollar signs (used in shell expansions)
+}
 
 export interface EnvProducer {
   get env(): Promise<Record<string, string>>;
@@ -117,21 +127,21 @@ export class EnvService {
   get runtimeEnv(): Promise<Record<string, string>> {
     return Promise.all([this.buildEnv, this.secrets]).then(async ([buildEnv, secrets]) => {
       const runtimeEnv = {
-        SLY_ROUTES: JSON.stringify(this.gitService.config.routes), // TODO encode
+        SLY_ROUTES: encode(this.gitService.config.routes),
         SLY_SERVE: this.gitService.config.serveCommands.encode(),
         SLY_DEBUG: 'true', // TODO use flag
         ...buildEnv,
       };
 
-      // Filter out secrets from runtime env
-      const filtered = Object.entries(runtimeEnv).reduce((acc, [key, value]) => {
+      // Filter out secrets from runtime env, and sanitize values
+      const sanitized = Object.entries(runtimeEnv).reduce((acc, [key, value]) => {
         if (!secrets.includes(key)) {
-          acc[key] = value;
+          acc[key] = shellEscape(value);
         }
         return acc;
       }, {} as Record<string, string>);
 
-      return filtered;
+      return sanitized;
     });
   }
 

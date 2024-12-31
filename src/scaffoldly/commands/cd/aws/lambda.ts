@@ -761,6 +761,8 @@ export class LambdaService implements IamConsumer, EnvProducer {
     const env: Record<string, string> = {};
     if (this._url) {
       env.URL = this._url;
+      env.HOST = `${new URL(this._url).host}:443`;
+      env.HOSTNAME = new URL(this._url).host;
     }
     if (this._cacheHome) {
       env.XDG_CACHE_HOME = this._cacheHome;

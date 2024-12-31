@@ -7,6 +7,7 @@ import { S3Resource } from './s3';
 import { DynamoDBResource } from './dynamodb';
 import { AbstractResourceService, ResourcesDeployStatus } from './resource';
 import { EfsResource } from './efs';
+import { DsqlResource } from './dsql';
 
 export class ResourcesService implements IamConsumer, EnvProducer, SubscriptionProducer {
   private abstractResources: AbstractResourceService[] = [];
@@ -16,6 +17,7 @@ export class ResourcesService implements IamConsumer, EnvProducer, SubscriptionP
       new DynamoDBResource(this.gitService),
       new S3Resource(this.gitService),
       new EfsResource(this.gitService),
+      new DsqlResource(this.gitService),
     ];
   }
 

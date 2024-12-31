@@ -2,7 +2,12 @@ import { parse } from '@aws-sdk/util-arn-parser';
 import { EnvProducer } from '../../ci/env';
 import { CloudResource, ResourceOptions } from '..';
 
-export type ManagedArn = { arn?: string; name?: string; subscriptionArn?: string };
+export type ManagedArn = {
+  arn?: string;
+  name?: string;
+  subscriptionArn?: string;
+  env?: Record<string, string | undefined>;
+};
 
 export class ARN<ReadCommandOutput> implements EnvProducer {
   private _managedArn?: ManagedArn;
@@ -37,15 +42,17 @@ export class ARN<ReadCommandOutput> implements EnvProducer {
     name: string;
     searchParams: URLSearchParams;
     hash: string;
+    partition: string | undefined;
+    region: string | undefined;
   } {
-    const { partition, service, resource: rawResource } = parse(arn.toLowerCase());
+    const { partition, service, region, resource: rawResource } = parse(arn.toLowerCase());
     const url = new URL(`${partition || 'aws'}://${service}/${rawResource}`);
 
     const name = url.pathname.split('/').slice(1).join('/');
     const searchParams = url.searchParams;
     const hash = url.hash.split('#').slice(1).join('#');
 
-    return { service, name, searchParams, hash };
+    return { service, name, searchParams, hash, region, partition };
   }
 
   get managedArn(): Promise<ManagedArn | undefined> {
@@ -151,10 +158,18 @@ export class ARN<ReadCommandOutput> implements EnvProducer {
         const parts = [...partitionParts, service, ...resourceParts];
         const key = parts.join('_').toUpperCase();
 
-        return {
+        const env: Record<string, string> = {
           [key]: arn,
           [`${key}__NAME`]: name,
         };
+
+        Object.entries(this._managedArn?.env || {}).forEach(([k, v]) => {
+          if (v) {
+            env[`${key}__${k}`] = v;
+          }
+        });
+
+        return env;
       },
     );
   }

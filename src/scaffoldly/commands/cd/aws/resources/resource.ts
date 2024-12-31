@@ -24,6 +24,13 @@ export type ResourcesDeployStatus = SecretDeployStatus & {
   subscriptionArns?: string[];
   vpc?: VpcStatus;
   efs?: EfsStatus;
+  dsql?: DsqlStatus;
+};
+
+export type DsqlStatus = {
+  dsqlId?: string;
+  dsqlArn?: string;
+  dsqlUrl?: string;
 };
 
 export abstract class AbstractResourceService implements EnvProducer, SubscriptionProducer {
