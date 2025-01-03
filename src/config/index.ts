@@ -140,8 +140,8 @@ export interface IServiceConfig {
   src: string;
   packages?: string[];
   shell?: Shell;
-  scripts: { [key in Script]?: string };
-  schedules: { [key in Schedule]?: string };
+  scripts: { [key in Script]?: string | { [bin: string]: string[] } };
+  schedules: { [key in Schedule]?: string | { [bin: string]: string[] } };
 }
 
 export type ProjectJsonBin = { [key: string]: string };
@@ -292,9 +292,32 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
     return bin;
   }
 
-  get scripts(): { [key in Script]?: string } {
+  get scripts(): Scripts {
     const { scripts = {} } = this.serviceConfig || this.scaffoldly;
-    return scripts;
+    return Object.entries(scripts).reduce((acc, [key, value]) => {
+      if (typeof value === 'string') {
+        acc[key as Script] = value;
+      } else {
+        // Only pick the first key
+        const [bin, args] = Object.entries(value)[0];
+        acc[key as Script] = `${bin} ${args.join(' ')}`;
+      }
+      return acc;
+    }, {} as Scripts);
+  }
+
+  get schedules(): Schedules {
+    const { schedules = {} } = this.serviceConfig || this.scaffoldly;
+    return Object.entries(schedules).reduce((acc, [key, value]) => {
+      if (typeof value === 'string') {
+        acc[key as Schedule] = value;
+      } else {
+        // Only pick the first key
+        const [bin, args] = Object.entries(value)[0];
+        acc[key as Schedule] = `${bin} ${args.join(' ')}`;
+      }
+      return acc;
+    }, {} as Schedules);
   }
 
   get services(): ScaffoldlyConfig[] {
@@ -426,11 +449,6 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
   get shell(): Shell | undefined {
     const { shell } = this.serviceConfig || this.scaffoldly;
     return shell;
-  }
-
-  get schedules(): { [key in Schedule]?: string } {
-    const { schedules = {} } = this.serviceConfig || this.scaffoldly;
-    return schedules;
   }
 
   get resources(): string[] {

@@ -217,7 +217,7 @@ export class ScheduleService implements IamConsumer {
                     ScheduleExpressionTimezone: 'UTC',
                     ActionAfterCompletion: 'NONE',
                     Target: {
-                      Arn: status.functionArn,
+                      Arn: `${status.functionArn}:${status.functionVersion}`,
                       RoleArn: status.roleArn,
                       Input: JSON.stringify(commands.encode()),
                     },
@@ -234,7 +234,7 @@ export class ScheduleService implements IamConsumer {
                       ScheduleExpressionTimezone: 'UTC',
                       ActionAfterCompletion: 'NONE',
                       Target: {
-                        Arn: status.functionArn,
+                        Arn: `${status.functionArn}:${status.functionVersion}`,
                         RoleArn: status.roleArn,
                         Input: JSON.stringify(commands.encode()),
                       },

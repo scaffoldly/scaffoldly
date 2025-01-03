@@ -291,7 +291,14 @@ export class LambdaService implements IamConsumer, EnvProducer {
       return;
     }
 
-    const { alias } = status;
+    let { alias } = status;
+
+    if (!alias) {
+      status.functionQualifier = '$LATEST';
+      return;
+    }
+
+    alias = alias.replaceAll(/[^a-zA-Z0-9-_]/g, '-');
 
     const configuration = await new CloudResource<AliasConfiguration, GetAliasCommandOutput>(
       {
