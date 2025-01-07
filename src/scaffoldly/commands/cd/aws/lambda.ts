@@ -209,9 +209,13 @@ export class LambdaService implements IamConsumer, EnvProducer {
               )
               .catch((error) => {
                 if (error.$metadata?.httpStatusCode === 400) {
+                  // TODO: loop over statements in policyDocument() and check error message for:
+                  // "The provided execution role does not have permissions to call {Permission} on {Service}"
                   if (
                     error.message ===
                       'The role defined for the function cannot be assumed by Lambda.' ||
+                    error.message ===
+                      'The provided execution role does not have permissions to call' ||
                     error.message.indexOf('KMS key is invalid for CreateGrant')
                   ) {
                     throw new NotFoundException(error.message);
