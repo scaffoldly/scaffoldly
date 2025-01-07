@@ -32,6 +32,7 @@ import { PassThrough } from 'stream';
 import { buffer } from 'stream/consumers';
 import { Agent } from 'https';
 import { readFileSync } from 'fs';
+import { warn } from 'console';
 
 const next$ = (
   abortEvent: AbortEvent,
@@ -120,8 +121,13 @@ const shell$ = (
     all: true,
     signal: abortEvent.signal,
   });
+
   subprocess.all?.pipe(payload);
   payload.pipe(process.stdout);
+
+  subprocess.on('exit', () => {
+    payload.end();
+  });
 
   return from(subprocess).pipe(
     catchError((e) => {
