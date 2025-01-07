@@ -113,16 +113,17 @@ const shell$ = (
   const command = commands.toString();
   const payload = new PassThrough();
 
-  return from(
-    execa(command, {
-      shell: true,
-      env: { ...process.env, ...env },
-      verbose: isDebug,
-      stderr: payload,
-      stdout: payload,
-      signal: abortEvent.signal,
-    }),
-  ).pipe(
+  const subprocess = execa(command, {
+    shell: true,
+    env: { ...process.env, ...env },
+    verbose: isDebug,
+    all: true,
+    signal: abortEvent.signal,
+  });
+  subprocess.all?.pipe(payload);
+  payload.pipe(process.stdout);
+
+  return from(subprocess).pipe(
     catchError((e) => {
       return throwError(() => new Error(`Error executing \`${command}\`: ${e.all}`));
     }),
