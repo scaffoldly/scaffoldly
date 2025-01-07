@@ -118,20 +118,27 @@ const shell$ = (
     shell: true,
     env: { ...process.env, ...env },
     verbose: isDebug,
-    all: true,
+    stdout: 'pipe',
+    stderr: 'pipe',
     signal: abortEvent.signal,
   });
 
-  subprocess.all?.pipe(payload);
+  subprocess.stdout?.pipe(payload);
+  subprocess.stderr?.pipe(process.stderr);
   payload.pipe(process.stdout);
 
   subprocess.on('exit', () => {
+    info(`Command \`${command}\` exited`);
+    payload.end();
+  });
+  subprocess.on('error', (e) => {
+    log(`Command \`${command}\` errored`, { error: e });
     payload.end();
   });
 
   return from(subprocess).pipe(
     catchError((e) => {
-      return throwError(() => new Error(`Error executing \`${command}\`: ${e.all}`));
+      return throwError(() => new Error(`Error executing \`${command}\`:\n${e.stderr}`));
     }),
     map((output) => {
       return {
