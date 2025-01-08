@@ -33,6 +33,7 @@ import { buffer } from 'stream/consumers';
 import { Agent } from 'https';
 import { readFileSync } from 'fs';
 import { warn } from 'console';
+import { exitCode } from 'process';
 
 const next$ = (
   abortEvent: AbortEvent,
@@ -113,32 +114,33 @@ const shell$ = (
   const commands = Commands.decode(rawEvent);
   const command = commands.toString();
   const payload = new PassThrough();
-
-  const subprocess = execa(command, {
-    shell: true,
-    env: { ...process.env, ...env },
-    verbose: isDebug,
-    stdout: 'pipe',
-    stderr: 'pipe',
-    signal: abortEvent.signal,
-  });
-
-  subprocess.stdout?.pipe(payload);
-  subprocess.stderr?.pipe(process.stderr);
   payload.pipe(process.stdout);
 
-  subprocess.on('exit', () => {
-    info(`Command \`${command}\` exited`);
-    payload.end();
-  });
-  subprocess.on('error', (e) => {
-    log(`Command \`${command}\` errored`, { error: e });
-    payload.end();
-  });
-
-  return from(subprocess).pipe(
+  return from(
+    execa(command, {
+      shell: true,
+      env: { ...process.env, ...env },
+      verbose: isDebug,
+      stdout: payload,
+      stderr: process.stderr,
+      signal: abortEvent.signal,
+    })
+      .catch((e) => {
+        info(`Error executing command: \`${command}\``, { cause: e });
+        payload.write(`Error:\n${e.stderr || e.message}\n`);
+        payload.end();
+        throw e;
+      })
+      .then((result) => {
+        log(`Command executed successfully`, result);
+        payload.end();
+        return result;
+      }),
+  ).pipe(
     catchError((e) => {
-      return throwError(() => new Error(`Error executing \`${command}\`:\n${e.stderr}`));
+      return of({
+        exitCode: e.exitCode || -1,
+      });
     }),
     map((output) => {
       return {
