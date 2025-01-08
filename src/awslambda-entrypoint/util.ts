@@ -8,8 +8,10 @@ import {
   // eslint-disable-next-line import/named
   RawAxiosResponseHeaders,
 } from 'axios';
-import { AsyncPrelude } from './types';
-import { Readable } from 'stream';
+import { AbortEvent, AsyncPrelude } from './types';
+import { PassThrough, Readable } from 'stream';
+import { execa } from 'execa';
+import { info, isDebug, log } from './log';
 
 export const fromResponseStream = (
   stream: Readable,
@@ -108,4 +110,40 @@ export const transformAxiosResponseCookies = (
 ): string[] => {
   const cookies = headers['set-cookie'] || [];
   return cookies;
+};
+
+// TODO: Turn into mapExeca
+export const shell = async (
+  command: string,
+  env: Record<string, string>,
+  abortEvent: AbortEvent,
+): Promise<{ stream: Readable; exitCode: number }> => {
+  const stream = new PassThrough();
+  stream.on('end', () => {
+    log(`\`${command}\` ended`);
+  });
+
+  const exec = execa(command, {
+    shell: true,
+    env: { ...process.env, ...env },
+    verbose: isDebug,
+    stdio: 'pipe',
+    signal: abortEvent.signal,
+  });
+
+  exec.stdout?.pipe(stream);
+  exec.stderr?.pipe(stream);
+
+  return exec
+    .then((result) => {
+      info(`\`${command}\` exit: ${result.exitCode}`);
+      return { stream, exitCode: result.exitCode };
+    })
+    .catch((e) => {
+      info(`\`${command}\` error: ${e.exitCode}`);
+      return { stream, exitCode: e.exitCode };
+    })
+    .finally(() => {
+      stream.end();
+    });
 };

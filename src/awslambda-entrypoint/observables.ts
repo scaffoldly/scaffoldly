@@ -1,6 +1,5 @@
 import {
   AsyncSubject,
-  catchError,
   defer,
   expand,
   from,
@@ -16,24 +15,21 @@ import {
 } from 'rxjs';
 import { Commands, CONFIG_SIGNATURE, Routes, USER_AGENT } from '../config';
 import { ALBEvent, APIGatewayProxyEventV2, DynamoDBStreamEvent, S3Event } from 'aws-lambda';
-import { error, info, isDebug, log } from './log';
+import { error, info, log } from './log';
 import {
   convertAlbQueryStringToURLSearchParams,
   findHandler,
+  shell,
   transformAxiosResponseCookies,
   transformAxiosResponseHeaders,
 } from './util';
 import { AbortEvent, AsyncPrelude, AsyncResponse, RuntimeEvent } from './types';
 import axios, { isAxiosError } from 'axios';
-import { execa } from 'execa';
 import { mapAsyncResponse, mapRuntimeEvent } from './mappers';
 import { isReadableStream } from 'is-stream';
-import { PassThrough } from 'stream';
 import { buffer } from 'stream/consumers';
 import { Agent } from 'https';
 import { readFileSync } from 'fs';
-import { warn } from 'console';
-import { exitCode } from 'process';
 
 const next$ = (
   abortEvent: AbortEvent,
@@ -113,48 +109,22 @@ const shell$ = (
 ): Observable<AsyncResponse> => {
   const commands = Commands.decode(rawEvent);
   const command = commands.toString();
-  const payload = new PassThrough();
-  payload.pipe(process.stdout);
+  info(`Running command: \`${command}\``);
 
-  return from(
-    execa(command, {
-      shell: true,
-      env: { ...process.env, ...env },
-      verbose: isDebug,
-      stdout: payload,
-      stderr: process.stderr,
-      signal: abortEvent.signal,
-    })
-      .catch((e) => {
-        info(`Error executing command: \`${command}\``, { cause: e });
-        payload.write(`Error:\n${e.stderr || e.message}\n`);
-        payload.end();
-        throw e;
-      })
-      .then((result) => {
-        log(`Command executed successfully`, result);
-        payload.end();
-        return result;
-      }),
-  ).pipe(
-    catchError((e) => {
-      return of({
-        exitCode: e.exitCode || -1,
-      });
-    }),
-    map((output) => {
+  return from(shell(command, env, abortEvent)).pipe(
+    map(({ exitCode, stream }) => {
       return {
         requestId: runtimeEvent.requestId,
         response$: runtimeEvent.response$,
         completed$: runtimeEvent.completed$,
         prelude: {
-          statusCode: output.exitCode === 0 ? 200 : 500,
+          statusCode: exitCode === 0 ? 200 : 500,
           headers: {
             'Content-Type': 'text/plain',
-            'X-Exit-Code': `${output.exitCode || 0}`,
+            'X-Exit-Code': `${exitCode || 0}`,
           },
         },
-        payload,
+        payload: stream,
       };
     }),
   );
