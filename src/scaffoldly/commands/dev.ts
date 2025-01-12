@@ -100,7 +100,7 @@ export class DevCommand extends CiCommand<DevCommand> {
     ).manage({ ...options, retries: 5 }, { lifecycle: 'started' });
 
     status.functionUrlServer = serverStatus;
-    status.url = `http://localhost:${this.functionUrlServer.port}`;
+    status.externalUrl = `http://localhost:${this.functionUrlServer.port}`;
 
     if (!status.functionUrlServer) {
       throw new Error('Function URL server is missing');

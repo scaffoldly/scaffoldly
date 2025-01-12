@@ -59,7 +59,7 @@ export const run = async (mode: Mode, version?: string): Promise<void> => {
     }
 
     saveState('status', encode(status));
-    setOutput('url', status.url);
+    setOutput('externalurl', status.externalUrl);
 
     if (status.failed) {
       throw new Error(`${mode} step failed: ${status.shortMessage}`);

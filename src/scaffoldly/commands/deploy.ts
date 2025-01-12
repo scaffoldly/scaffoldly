@@ -121,6 +121,6 @@ export class DeployCommand extends CdCommand<DeployCommand> {
     console.log(`   🆔 App Identity: ${status.roleArn || 'unknown'}`);
     console.log(`   📄 Env Files: ${status.envFiles?.join(', ')}`);
     console.log(`   📦 Image Size: ${filesize(status.imageSize || 0)}`);
-    console.log(`   🌎 URL: ${status.url || 'unknown'}`);
+    console.log(`   🌎 External URL: ${status.externalUrl || 'unknown'}`);
   }
 }

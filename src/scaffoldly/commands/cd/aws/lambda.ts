@@ -67,7 +67,7 @@ export type LambdaDeployStatus = {
   functionQualifier?: string;
   architecture?: Architecture;
   imageUri?: string;
-  url?: string;
+  externalUrl?: string;
   vpcId?: string;
   subnetIds?: string[];
   securityGroupIds?: string[];
@@ -85,7 +85,7 @@ export class LambdaService implements IamConsumer, EnvProducer {
 
   ec2Client: EC2Client;
 
-  private _url?: string;
+  private _externalUrl?: string;
 
   private _cacheHome?: string;
 
@@ -377,7 +377,7 @@ export class LambdaService implements IamConsumer, EnvProducer {
               }),
             )
             .then((output) => {
-              this._url = output.FunctionUrl;
+              this._externalUrl = output.FunctionUrl;
               return output;
             }),
         create: () =>
@@ -411,7 +411,7 @@ export class LambdaService implements IamConsumer, EnvProducer {
       },
     ).manage(options);
 
-    status.url = functionUrl;
+    status.externalUrl = functionUrl;
   }
 
   private async verifyUrl(status: LambdaDeployStatus, options: ResourceOptions): Promise<void> {
@@ -419,8 +419,8 @@ export class LambdaService implements IamConsumer, EnvProducer {
       return;
     }
 
-    const { url } = status;
-    if (!url) {
+    const { externalUrl } = status;
+    if (!externalUrl) {
       return;
     }
 
@@ -428,11 +428,11 @@ export class LambdaService implements IamConsumer, EnvProducer {
       {
         describe: (resource) => {
           return {
-            type: `HTTP GET on ${redact(url, 15, true)}`,
+            type: `HTTP GET on ${redact(externalUrl, 15, true)}`,
             label: resource.statusText || '[computed]',
           };
         },
-        read: () => axios.get(url, { validateStatus: (s) => s >= 200 && s < 500 }),
+        read: () => axios.get(externalUrl, { validateStatus: (s) => s >= 200 && s < 500 }),
       },
       (output) => {
         if (!output.statusText || !output.status) {
@@ -770,10 +770,10 @@ export class LambdaService implements IamConsumer, EnvProducer {
 
   get env(): Promise<Record<string, string>> {
     const env: Record<string, string> = {};
-    if (this._url) {
-      env.URL = this._url;
-      env.HOST = `${new URL(this._url).host}:443`;
-      env.HOSTNAME = new URL(this._url).host;
+    if (this._externalUrl) {
+      env.EXTERNAL_URL = this._externalUrl;
+      env.EXTERNAL_HOST = `${new URL(this._externalUrl).host}:443`;
+      env.EXTERNAL_HOSTNAME = new URL(this._externalUrl).host;
     }
     if (this._cacheHome) {
       env.XDG_CACHE_HOME = this._cacheHome;

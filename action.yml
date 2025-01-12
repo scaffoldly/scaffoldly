@@ -21,7 +21,7 @@ inputs:
     required: false
     default: '{}'
 outputs:
-  url:
+  externalUrl:
     description: The URL of the deployed application.
   identity:
     description: The identity of the deployed application
