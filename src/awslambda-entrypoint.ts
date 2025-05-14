@@ -74,8 +74,10 @@ export const run = async (abortEvent: AbortEvent): Promise<void> => {
   // Append "&" to run in background
   // TODO: Turn these (and secret fetching) into Lambda Extensions
   // TODO: This should probably iterator over the commands and run them in parallel
-  const proc = execa(commands.toString({}), {
-    shell: false,
+  const { exe, args, shell } = commands.toString({});
+
+  const proc = execa(exe, args, {
+    shell: shell,
     detached: true,
     stdout: process.stdout,
     stderr: process.stdout,

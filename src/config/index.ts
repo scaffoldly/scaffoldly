@@ -56,22 +56,33 @@ export class Commands {
     return filtered.length === 0;
   };
 
-  toString = (filter?: { schedule?: Schedule }): string => {
+  toString = (filter?: {
+    schedule?: Schedule;
+  }): { exe: string; args: string[]; shell?: boolean } => {
     const filtered = filter
       ? this.commands.filter((command) => command.schedule === filter.schedule)
       : this.commands;
 
+    const split = (cmd: string): { exe: string; args: string[] } => {
+      const [exe, ...args] = cmd.split(' ');
+      return { exe, args };
+    };
+
     if (this.commands.length === 1 && !this.commands[0].workdir) {
-      return this.commands[0].cmd;
+      return split(this.commands[0].cmd);
     }
 
-    return filtered
-      .map((command) => {
-        return command.workdir
-          ? `( cd ${command.workdir} && ${command.cmd} )`
-          : `( ${command.cmd} )`;
-      })
-      .join(' & ');
+    return {
+      exe: filtered
+        .map((command) => {
+          return command.workdir
+            ? `( cd ${command.workdir} && ${command.cmd} )`
+            : `( ${command.cmd} )`;
+        })
+        .join(' & '),
+      args: [],
+      shell: true,
+    };
   };
 
   encode = (): string => {
