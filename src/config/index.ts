@@ -61,6 +61,10 @@ export class Commands {
       ? this.commands.filter((command) => command.schedule === filter.schedule)
       : this.commands;
 
+    if (this.commands.length === 1 && !this.commands[0].workdir) {
+      return this.commands[0].cmd;
+    }
+
     return filtered
       .map((command) => {
         return command.workdir
