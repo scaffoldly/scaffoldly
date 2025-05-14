@@ -124,7 +124,7 @@ export const shell = async (
   });
 
   const exec = execa(command, {
-    shell: true,
+    shell: false,
     env: { ...process.env, ...env },
     verbose: isDebug,
     stdio: 'pipe',
