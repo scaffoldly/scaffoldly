@@ -75,7 +75,7 @@ export class Commands {
       : this.commands;
 
     const stdio: Stdio = {
-      stdin: new PassThrough(),
+      stdin: new Writable(),
       stdout: new PassThrough().pipe(process.stdout),
     };
 
