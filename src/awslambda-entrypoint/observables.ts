@@ -14,7 +14,14 @@ import {
   timer,
 } from 'rxjs';
 import { Commands, CONFIG_SIGNATURE, Routes, USER_AGENT, Stdio } from '../config';
-import { ALBEvent, APIGatewayProxyEventV2, DynamoDBStreamEvent, S3Event } from 'aws-lambda';
+import {
+  ALBEvent,
+  ALBEventHeaders,
+  APIGatewayProxyEventHeaders,
+  APIGatewayProxyEventV2,
+  DynamoDBStreamEvent,
+  S3Event,
+} from 'aws-lambda';
 import { error, info, log } from './log';
 import {
   convertAlbQueryStringToURLSearchParams,
@@ -106,27 +113,39 @@ const endpoint$ = (handler: string, deadline: number): Observable<URL> => {
 const stdio$ = (
   _abortEvent: AbortEvent,
   runtimeEvent: RuntimeEvent,
-  data: unknown,
+  headers: APIGatewayProxyEventHeaders | ALBEventHeaders | undefined,
+  data: string | Buffer | null | undefined,
 ): Observable<AsyncResponse> => {
+  if (!data) {
+    data = Buffer.from('');
+  }
+  if (typeof data === 'string') {
+    data = Buffer.from(data);
+  }
+
   log('Received stdio event', {
-    plain: data,
-    hex: Buffer.from(data as WithImplicitCoercion<string>).toString('hex'),
-    base64: Buffer.from(data as WithImplicitCoercion<string>).toString('base64'),
+    headers,
+    dataPlain: data.toString(),
+    dataHex: data.toString('hex'),
+    dataBase64: data.toString('base64'),
   });
 
   const { requestId, response$, completed$, stdio } = runtimeEvent;
 
-  stdio.stdin.write(data, (err) => {
-    return throwError(() => new Error(`Error writing to stdin: ${err}`));
-  });
+  if (data.length) {
+    stdio.stdin.write(data, (err) => {
+      return throwError(() => new Error(`Error writing to stdin: ${err}`));
+    });
+  }
 
-  stdio.stdin.write('\0', (err) => {
-    return throwError(() => new Error(`Error writing \\0 to stdin: ${err}`));
-  });
+  stdio.stdin.end();
 
   const prelude: AsyncPrelude = {
     statusCode: 200,
-    headers: {},
+    headers: {
+      // TODO: Check accept headers for Accept: text/event-stream
+      'Content-Type': 'text/event-stream',
+    },
     cookies: [],
   };
 
@@ -420,6 +439,7 @@ export const asyncResponse$ = (
     return stdio$(
       abortEvent,
       runtimeEvent,
+      headers,
       isBase64Encoded && !!body ? Buffer.from(body, 'base64') : body,
     );
   }
