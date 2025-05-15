@@ -2,7 +2,7 @@ import { base58 } from '@scure/base';
 import { join, relative, sep } from 'path';
 import ignore from 'ignore';
 import { existsSync, readdirSync, readFileSync } from 'fs';
-import { PassThrough, Readable, Writable } from 'stream';
+import { PassThrough } from 'stream';
 
 export const DEFAULT_SRC_ROOT = `.`;
 export const DEFAULT_ROUTE = '/*';
@@ -29,8 +29,8 @@ export const encode = <T>(config: T): string => {
 };
 
 export type Stdio = {
-  stdin: Writable;
-  stdout: Readable;
+  stdin: PassThrough;
+  stdout: PassThrough;
 };
 
 export type ParsedCommand = {
@@ -75,8 +75,8 @@ export class Commands {
       : this.commands;
 
     const stdio: Stdio = {
-      stdin: new Writable(),
-      stdout: new PassThrough().pipe(process.stdout),
+      stdin: new PassThrough(),
+      stdout: new PassThrough(),
     };
 
     const split = (cmd: string): { exe: string; args: string[] } => {

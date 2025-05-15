@@ -79,13 +79,15 @@ export const run = async (abortEvent: AbortEvent): Promise<void> => {
   const proc = execa(exe, args, {
     shell: shell,
     detached: true,
-    stdin: stdio.stdin,
-    stdout: stdio.stdout,
-    stderr: process.stdout,
+    stdio: 'pipe',
     env: { ...process.env, ...env },
     verbose: isDebug,
     signal: abortEvent.signal,
   });
+
+  proc.stdout?.pipe(stdio.stdout.pipe(process.stdout));
+  proc.stderr?.pipe(process.stderr);
+  stdio.stdin.pipe(proc.stdin || process.stdin);
 
   proc.unref();
 
