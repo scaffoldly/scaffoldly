@@ -110,6 +110,46 @@ const endpoint$ = (handler: string, deadline: number): Observable<URL> => {
   return of(new URL(`http://${handler}`));
 };
 
+const healthz$ = (
+  _abortEvent: AbortEvent,
+  runtimeEvent: RuntimeEvent,
+  routes: Routes,
+): Observable<AsyncResponse> => {
+  log('Received healthz event', {
+    routes,
+  });
+
+  const { requestId, response$, completed$ } = runtimeEvent;
+
+  const prelude: AsyncPrelude = {
+    statusCode: 200,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    cookies: [],
+  };
+
+  const payload = new Promise<Buffer>((resolve) => {
+    resolve(
+      Buffer.from(
+        JSON.stringify({
+          healthy: true,
+          now: Date.now(),
+          routes,
+        }),
+      ),
+    );
+  });
+
+  return of({
+    requestId: requestId,
+    response$: response$,
+    completed$: completed$,
+    prelude,
+    payload,
+  });
+};
+
 const stdio$ = (
   _abortEvent: AbortEvent,
   runtimeEvent: RuntimeEvent,
@@ -432,7 +472,11 @@ export const asyncResponse$ = (
     return throwError(() => new Error(`No handler found for ${rawPath}`));
   }
 
-  if (handler === 'stdio') {
+  if (handler === '.healthz') {
+    return healthz$(abortEvent, runtimeEvent, routes);
+  }
+
+  if (handler === '.stdioz') {
     if (!stream) {
       return throwError(() => new Error(`Stdio handler is not supported for this event`));
     }
