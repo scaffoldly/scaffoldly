@@ -651,7 +651,8 @@ export class DockerService {
     //   }
     // }
 
-    const { copy, rootdir, workdir, env = {}, run, paths = [], cmd, shell, user } = spec;
+    const { copy, rootdir, workdir, env = {}, run, paths = [], shell, user } = spec;
+    // const { cmd } = spec;
 
     const from = spec.as ? `${spec.from} AS ${spec.as}` : spec.from;
 
@@ -762,9 +763,9 @@ export class DockerService {
       });
     }
 
-    if (cmd) {
-      lines.push(`CMD [ "${cmd.toString({})}" ]`);
-    }
+    // if (cmd) {
+    //   lines.push(`CMD [ "${cmd.par({})}" ]`);
+    // }
 
     const dockerfile = lines.join('\n');
 
