@@ -37,6 +37,7 @@ import { isReadableStream } from 'is-stream';
 import { buffer } from 'stream/consumers';
 import { Agent } from 'https';
 import { readFileSync } from 'fs';
+import { PassThrough } from 'stream';
 
 const next$ = (
   abortEvent: AbortEvent,
@@ -129,17 +130,17 @@ const healthz$ = (
     cookies: [],
   };
 
-  const payload = new Promise<Buffer>((resolve) => {
-    resolve(
-      Buffer.from(
-        JSON.stringify({
-          healthy: true,
-          now: Date.now(),
-          routes,
-        }),
-      ),
-    );
-  });
+  const payload = new PassThrough();
+
+  payload.write(
+    JSON.stringify({
+      healthy: true,
+      now: Date.now(),
+      routes,
+    }),
+  );
+
+  payload.end();
 
   return of({
     requestId: requestId,
