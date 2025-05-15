@@ -2,6 +2,7 @@ import { base58 } from '@scure/base';
 import { join, relative, sep } from 'path';
 import ignore from 'ignore';
 import { existsSync, readdirSync, readFileSync } from 'fs';
+import { PassThrough, Readable, Writable } from 'stream';
 
 export const DEFAULT_SRC_ROOT = `.`;
 export const DEFAULT_ROUTE = '/*';
@@ -25,6 +26,18 @@ export const decode = <T>(config: string): T => {
 
 export const encode = <T>(config: T): string => {
   return `${CONFIG_SIGNATURE}:${base58.encode(new TextEncoder().encode(JSON.stringify(config)))}`;
+};
+
+export type Stdio = {
+  stdin: Writable;
+  stdout: Readable;
+};
+
+export type ParsedCommand = {
+  exe: string;
+  args: string[];
+  stdio: Stdio;
+  shell?: boolean;
 };
 
 export type Shell = 'direnv';
@@ -56,12 +69,15 @@ export class Commands {
     return filtered.length === 0;
   };
 
-  toString = (filter?: {
-    schedule?: Schedule;
-  }): { exe: string; args: string[]; shell?: boolean } => {
+  parse = (filter?: { schedule?: Schedule }): ParsedCommand => {
     const filtered = filter
       ? this.commands.filter((command) => command.schedule === filter.schedule)
       : this.commands;
+
+    const stdio: Stdio = {
+      stdin: new PassThrough(),
+      stdout: new PassThrough().pipe(process.stdout),
+    };
 
     const split = (cmd: string): { exe: string; args: string[] } => {
       const [exe, ...args] = cmd.split(' ');
@@ -69,7 +85,7 @@ export class Commands {
     };
 
     if (this.commands.length === 1 && !this.commands[0].workdir) {
-      return split(this.commands[0].cmd);
+      return { ...split(this.commands[0].cmd), stdio, shell: false };
     }
 
     return {
@@ -82,6 +98,7 @@ export class Commands {
         .join(' & '),
       args: [],
       shell: true,
+      stdio,
     };
   };
 

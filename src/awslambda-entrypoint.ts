@@ -74,12 +74,13 @@ export const run = async (abortEvent: AbortEvent): Promise<void> => {
   // Append "&" to run in background
   // TODO: Turn these (and secret fetching) into Lambda Extensions
   // TODO: This should probably iterator over the commands and run them in parallel
-  const { exe, args, shell } = commands.toString({});
+  const { exe, args, shell, stdio } = commands.parse({});
 
   const proc = execa(exe, args, {
     shell: shell,
     detached: true,
-    stdout: process.stdout,
+    stdin: stdio.stdin,
+    stdout: stdio.stdout,
     stderr: process.stdout,
     env: { ...process.env, ...env },
     verbose: isDebug,
@@ -90,7 +91,7 @@ export const run = async (abortEvent: AbortEvent): Promise<void> => {
 
   info('Polling for events', { routes });
 
-  await poll(abortEvent, AWS_LAMBDA_RUNTIME_API, routes, env);
+  await poll(abortEvent, AWS_LAMBDA_RUNTIME_API, routes, env, stdio);
 
   info('Exiting!');
 };

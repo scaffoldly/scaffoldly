@@ -13,7 +13,7 @@ import {
   throwError,
   timer,
 } from 'rxjs';
-import { Commands, CONFIG_SIGNATURE, Routes, USER_AGENT } from '../config';
+import { Commands, CONFIG_SIGNATURE, Routes, USER_AGENT, Stdio } from '../config';
 import { ALBEvent, APIGatewayProxyEventV2, DynamoDBStreamEvent, S3Event } from 'aws-lambda';
 import { error, info, log } from './log';
 import {
@@ -35,6 +35,7 @@ const next$ = (
   abortEvent: AbortEvent,
   runtimeApi: string,
   env: Record<string, string>,
+  stdio: Stdio,
 ): Observable<RuntimeEvent> => {
   return defer(() => {
     log('Fetching next event', { runtimeApi });
@@ -83,6 +84,7 @@ const next$ = (
         event: next.data,
         deadline: Number.parseInt(next.headers['lambda-runtime-deadline-ms']),
         env,
+        stdio,
         response$,
         completed$,
       };
@@ -101,6 +103,42 @@ const endpoint$ = (handler: string, deadline: number): Observable<URL> => {
   return of(new URL(`http://${handler}`));
 };
 
+const stdio$ = (
+  _abortEvent: AbortEvent,
+  runtimeEvent: RuntimeEvent,
+  data: unknown,
+): Observable<AsyncResponse> => {
+  log('Received stdio event', {
+    plain: data,
+    hex: Buffer.from(data as WithImplicitCoercion<string>).toString('hex'),
+    base64: Buffer.from(data as WithImplicitCoercion<string>).toString('base64'),
+  });
+
+  const { requestId, response$, completed$, stdio } = runtimeEvent;
+
+  stdio.stdin.write(data, (err) => {
+    return throwError(() => new Error(`Error writing to stdin: ${err}`));
+  });
+
+  stdio.stdin.write('\0', (err) => {
+    return throwError(() => new Error(`Error writing \\0 to stdin: ${err}`));
+  });
+
+  const prelude: AsyncPrelude = {
+    statusCode: 200,
+    headers: {},
+    cookies: [],
+  };
+
+  return of({
+    requestId: requestId,
+    response$: response$,
+    completed$: completed$,
+    prelude,
+    payload: stdio.stdout,
+  });
+};
+
 const shell$ = (
   abortEvent: AbortEvent,
   runtimeEvent: RuntimeEvent,
@@ -108,8 +146,8 @@ const shell$ = (
   env: Record<string, string>,
 ): Observable<AsyncResponse> => {
   const commands = Commands.decode(rawEvent);
-  const command = commands.toString();
-  info(`Running command: \`${command}\``);
+  const command = commands.parse();
+  info(`Running command: \`${command.exe}\` (args: ${command.args})`);
 
   return from(shell(command, env, abortEvent)).pipe(
     map(({ exitCode, stream }) => {
@@ -374,6 +412,18 @@ export const asyncResponse$ = (
     return throwError(() => new Error(`No handler found for ${rawPath}`));
   }
 
+  if (handler === 'stdio') {
+    if (!stream) {
+      return throwError(() => new Error(`Stdio handler is not supported for this event`));
+    }
+
+    return stdio$(
+      abortEvent,
+      runtimeEvent,
+      isBase64Encoded && !!body ? Buffer.from(body, 'base64') : body,
+    );
+  }
+
   return endpoint$(handler, deadline).pipe(
     switchMap((url) => {
       if (rawPath) {
@@ -401,9 +451,10 @@ export const poll = (
   runtimeApi: string,
   routes: Routes,
   env: Record<string, string>,
+  stdio: Stdio,
 ): Promise<void> => {
   const poll$ = (): Observable<void> => {
-    return next$(abortEvent, runtimeApi, env)
+    return next$(abortEvent, runtimeApi, env, stdio)
       .pipe(mapRuntimeEvent(abortEvent, routes))
       .pipe(
         switchMap((asyncResponse) => {

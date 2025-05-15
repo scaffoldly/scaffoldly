@@ -114,7 +114,7 @@ export const transformAxiosResponseCookies = (
 
 // TODO: Turn into mapExeca
 export const shell = async (
-  command: string,
+  command: { exe: string; args: string[]; shell?: boolean },
   env: Record<string, string>,
   abortEvent: AbortEvent,
 ): Promise<{ stream: Readable; exitCode: number }> => {
@@ -123,8 +123,8 @@ export const shell = async (
     log(`\`${command}\` ended`);
   });
 
-  const exec = execa(command, {
-    shell: false,
+  const exec = execa(command.exe, command.args, {
+    shell: command.shell,
     env: { ...process.env, ...env },
     verbose: isDebug,
     stdio: 'pipe',

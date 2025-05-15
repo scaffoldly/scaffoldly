@@ -2,6 +2,7 @@ import { ChildProcess } from 'child_process';
 import { AsyncSubject, Subject } from 'rxjs';
 import { error } from './log';
 import { Readable } from 'stream';
+import { Stdio } from '../config';
 
 export type SpawnResult = {
   childProcess?: ChildProcess;
@@ -34,6 +35,7 @@ export type RuntimeEvent = {
   event: string;
   deadline: number;
   env: Record<string, string>;
+  stdio: Stdio;
   response$: AsyncSubject<AsyncResponse>;
   completed$: Subject<AsyncResponse>;
 };
