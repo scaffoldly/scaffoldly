@@ -7,7 +7,7 @@ WORKDIR /linux/amd64
 COPY dist/* .
 ENV NPX_CACHE=/usr/local/share/.cache/npx
 ENV PKG_CACHE_PATH=/usr/local/share/.cache/pkg
-RUN --mount=type=cache,target=/usr/local/share/.cache \
+RUN --mount=type=cache,id=amd64,target=/usr/local/share/.cache \
     npx @yao-pkg/pkg awslambda-entrypoint.js --target linuxstatic-x64 --compress Brotli
 
 # ARM64
@@ -16,7 +16,7 @@ WORKDIR /linux/arm64
 COPY dist/* .
 ENV NPX_CACHE=/usr/local/share/.cache/npx
 ENV PKG_CACHE_PATH=/usr/local/share/.cache/pkg
-RUN --mount=type=cache,target=/usr/local/share/.cache \
+RUN --mount=type=cache,id=arm64,target=/usr/local/share/.cache \
     npx @yao-pkg/pkg awslambda-entrypoint.js --target linuxstatic-arm64 --compress Brotli
 
 # Final

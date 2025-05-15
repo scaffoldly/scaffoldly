@@ -70,7 +70,6 @@ export const mapRuntimeEvent = (
         .subscribe({
           next(asyncResponse) {
             log('!!! Received async response in mapRuntimeEvent', asyncResponse);
-            asyncResponse.response$.next(asyncResponse);
             subscriber.next(asyncResponse);
           },
           error(err) {
@@ -202,39 +201,6 @@ export const mapResponse = (
           },
         });
 
-      return () => {
-        subscription.unsubscribe();
-      };
-    });
-  };
-};
-
-export const mapAsyncResponse = (
-  abortEvent: AbortEvent,
-  runtimeApi: string,
-  requestId: string,
-  response$: AsyncSubject<AsyncResponse>,
-  completed$: Subject<AsyncResponse>,
-): OperatorFunction<AsyncResponse, AsyncResponse> => {
-  return (source: Observable<AsyncResponse>): Observable<AsyncResponse> => {
-    return new Observable<AsyncResponse>((subscriber) => {
-      // Subscribe to the source observable
-      const subscription = source
-        .pipe(mapResponse(abortEvent, runtimeApi, requestId, response$, completed$))
-        .subscribe({
-          next(response) {
-            log('!!! Received response in mapAsyncResponse', response);
-            subscriber.next(response);
-          },
-          error(err) {
-            subscriber.error(err);
-          },
-          complete() {
-            subscriber.complete();
-          },
-        });
-
-      // Return the teardown logic
       return () => {
         subscription.unsubscribe();
       };

@@ -32,7 +32,7 @@ import {
 } from './util';
 import { AbortEvent, AsyncPrelude, AsyncResponse, RuntimeEvent } from './types';
 import axios, { isAxiosError } from 'axios';
-import { mapAsyncResponse, mapRuntimeEvent } from './mappers';
+import { mapResponse, mapRuntimeEvent } from './mappers';
 import { isReadableStream } from 'is-stream';
 import { buffer } from 'stream/consumers';
 import { Agent } from 'https';
@@ -79,9 +79,10 @@ const next$ = (
       const completed$ = new Subject<AsyncResponse>();
 
       response$
-        .pipe(mapAsyncResponse(abortEvent, runtimeApi, requestId, response$, completed$))
+        .pipe(mapResponse(abortEvent, runtimeApi, requestId, response$, completed$))
         .subscribe((response) => {
           log('Response sent to Runtime API', { requestId });
+          response$.next(response);
           completed$.next(response);
         });
 
@@ -139,6 +140,7 @@ const healthz$ = (
       routes,
     }),
   );
+  payload.write('\n');
 
   payload.end();
 
@@ -523,12 +525,13 @@ export const poll = (
     return next$(abortEvent, runtimeApi, env, stdio)
       .pipe(mapRuntimeEvent(abortEvent, routes))
       .pipe(
-        switchMap((asyncResponse) => {
-          log('!!! Received AsyncResponse from Poll', asyncResponse);
-          asyncResponse.response$.complete();
-          return asyncResponse.completed$;
+        switchMap((response) => {
+          log('!!! Received AsyncResponse from Poll', response);
+          response.response$.complete();
+          return response.completed$;
         }),
-        switchMap(() => {
+        switchMap((response) => {
+          log('!!! Completed AsyncResponse from Poll', response);
           return of(undefined);
         }),
       );
