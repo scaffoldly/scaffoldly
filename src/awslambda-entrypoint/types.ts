@@ -1,6 +1,6 @@
 import { ChildProcess } from 'child_process';
 import { AsyncSubject, Subject } from 'rxjs';
-import { error } from './log';
+import { error, log } from './log';
 import { Readable } from 'stream';
 import { Stdio } from '../config';
 
@@ -56,6 +56,7 @@ export class AbortEvent extends AbortController {
 
       process.nextTick(() => {
         error(`ABORTING: ${message}`);
+        log(`ABORT Reason:`, reason);
         process.exit(-1);
       });
     });
