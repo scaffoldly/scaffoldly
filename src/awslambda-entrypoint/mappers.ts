@@ -69,6 +69,7 @@ export const mapRuntimeEvent = (
         )
         .subscribe({
           next(asyncResponse) {
+            log('!!! Received async response in mapRuntimeEvent', asyncResponse);
             asyncResponse.response$.next(asyncResponse);
             subscriber.next(asyncResponse);
           },
@@ -156,6 +157,15 @@ export const mapResponse = (
                 }
                 data.end();
               });
+
+              payload.on('pause', () => {
+                log('Payload stream paused, emitting response');
+                if (bytes === 0) {
+                  data.write('\0');
+                }
+                data.end();
+                payload.resume();
+              });
             }
 
             const maxBodyLength = Buffer.isBuffer(payload) ? 6 * 1024 * 1024 : 20 * 1024 * 1024;
@@ -213,6 +223,7 @@ export const mapAsyncResponse = (
         .pipe(mapResponse(abortEvent, runtimeApi, requestId, response$, completed$))
         .subscribe({
           next(response) {
+            log('!!! Received response in mapAsyncResponse', response);
             subscriber.next(response);
           },
           error(err) {

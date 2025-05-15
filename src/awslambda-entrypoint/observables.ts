@@ -139,6 +139,7 @@ const stdio$ = (
   }
 
   stdio.stdin.end();
+  stdio.stdout.pause();
 
   const prelude: AsyncPrelude = {
     statusCode: 200,
@@ -478,6 +479,7 @@ export const poll = (
       .pipe(mapRuntimeEvent(abortEvent, routes))
       .pipe(
         switchMap((asyncResponse) => {
+          log('!!! Received AsyncResponse from Poll', asyncResponse);
           asyncResponse.response$.complete();
           return asyncResponse.completed$;
         }),
