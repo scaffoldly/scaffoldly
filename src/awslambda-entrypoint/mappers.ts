@@ -71,6 +71,7 @@ export const mapRuntimeEvent = (
         .subscribe({
           next(asyncResponse) {
             log('!!! Received async response in mapRuntimeEvent', asyncResponse);
+            asyncResponse.response$.next(asyncResponse);
             subscriber.next(asyncResponse);
           },
           error(err) {

@@ -82,7 +82,6 @@ const next$ = (
         .pipe(mapResponse(abortEvent, runtimeApi, requestId, response$, completed$))
         .subscribe((response) => {
           log('Response sent to Runtime API', { requestId });
-          response$.next(response);
           completed$.next(response);
         });
 
