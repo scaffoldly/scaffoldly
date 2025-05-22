@@ -1,5 +1,5 @@
 import { AbortEvent, AsyncResponse, RuntimeEvent, SyncPrelude } from './types';
-import { AsyncSubject, catchError, Observable, of, Subject, switchMap } from 'rxjs';
+import { AsyncSubject, catchError, map, Observable, of, Subject, switchMap } from 'rxjs';
 import type { OperatorFunction } from 'rxjs';
 import { Routes } from '../config';
 import { asyncResponse$ } from './observables';
@@ -14,6 +14,7 @@ export const mapError = (
     return new Observable<AsyncResponse>((subscriber) => {
       const subscription = source
         .pipe(
+          map((asyncResponse) => asyncResponse),
           catchError((err) => {
             const asyncResponse: AsyncResponse = {
               requestId: runtimeEvent.requestId,
