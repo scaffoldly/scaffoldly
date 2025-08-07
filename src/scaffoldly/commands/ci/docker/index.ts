@@ -270,35 +270,47 @@ export class DockerService {
 
     // TODO: Multi-platform
     ui.updateBottomBarSubtext('Building Image');
-    const buildStream = await this.docker.buildImage(stream, {
-      dockerfile: `Dockerfile.${mode}`,
-      t: imageName,
-      q: true,
-      rm: true,
-      forcerm: true,
-      platform: this.platform,
-      version: '2',
-    } as ImageBuildOptions);
 
-    await new Promise<DockerEvent[]>((resolve, reject) => {
-      this.docker.modem.followProgress(
-        buildStream,
-        (err, res) => (err ? reject(err) : resolve(res)),
-        (event) => {
-          try {
-            this.handleDockerEvent('Build', event);
-          } catch (e) {
-            reject(e);
-          }
-        },
-      );
-    });
+    try {
+      const buildStream = await this.docker.buildImage(stream, {
+        dockerfile: `Dockerfile.${mode}`,
+        t: imageName,
+        q: true,
+        rm: true,
+        forcerm: true,
+        platform: this.platform,
+        version: '2',
+      } as ImageBuildOptions);
 
-    const image = this.docker.getImage(imageName);
-    this.imageInfo = await image.inspect();
+      await new Promise<DockerEvent[]>((resolve, reject) => {
+        this.docker.modem.followProgress(
+          buildStream,
+          (err, res) => (err ? reject(err) : resolve(res)),
+          (event) => {
+            try {
+              this.handleDockerEvent('Build', event);
+            } catch (e) {
+              reject(e);
+            }
+          },
+        );
+      });
 
-    this.imageName = imageName;
-    this.imageTag = imageTag;
+      const image = this.docker.getImage(imageName);
+      this.imageInfo = await image.inspect();
+
+      this.imageName = imageName;
+      this.imageTag = imageTag;
+    } catch (e) {
+      const pullMatch = e.message?.match(/for (.+): no active sessions/);
+      if (pullMatch && pullMatch[1]) {
+        const image = pullMatch[1];
+        ui.updateBottomBarSubtext(`Pulling image ${image} to resolve source metadata`);
+        await this.pullImage(image, 'match-host');
+        return this.build(config, mode, repositoryUri, env);
+      }
+      throw e;
+    }
 
     // TODO: Return SHA
   }
@@ -601,31 +613,42 @@ export class DockerService {
 
   renderStages = (stages: DockerStages): string => {
     const lines = [];
+    const filters: RegExp[] = [];
 
     const { cwd, bases, builds, packages, runtime } = stages;
 
-    Object.values(bases).forEach((spec, ix) => {
-      ui.updateBottomBarSubtext(`Rendering ${spec?.as} stage`);
-      lines.push(this.renderSpec('install', cwd, spec, ix));
+    const baseFrom = bases['install-base']?.from;
+    if (baseFrom?.startsWith('.')) {
+      lines.push(...readFileSync(join(cwd, baseFrom), 'utf-8').split('\n'));
       lines.push('');
-    });
+      runtime.from = '';
+      filters.push(/^ENTRYPOINT.*$/);
+    } else {
+      Object.values(bases).forEach((spec, ix) => {
+        ui.updateBottomBarSubtext(`Rendering ${spec?.as} stage`);
+        lines.push(this.renderSpec('install', cwd, spec, ix));
+        lines.push('');
+      });
 
-    Object.values(builds).forEach((spec, ix) => {
-      ui.updateBottomBarSubtext(`Rendering ${spec?.as} stage`);
-      lines.push(this.renderSpec('build', cwd, spec, ix));
-      lines.push('');
-    });
+      Object.values(builds).forEach((spec, ix) => {
+        ui.updateBottomBarSubtext(`Rendering ${spec?.as} stage`);
+        lines.push(this.renderSpec('build', cwd, spec, ix));
+        lines.push('');
+      });
 
-    Object.values(packages).forEach((spec, ix) => {
-      ui.updateBottomBarSubtext(`Rendering ${spec?.as} stage`);
-      lines.push(this.renderSpec('package', cwd, spec, ix));
-      lines.push('');
-    });
+      Object.values(packages).forEach((spec, ix) => {
+        ui.updateBottomBarSubtext(`Rendering ${spec?.as} stage`);
+        lines.push(this.renderSpec('package', cwd, spec, ix));
+        lines.push('');
+      });
+    }
 
     ui.updateBottomBarSubtext(`Rendering ${runtime.as} stage`);
     lines.push(this.renderSpec('start', cwd, runtime, 0));
 
-    return lines.join('\n');
+    return lines
+      .map((l) => (filters.some((r) => !r.test(l)) ? l : `# [scaffoldly filtered] ${l}`))
+      .join('\n');
   };
 
   renderSpec = (
@@ -653,9 +676,11 @@ export class DockerService {
 
     const { copy, rootdir, workdir, env = {}, run, paths = [], cmd, shell, user } = spec;
 
-    const from = spec.as ? `${spec.from} AS ${spec.as}` : spec.from;
+    if (spec.from) {
+      const from = spec.as ? `${spec.from} AS ${spec.as}` : spec.from;
+      lines.push(`FROM ${from}`);
+    }
 
-    lines.push(`FROM ${from}`);
     if (workdir) lines.push(`WORKDIR ${workdir}`);
 
     for (const path of new Set(paths)) {
@@ -846,6 +871,10 @@ export class DockerService {
     architecture: Architecture,
     pull = true,
   ): Promise<Docker.ImageInspectInfo | undefined> {
+    if (runtime.startsWith('.')) {
+      runtime = 'scaffoldly/scaffoldly:1';
+    }
+
     if (pull) {
       await this.pullImage(runtime, architecture);
     }
