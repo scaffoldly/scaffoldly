@@ -8,6 +8,7 @@ import {
   Commands,
   Shell,
   ServiceName,
+  ROUTER_IMAGE,
 } from '../../../../config';
 import {
   join,
@@ -25,8 +26,10 @@ export type BuildInfo = {
   imageName?: string;
   imageTag?: string;
   imageSize?: number;
-  entrypoint?: string[];
+  entrypoint?: string[] | string;
+  command?: string[];
 };
+
 export type PushInfo = { imageName?: string; imageDigest?: string };
 
 const BASE = 'base';
@@ -107,6 +110,9 @@ type StatusEvent = {
 
 type AuxDigestEvent = {
   Digest?: string;
+  selectedManifest?: {
+    digest?: string;
+  };
 };
 
 type AuxEvent<T extends AuxDigestEvent | string> = {
@@ -136,7 +142,7 @@ export class DockerService {
   private _withIgnoredFiles?: string[];
 
   constructor(private gitService: GitService) {
-    this.docker = new Docker({ version: 'v1.45' });
+    this.docker = new Docker();
   }
 
   withIgnoredFiles(files: string[]): DockerService {
@@ -151,7 +157,7 @@ export class DockerService {
     return this._platform;
   }
 
-  private handleDockerEvent(type: 'Pull' | 'Build' | 'Push', event: DockerEvent) {
+  private handleDockerEvent(type: 'Load' | 'Pull' | 'Build' | 'Push', event: DockerEvent) {
     // console.error('!!! event', event);
     if (
       'id' in event &&
@@ -191,7 +197,8 @@ export class DockerService {
       imageName: this.imageName,
       imageTag: this.imageTag,
       imageSize: this.imageInfo?.Size,
-      entrypoint: ['.entrypoint'],
+      entrypoint: this.imageInfo?.Config?.Entrypoint,
+      command: this.imageInfo?.Config?.Cmd,
     };
   }
 
@@ -302,7 +309,9 @@ export class DockerService {
       this.imageName = imageName;
       this.imageTag = imageTag;
     } catch (e) {
-      const pullMatch = e.message?.match(/for (.+): no active sessions/);
+      const pullMatch = /Image Build Failed:.* for ([^:]+:[^:]+):.*no active sessions/gm.exec(
+        (e as Error).message,
+      );
       if (pullMatch && pullMatch[1]) {
         const image = pullMatch[1];
         ui.updateBottomBarSubtext(`Pulling image ${image} to resolve source metadata`);
@@ -613,16 +622,15 @@ export class DockerService {
 
   renderStages = (stages: DockerStages): string => {
     const lines = [];
-    const filters: RegExp[] = [];
 
     const { cwd, bases, builds, packages, runtime } = stages;
 
     const baseFrom = bases['install-base']?.from;
     if (baseFrom?.startsWith('.')) {
+      // DEVNOTE: LOCAL DOCKERFILE
       lines.push(...readFileSync(join(cwd, baseFrom), 'utf-8').split('\n'));
       lines.push('');
       runtime.from = '';
-      filters.push(/^ENTRYPOINT.*$/);
     } else {
       Object.values(bases).forEach((spec, ix) => {
         ui.updateBottomBarSubtext(`Rendering ${spec?.as} stage`);
@@ -641,14 +649,12 @@ export class DockerService {
         lines.push(this.renderSpec('package', cwd, spec, ix));
         lines.push('');
       });
+
+      ui.updateBottomBarSubtext(`Rendering ${runtime.as} stage`);
+      lines.push(this.renderSpec('start', cwd, runtime, 0));
     }
 
-    ui.updateBottomBarSubtext(`Rendering ${runtime.as} stage`);
-    lines.push(this.renderSpec('start', cwd, runtime, 0));
-
-    return lines
-      .map((l) => (filters.some((r) => !r.test(l)) ? l : `# [scaffoldly filtered] ${l}`))
-      .join('\n');
+    return lines.join('\n');
   };
 
   renderSpec = (
@@ -822,7 +828,8 @@ export class DockerService {
     const pushStream = await image.push({ authconfig: authConfig });
 
     ui.updateBottomBarSubtext('Pushing Image');
-    const events = await new Promise<DockerEvent[]>((resolve, reject) => {
+    // const events =
+    await new Promise<DockerEvent[]>((resolve, reject) => {
       this.docker.modem.followProgress(
         pushStream,
         (err, res) => (err ? reject(err) : resolve(res)),
@@ -836,18 +843,12 @@ export class DockerService {
       );
     });
 
-    const event = events.find(
-      (evt) => 'aux' in evt && !!evt.aux && typeof evt.aux !== 'string' && 'Digest' in evt.aux,
-    ) as AuxEvent<AuxDigestEvent>;
-
-    const imageDigest = event?.aux?.Digest;
-    this.imageDigest = event?.aux?.Digest;
-
-    if (!imageDigest) {
-      throw new Error('Failed to get image digest');
-    }
-
     this.imageInfo = await image.inspect();
+
+    const imageDigest = this.imageInfo.Id;
+    this.imageDigest = this.imageInfo.Id;
+    this.imageName = imageName;
+    this.imageTag = imageName.split(':')[1];
 
     return { imageDigest };
   }
@@ -872,7 +873,8 @@ export class DockerService {
     pull = true,
   ): Promise<Docker.ImageInspectInfo | undefined> {
     if (runtime.startsWith('.')) {
-      runtime = 'scaffoldly/scaffoldly:1';
+      // DEVNOTE: LOCAL DOCKERFILE
+      runtime = ROUTER_IMAGE;
     }
 
     if (pull) {
@@ -930,7 +932,6 @@ export class DockerService {
     ]);
 
     const pullStream = await this.docker.pull(runtime, { platform });
-
     try {
       await new Promise<DockerEvent[]>((resolve, reject) => {
         this.docker.modem.followProgress(
@@ -938,7 +939,7 @@ export class DockerService {
           (err, res) => (err ? reject(err) : resolve(res)),
           (event) => {
             try {
-              this.handleDockerEvent('Pull', event);
+              this.handleDockerEvent('Load', event);
             } catch (e) {
               reject(e);
             }

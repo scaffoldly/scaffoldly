@@ -1,9 +1,8 @@
-import { CONFIG_SIGNATURE, ScaffoldlyConfig } from '../../../../../config';
+import { ROUTER_IMAGE, ScaffoldlyConfig } from '../../../../../config';
 import { Copy, DockerService, RunCommand } from '..';
 import { NpmPackageService } from './npm';
 import { OsPackageService } from './os';
-import { join, relative } from 'path';
-import { isLocalDeps } from '../../../../ui';
+import { join } from 'path';
 import { PipPackageService } from './pip';
 import { HuggingfacePackageService } from './huggingface';
 
@@ -24,21 +23,11 @@ export class PackageService {
   }
 
   get entrypoint(): Copy {
-    if (isLocalDeps()) {
-      return {
-        src: join(relative(this.config.baseDir, __dirname), 'awslambda-entrypoint.js'),
-        dest: `.entrypoint`,
-        resolve: true,
-        mode: 0o755,
-        entrypoint: true,
-      };
-    }
-
-    // Copy awslambda-entrypoint from the scaffoldly image
+    // Copy rowdy from the scaffoldly image
     return {
-      from: CONFIG_SIGNATURE, // Created in CI/CD
-      src: `/${this.dockerService.platform}/awslambda-entrypoint`, // Set in in scripts/Dockerfile
-      dest: `.entrypoint`,
+      from: ROUTER_IMAGE,
+      src: `/usr/local/bin/rowdy`,
+      dest: `rowdy`,
       noGlob: true,
       absolute: true,
       entrypoint: true,

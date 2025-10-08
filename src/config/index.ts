@@ -10,21 +10,19 @@ export const DEFAULT_ROUTE = '/*';
 // We use this for:
 // - Version Consistency
 // - Scooping compiled binaries out of the container (such as awslambda-entrypoint)
-export const CONFIG_SIGNATURE = `scaffoldly/scaffoldly:1`;
+export const ROUTER_IMAGE = `scaffoldly/rowdy:beta`;
 export const USER_AGENT = 'scaffoldly/1.x';
 export const DEFAULT_TASKDIR = join(sep, 'var', 'task');
 
 export const decode = <T>(config: string): T => {
-  if (config.startsWith(`${CONFIG_SIGNATURE}:`)) {
-    return JSON.parse(
-      new TextDecoder().decode(base58.decode(config.split(`${CONFIG_SIGNATURE}:`)[1])),
-    );
+  if (config.startsWith(`${USER_AGENT}:`)) {
+    return JSON.parse(new TextDecoder().decode(base58.decode(config.split(`${USER_AGENT}:`)[1])));
   }
   throw new Error(`Invalid config: ${config}`);
 };
 
 export const encode = <T>(config: T): string => {
-  return `${CONFIG_SIGNATURE}:${base58.encode(new TextEncoder().encode(JSON.stringify(config)))}`;
+  return `${USER_AGENT}:${base58.encode(new TextEncoder().encode(JSON.stringify(config)))}`;
 };
 
 export type Shell = 'direnv';
@@ -85,7 +83,7 @@ export class Commands {
 }
 
 export type ProjectJson = {
-  type: 'dotnet' | 'golang' | 'node' | 'python' | 'rust' | 'standalone';
+  type: 'dotnet' | 'golang' | 'node' | 'python' | 'rust' | 'dockerfile' | 'standalone';
   name?: string;
   version?: string;
   description?: string;
@@ -273,7 +271,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
   }
 
   get handler(): string {
-    const { handler = 'localhost:3000' } = this.serviceConfig || this.scaffoldly;
+    const { handler = '' } = this.serviceConfig || this.scaffoldly;
     return handler;
   }
 
@@ -458,7 +456,7 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
 
   get runtimes(): string[] {
     const runtimes = [
-      CONFIG_SIGNATURE, // Always pull the scaffoldly container
+      ROUTER_IMAGE,
       this.runtime,
       ...this.services.map((service) => service.runtime),
     ];

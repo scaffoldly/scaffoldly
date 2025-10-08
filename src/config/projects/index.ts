@@ -6,6 +6,7 @@ import { StandaloneProject } from '../../config/projects/standalone';
 import { PythonProject } from '../../config/projects/python';
 import { ProjectJson } from '..';
 import { GitService } from '../../scaffoldly/commands/cd/git';
+import { DockerProject } from './docker';
 
 export class ProjectFactory {
   constructor(private gitService: GitService) {}
@@ -18,16 +19,27 @@ export class ProjectFactory {
       new GolangProject(this.gitService).projectJson,
       new RustProject(this.gitService).projectJson,
       new PythonProject(this.gitService).projectJson,
+      new DockerProject(this.gitService).projectJson,
     ])
-      .then(([standalone, node, dotnet, golang, rust, python]) => {
-        const projectJson = node || dotnet || golang || rust || python;
-        const name =
-          standalone?.name ||
-          node?.name ||
-          dotnet?.name ||
-          golang?.name ||
-          rust?.name ||
-          python?.name;
+      .then(([standalone, node, dotnet, golang, rust, python, docker]) => {
+        const projectJson = // find the first defined projectJson
+          standalone?.scaffoldly
+            ? standalone
+            : node?.scaffoldly
+            ? node
+            : dotnet?.scaffoldly
+            ? dotnet
+            : golang?.scaffoldly
+            ? golang
+            : rust?.scaffoldly
+            ? rust
+            : python?.scaffoldly
+            ? python
+            : docker?.scaffoldly
+            ? docker
+            : undefined;
+
+        const name = projectJson?.name;
 
         if (standalone) {
           console.warn(`🟠 [${name}] Using \`scaffoldly.json\` for configuration.\n`);
@@ -38,6 +50,7 @@ export class ProjectFactory {
         }
 
         if (projectJson) {
+          console.warn(`🟠 [${name}] Found a ${projectJson.type} project.\n`);
           return projectJson;
         }
 

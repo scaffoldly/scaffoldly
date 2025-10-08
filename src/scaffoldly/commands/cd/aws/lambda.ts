@@ -194,8 +194,8 @@ export class LambdaService implements IamConsumer, EnvProducer {
                   Architectures:
                     this.dockerService.platform === 'linux/arm64' ? ['arm64'] : ['x86_64'],
                   ImageConfig: {
-                    EntryPoint: ['.entrypoint'],
-                    Command: [],
+                    EntryPoint: status.entrypoint,
+                    Command: status.command,
                   },
                   Role: desired.Configuration?.Role,
                   Timeout: desired.Configuration?.Timeout,
@@ -232,8 +232,8 @@ export class LambdaService implements IamConsumer, EnvProducer {
                 new UpdateFunctionConfigurationCommand({
                   FunctionName: existing.FunctionArn,
                   ImageConfig: {
-                    EntryPoint: ['.entrypoint'],
-                    Command: [],
+                    EntryPoint: status.entrypoint,
+                    Command: status.command,
                   },
                   Role: desired.Configuration?.Role,
                   Timeout: desired.Configuration?.Timeout,

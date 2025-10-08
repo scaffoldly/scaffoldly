@@ -160,7 +160,7 @@ export class ContainerPool extends DevServer {
             Tty: false,
             Env: env,
             Cmd: [], // TODO
-            Entrypoint: ['.entrypoint'],
+            Entrypoint: ['rowdy'],
             abortSignal: this.abortSignal,
             HostConfig: {
               NetworkMode: 'bridge',

@@ -7,7 +7,7 @@ import { SecretDeployStatus } from '../../cd/aws/secret';
 import { LambdaDeployStatus } from '../../cd/aws/lambda';
 import { ui } from '../../../command';
 import { isDebug } from '@actions/core';
-import { encode } from '../../../../config';
+import { Routes } from '@scaffoldly/rowdy';
 
 export type EnvDeployStatus = {
   envFiles?: string[];
@@ -126,8 +126,11 @@ export class EnvService {
 
   get runtimeEnv(): Promise<Record<string, string>> {
     return Promise.all([this.buildEnv, this.secrets]).then(async ([buildEnv, secrets]) => {
+      const routes = Routes.empty()
+        .withPaths(this.gitService.config.routes)
+        .withDefault(this.gitService.config.handler);
       const runtimeEnv = {
-        SLY_ROUTES: encode(this.gitService.config.routes),
+        ROWDY_ROUTES: routes.intoDataURL(),
         SLY_SERVE: this.gitService.config.serveCommands.encode(),
         SLY_DEBUG: 'true', // TODO use flag
         ...buildEnv,

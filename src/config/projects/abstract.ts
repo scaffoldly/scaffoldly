@@ -4,7 +4,7 @@ import { GitService } from '../../scaffoldly/commands/cd/git';
 import { join } from 'path';
 
 export abstract class AbstractProject {
-  constructor(private gitService?: GitService, private workDir?: string) {}
+  constructor(protected gitService?: GitService, private workDir?: string) {}
 
   get workdir(): Promise<string> {
     if (this.gitService) {

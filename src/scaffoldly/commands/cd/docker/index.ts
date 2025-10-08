@@ -13,6 +13,8 @@ export type DockerDeployStatus = {
   imageName?: string;
   imageDigest?: string;
   imageSize?: number;
+  entrypoint?: string[];
+  command?: string[];
 };
 
 export class DockerService {
@@ -56,7 +58,10 @@ export class DockerService {
     status: DockerDeployStatus & EcrDeployStatus & EnvDeployStatus,
     options: ResourceOptions,
   ): Promise<void> {
-    const { imageName, imageTag, imageSize } = await new CloudResource<BuildInfo, BuildInfo>(
+    const { imageName, imageTag, imageSize, entrypoint, command } = await new CloudResource<
+      BuildInfo,
+      BuildInfo
+    >(
       {
         describe: (resource) => {
           return { type: 'Local Image', label: resource.imageName || '[computed]' };
@@ -80,6 +85,12 @@ export class DockerService {
     status.imageTag = imageTag;
     status.imageName = imageName;
     status.imageSize = imageSize;
+    status.entrypoint = Array.isArray(entrypoint)
+      ? entrypoint
+      : entrypoint
+      ? [entrypoint]
+      : undefined;
+    status.command = command;
   }
 
   async push(

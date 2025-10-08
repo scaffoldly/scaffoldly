@@ -54,6 +54,7 @@
     "@aws-sdk/util-arn-parser": "3.693.0",
     "@babel/core": "^7.16.0",
     "@babel/eslint-parser": "^7.16.0",
+    "@scaffoldly/rowdy": "^0.0.2-1-beta.20251008221818.94a26fa",
     "@scure/base": "^1.1.7",
     "@smithy/types": "^3.3.0",
     "@types/adm-zip": "^0.5.5",
