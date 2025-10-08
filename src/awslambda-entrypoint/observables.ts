@@ -13,7 +13,7 @@ import {
   throwError,
   timer,
 } from 'rxjs';
-import { Commands, CONFIG_SIGNATURE, Routes, USER_AGENT } from '../config';
+import { Commands, Routes, USER_AGENT } from '../config';
 import { ALBEvent, APIGatewayProxyEventV2, DynamoDBStreamEvent, S3Event } from 'aws-lambda';
 import { error, info, log } from './log';
 import {
@@ -322,8 +322,8 @@ export const asyncResponse$ = (
   let stream = false;
 
   if (typeof rawEvent === 'string') {
-    if (!rawEvent.startsWith(`${CONFIG_SIGNATURE}:`)) {
-      return throwError(() => new Error(`Raw event is missing ${CONFIG_SIGNATURE}`));
+    if (!rawEvent.startsWith(`${USER_AGENT}:`)) {
+      return throwError(() => new Error(`Raw event is missing ${USER_AGENT}`));
     }
     return shell$(abortEvent, runtimeEvent, rawEvent, runtimeEvent.env);
   }
