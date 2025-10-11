@@ -82,6 +82,8 @@ jobs:
     needs: deploy-docker
     env:
       AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+      SLY_DEBUG: 'true'
+      SLY_TRACE: 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
