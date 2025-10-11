@@ -1,5 +1,5 @@
 import { Command } from '../index';
-import { isDebug } from '../../ui';
+import { isDebug, isTrace } from '../../ui';
 import { ui } from '../../command';
 import promiseRetry from 'promise-retry';
 import _ from 'lodash';
@@ -243,6 +243,10 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
             console.log(`   --> [ERROR]`, e.message);
           }
 
+          if (isTrace()) {
+            console.log(`   --> [TRACE]`, e);
+          }
+
           if (e instanceof FatalException) {
             throw e;
           }
@@ -286,6 +290,10 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
 
           if (isDebug()) {
             console.log(`   --> [ERROR]`, e.message);
+          }
+
+          if (isTrace()) {
+            console.log(`   --> [TRACE]`, e);
           }
 
           if (e instanceof FatalException) {
@@ -336,6 +344,10 @@ export class CloudResource<Resource, ReadCommandOutput> implements PromiseLike<P
 
           if (isDebug()) {
             console.log(`   --> [ERROR]`, e.message);
+          }
+
+          if (isTrace()) {
+            console.log(`   --> [TRACE]`, e);
           }
 
           if (e instanceof FatalException) {

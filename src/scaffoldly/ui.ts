@@ -12,6 +12,10 @@ export const isDebug = (): boolean => {
   return !!process.argv.find((arg) => arg === '--debug' || process.env.SLY_DEBUG);
 };
 
+export const isTrace = (): boolean => {
+  return !!process.argv.find((arg) => arg === '--trace' || process.env.SLY_TRACE);
+};
+
 export const isLocalDeps = (): boolean => {
   return !!process.argv.find((arg) => arg === '--local-deps' || process.env.LOCAL_DEPS);
 };

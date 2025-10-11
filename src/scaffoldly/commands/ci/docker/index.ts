@@ -16,7 +16,7 @@ import {
   sep,
 } from 'path';
 import { ui } from '../../../command';
-import { isDebug } from '../../../ui';
+import { isDebug, isTrace } from '../../../ui';
 import { Platform } from '../../cd/docker';
 import { PackageService } from './packages';
 import { decodeTrace } from './protobuf/moby';
@@ -558,6 +558,8 @@ export class DockerService {
       spec.entrypoint = ['rowdy'];
       if (isDebug()) {
         spec.entrypoint.push('--debug');
+      }
+      if (isTrace()) {
         spec.entrypoint.push('--trace');
       }
       spec.cmd = config.serveCommands;
