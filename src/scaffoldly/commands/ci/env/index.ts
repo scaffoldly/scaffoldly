@@ -126,9 +126,11 @@ export class EnvService {
 
   get runtimeEnv(): Promise<Record<string, string>> {
     return Promise.all([this.buildEnv, this.secrets]).then(async ([buildEnv, secrets]) => {
-      const routes = Routes.empty()
-        .withPaths(this.gitService.config.routes)
-        .withDefault(this.gitService.config.handler);
+      let { handler = '' } = this.gitService.config || {};
+      if (handler && handler.startsWith('localhost:')) {
+        handler = `http://${handler}`;
+      }
+      const routes = Routes.empty().withPaths(this.gitService.config.routes).withDefault(handler);
       const runtimeEnv = {
         ROWDY_ROUTES: routes.intoDataURL(),
         SLY_SERVE: this.gitService.config.serveCommands.encode(),

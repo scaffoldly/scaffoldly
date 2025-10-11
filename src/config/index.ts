@@ -59,13 +59,25 @@ export class Commands {
       ? this.commands.filter((command) => command.schedule === filter.schedule)
       : this.commands;
 
-    return filtered
-      .map((command) => {
-        return command.workdir
-          ? `( cd ${command.workdir} && ${command.cmd} )`
-          : `( ${command.cmd} )`;
-      })
-      .join(' & ');
+    // return filtered
+    //   .map((command) => {
+    //     return command.workdir
+    //       ? `( cd ${command.workdir} && ${command.cmd} )`
+    //       : `( ${command.cmd} )`;
+    //   })
+    //   .join(' & ');
+
+    if (filtered.length > 1) {
+      throw new Error('TODO: support multiple commands');
+    }
+
+    const command = filtered[0];
+
+    if (command.workdir) {
+      throw new Error('TODO: support workdir in single command');
+    }
+
+    return command.cmd.split(' ').join('", "');
   };
 
   encode = (): string => {

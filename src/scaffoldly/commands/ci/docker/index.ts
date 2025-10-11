@@ -75,6 +75,7 @@ type DockerFileSpec = {
   env?: { [key: string]: string | undefined };
   run?: RunCommand[];
   paths?: string[];
+  entrypoint?: string[];
   cmd?: Commands;
   shell?: Shell;
   user?: string;
@@ -554,6 +555,11 @@ export class DockerService {
 
     if (mode === 'start') {
       spec.as = `runtime`;
+      spec.entrypoint = ['rowdy'];
+      if (isDebug()) {
+        spec.entrypoint.push('--debug');
+        spec.entrypoint.push('--trace');
+      }
       spec.cmd = config.serveCommands;
 
       const copy = Object.keys(fromStages)
@@ -680,7 +686,18 @@ export class DockerService {
     //   }
     // }
 
-    const { copy, rootdir, workdir, env = {}, run, paths = [], cmd, shell, user } = spec;
+    const {
+      copy,
+      rootdir,
+      workdir,
+      env = {},
+      run,
+      paths = [],
+      cmd,
+      entrypoint,
+      shell,
+      user,
+    } = spec;
 
     if (spec.from) {
       const from = spec.as ? `${spec.from} AS ${spec.as}` : spec.from;
@@ -791,6 +808,10 @@ export class DockerService {
 
         lines.push(`RUN ${r.cmds.join(' && ')}`);
       });
+    }
+
+    if (entrypoint) {
+      lines.push(`ENTRYPOINT [ ${entrypoint.map((e) => `"${e}"`).join(', ')} ]`);
     }
 
     if (cmd) {
