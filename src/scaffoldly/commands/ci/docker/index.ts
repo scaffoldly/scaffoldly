@@ -854,6 +854,9 @@ export class DockerService {
     const pushStream = await image.push({ authconfig: authConfig });
 
     ui.updateBottomBarSubtext('Pushing Image');
+
+    let newDigest: string | undefined = undefined;
+
     // const events =
     await new Promise<DockerEvent[]>((resolve, reject) => {
       this.docker.modem.followProgress(
@@ -861,6 +864,9 @@ export class DockerService {
         (err, res) => (err ? reject(err) : resolve(res)),
         (event) => {
           try {
+            if (event?.aux?.Digest && typeof event.aux.Digest === 'string') {
+              newDigest = event.aux.Digest;
+            }
             this.handleDockerEvent('Push', event);
           } catch (e) {
             reject(e);
@@ -870,8 +876,13 @@ export class DockerService {
     });
 
     this.imageInfo = await image.inspect();
+    let imageDigest = this.imageInfo.Id;
 
-    const imageDigest = this.imageInfo.Id;
+    if (newDigest) {
+      // Some docker engines don't update the image ID after a push
+      imageDigest = newDigest;
+    }
+
     this.imageDigest = this.imageInfo.Id;
     this.imageName = imageName;
     this.imageTag = imageName.split(':')[1];
