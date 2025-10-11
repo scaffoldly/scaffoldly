@@ -159,7 +159,10 @@ export class DockerService {
   }
 
   private handleDockerEvent(type: 'Load' | 'Pull' | 'Build' | 'Push', event: DockerEvent) {
-    // console.error('!!! event', event);
+    if (isTrace()) {
+      console.log(`[TRACE] Docker Event: ${type}`, event);
+    }
+
     if (
       'id' in event &&
       event.id === 'moby.buildkit.trace' &&
