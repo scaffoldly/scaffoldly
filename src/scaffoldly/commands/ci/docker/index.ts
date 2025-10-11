@@ -883,7 +883,7 @@ export class DockerService {
       imageDigest = newDigest;
     }
 
-    this.imageDigest = this.imageInfo.Id;
+    this.imageDigest = imageDigest;
     this.imageName = imageName;
     this.imageTag = imageName.split(':')[1];
 
