@@ -46,6 +46,7 @@ export class DockerProject extends AbstractProject {
       projectJson.version = sha;
       projectJson.scaffoldly = {
         runtime,
+        routes: null, // Disable automatic routes for Dockerfile projects
       };
 
       return projectJson;

@@ -130,7 +130,7 @@ export interface IScaffoldlyConfig extends IServiceConfig {
   get version(): string;
   get taskdir(): string; // Defaults to /var/task
   get services(): Partial<IServiceConfig>[];
-  get routes(): Routes;
+  get routes(): Routes | undefined | null;
   get resources(): string[];
   get timeout(): number;
   get memorySize(): number;
@@ -357,8 +357,15 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
     });
   }
 
-  get routes(): Routes {
+  get routes(): Routes | undefined {
     let { routes } = this.scaffoldly;
+    if (routes === null) {
+      // If routes explicitly set to null, return undefined
+      // DEVNOTE: This happens in the Dockerfile project type
+      // which requires adding a routes file manually for rowdy
+      return undefined;
+    }
+
     if (!routes) {
       routes = {};
     }

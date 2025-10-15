@@ -130,13 +130,19 @@ export class EnvService {
       if (handler && handler.startsWith('localhost:')) {
         handler = `http://${handler}`;
       }
-      const routes = Routes.empty().withPaths(this.gitService.config.routes).withDefault(handler);
-      const runtimeEnv = {
-        ROWDY_ROUTES: routes.intoDataURL(),
+
+      const runtimeEnv: Record<string, string> = {
         SLY_SERVE: this.gitService.config.serveCommands.encode(),
         SLY_DEBUG: 'true', // TODO use flag
         ...buildEnv,
       };
+
+      if (this.gitService.config.routes) {
+        runtimeEnv.ROWDY_ROUTES = Routes.empty()
+          .withPaths(this.gitService.config.routes)
+          .withDefault(handler)
+          .intoDataURL();
+      }
 
       // Filter out secrets from runtime env, and sanitize values
       const sanitized = Object.entries(runtimeEnv).reduce((acc, [key, value]) => {
