@@ -13,9 +13,11 @@ import { CloudResource, ResourceOptions } from '..';
 import {} from '@smithy/types';
 import { NotFoundException } from '../errors';
 import { GitService } from '../git';
-import { IdentityStatus } from './iam';
+import { IamConsumer, IdentityStatus, PolicyDocument } from './iam';
+import { EnvProducer } from '../../ci/env';
 
 export type EcrDeployStatus = {
+  registry?: string;
   repositoryUri?: string;
 };
 
@@ -23,11 +25,23 @@ export interface RegistryAuthConsumer {
   get authConfig(): Promise<AuthConfig>;
 }
 
-export class EcrService implements RegistryAuthConsumer {
+export class EcrService implements RegistryAuthConsumer, EnvProducer, IamConsumer {
   ecrClient: ECRClient;
+
+  _registry?: string;
+
+  _repositoryUri?: string;
 
   constructor(private gitService: GitService) {
     this.ecrClient = new ECRClient();
+  }
+
+  get env(): Promise<Record<string, string>> {
+    const env: Record<string, string> = {};
+    if (this._registry) {
+      env.AWS_ECR_REGISTRY = this._registry;
+    }
+    return Promise.resolve(env);
   }
 
   public async predeploy(
@@ -39,38 +53,21 @@ export class EcrService implements RegistryAuthConsumer {
     }
 
     const { name } = this.gitService.config;
+    const registry = `${status.accountId}.dkr.ecr.${status.region}.amazonaws.com`;
 
     const repository = await new CloudResource<Repository, DescribeRepositoriesCommandOutput>(
       {
         describe: (resource) => {
           return {
             type: 'ECR Repository',
-            label:
-              resource.repositoryUri ||
-              `${status.accountId}.dkr.ecr.${status.region}.amazonaws.com/${name}`,
+            label: resource.repositoryUri || `${registry}/${name}`,
           };
         },
         read: () =>
           this.ecrClient.send(new DescribeRepositoriesCommand({ repositoryNames: [name] })),
         create: () => this.ecrClient.send(new CreateRepositoryCommand({ repositoryName: name })),
         emitPermissions: (aware) => {
-          aware.withPermissions([
-            'ecr:CreateRepository',
-            'ecr:DescribeRepositories',
-            'ecr:GetAuthorizationToken',
-            'ecr:InitiateLayerUpload',
-            'ecr:UploadLayerPart',
-            'ecr:CompleteLayerUpload',
-            'ecr:DescribeImages',
-            'ecr:PutImage',
-            'ecr:ListImages',
-            'ecr:BatchCheckLayerAvailability',
-            'ecr:BatchGetImage',
-            'ecr:GetDownloadUrlForLayer',
-            'ecr:DescribeRegistry',
-            'ecr:GetRepositoryPolicy',
-            'ecr:SetRepositoryPolicy',
-          ]);
+          aware.withPermissions(['ecr:*']);
         },
       },
       (output) => {
@@ -78,7 +75,8 @@ export class EcrService implements RegistryAuthConsumer {
       },
     ).manage(options);
 
-    status.repositoryUri = repository.repositoryUri;
+    status.registry = this._registry = registry;
+    status.repositoryUri = this._repositoryUri = repository.repositoryUri;
   }
 
   get authConfig(): Promise<AuthConfig> {
@@ -122,5 +120,24 @@ export class EcrService implements RegistryAuthConsumer {
         }
         throw e;
       });
+  }
+
+  get trustRelationship(): undefined {
+    return undefined;
+  }
+
+  get policyDocument(): PolicyDocument {
+    const document: PolicyDocument = {
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Effect: 'Allow',
+          Action: ['ecr:*'],
+          Resource: ['*'],
+        },
+      ],
+    };
+
+    return document;
   }
 }

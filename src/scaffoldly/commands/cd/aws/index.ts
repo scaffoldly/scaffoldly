@@ -46,8 +46,10 @@ export class AwsService {
     this.lambdaService = new LambdaService(gitService, this.dockerService, envService);
     this.scheduleService = new ScheduleService(gitService);
 
+    this.envService.addProducer(this.iamService);
     this.envService.addProducer(this.resourcesService);
     this.envService.addProducer(this.secretService);
+    this.envService.addProducer(this.ecrService);
     this.envService.addProducer(this.lambdaService);
   }
 
@@ -70,7 +72,13 @@ export class AwsService {
     // Deploy IAM
     await this.iamService.predeploy(
       status,
-      [this.secretService, this.lambdaService, this.resourcesService, this.scheduleService],
+      [
+        this.ecrService,
+        this.secretService,
+        this.lambdaService,
+        this.resourcesService,
+        this.scheduleService,
+      ],
       options,
     );
 

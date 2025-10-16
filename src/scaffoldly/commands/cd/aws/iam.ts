@@ -19,6 +19,7 @@ import {
 import { CloudResource, ResourceOptions } from '..';
 import { SecretDeployStatus } from './secret';
 import { GitService } from '../git';
+import { EnvProducer } from '../../ci/env';
 
 export type IdentityStatus = {
   accountId?: string;
@@ -80,14 +81,24 @@ export interface IamConsumer {
   get policyDocument(): PolicyDocument | undefined;
 }
 
-export class IamService {
+export class IamService implements EnvProducer {
   iamClient: IAMClient;
 
   stsClient: STSClient;
 
+  accountId?: string;
+
   constructor(private gitService: GitService) {
     this.iamClient = new IAMClient();
     this.stsClient = new STSClient();
+  }
+
+  get env(): Promise<Record<string, string>> {
+    const env: Record<string, string> = {};
+    if (this.accountId) {
+      env.AWS_ACCOUNT_ID = this.accountId;
+    }
+    return Promise.resolve(env);
   }
 
   public async identity(status: IdentityStatus, options: ResourceOptions): Promise<void> {
@@ -177,7 +188,7 @@ export class IamService {
       },
     ).manage({ ...options, checkPermissions: false });
 
-    status.accountId = identity.accountId;
+    status.accountId = this.accountId = identity.accountId;
     status.region = await this.stsClient.config.region();
   }
 
