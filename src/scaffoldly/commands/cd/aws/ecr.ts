@@ -40,6 +40,7 @@ export class EcrService implements RegistryAuthConsumer, EnvProducer, IamConsume
     const env: Record<string, string> = {};
     if (this._registry) {
       env.AWS_ECR_REGISTRY = this._registry;
+      env.ROWDY_REGISTRY = this._registry;
     }
     return Promise.resolve(env);
   }
