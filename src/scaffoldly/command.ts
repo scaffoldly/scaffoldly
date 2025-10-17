@@ -204,11 +204,12 @@ export class Command {
         describe: `Deploy an environment`,
         handler: (args) =>
           this.loginWrapper(async () => {
+            const name = args.name as string | undefined;
             const development = args.development as boolean | undefined;
             const buildOnly = args['build-only'] as boolean | undefined;
             const preset = args.preset as PresetType | undefined;
             const dryrun = args.dryrun as boolean | undefined;
-            const deploy = await new DeployCommand(this.gitService, process.env)
+            const deploy = await new DeployCommand(this.gitService.withName(name), process.env)
               .withMode(development ? 'development' : undefined)
               .withOptions({
                 dryRun: dryrun || false,
@@ -221,6 +222,13 @@ export class Command {
             return deploy.handle();
           }, isHeadless()),
         builder: {
+          name: {
+            demand: false,
+            type: 'string',
+            nargs: 1,
+            description: 'Override project name inference',
+            hidden: false,
+          },
           withToken: {
             demand: false,
             type: 'string',

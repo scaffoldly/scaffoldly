@@ -237,6 +237,12 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
     throw new Error('Unable to create scaffoldly config');
   }
 
+  withName(name: string): this {
+    // TODO: set name in serviceConfig if exists?
+    this._name = name;
+    return this;
+  }
+
   set id(id: string) {
     this._id = id;
   }

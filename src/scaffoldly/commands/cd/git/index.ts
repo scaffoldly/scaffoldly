@@ -21,6 +21,8 @@ export type Origin = {
 };
 
 export class GitService {
+  _name?: string;
+
   _git?: SimpleGit;
 
   _config?: ScaffoldlyConfig;
@@ -33,6 +35,14 @@ export class GitService {
     if (config) {
       this._config = config;
     }
+  }
+
+  withName(name?: string): this {
+    if (name) {
+      this._config = this.config.withName(name);
+    }
+
+    return this;
   }
 
   get config(): ScaffoldlyConfig {
