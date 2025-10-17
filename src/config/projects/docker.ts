@@ -15,10 +15,14 @@ export class DockerProject extends AbstractProject {
     return this.workdir
       .then((workdir) => [join(workdir, 'Dockerfile.sly'), join(workdir, 'Dockerfile')])
       .then(([slyDockerfile, dockerfile]) => {
-        if (!existsSync(slyDockerfile) && !existsSync(dockerfile)) {
-          return undefined;
+        if (existsSync(slyDockerfile)) {
+          console.warn(`🟠 Using Dockerfile.sly\n`);
+          return slyDockerfile;
         }
-        return slyDockerfile || dockerfile;
+        if (existsSync(dockerfile)) {
+          return dockerfile;
+        }
+        return undefined;
       });
   }
 
