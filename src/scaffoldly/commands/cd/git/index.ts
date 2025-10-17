@@ -38,11 +38,21 @@ export class GitService {
   }
 
   withName(name?: string): this {
-    if (name) {
-      this._config = this.config.withName(name);
+    if (!name) {
+      return this;
     }
-
+    this._name = name;
     return this;
+  }
+
+  get name(): string | undefined {
+    if (this._name) {
+      return this._name;
+    }
+    if (this._config?.name) {
+      return this._config.name;
+    }
+    return undefined;
   }
 
   get config(): ScaffoldlyConfig {

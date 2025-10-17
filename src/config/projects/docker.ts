@@ -46,7 +46,7 @@ export class DockerProject extends AbstractProject {
       const runtime = `.${sep}${relative(workdir, dockerfile)}`;
 
       const projectJson: ProjectJson = { type: 'dockerfile' };
-      projectJson.name = origin.path.replace('.', '-');
+      projectJson.name = this.gitService?.name || origin.path.replace('.', '-');
       projectJson.version = sha;
       projectJson.scaffoldly = {
         runtime,
