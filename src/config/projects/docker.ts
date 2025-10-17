@@ -13,12 +13,12 @@ export class DockerProject extends AbstractProject {
 
   private get dockerfile(): Promise<string | undefined> {
     return this.workdir
-      .then((workdir) => join(workdir, 'Dockerfile'))
-      .then((dockerfile) => {
-        if (!existsSync(dockerfile)) {
+      .then((workdir) => [join(workdir, 'Dockerfile.sly'), join(workdir, 'Dockerfile')])
+      .then(([slyDockerfile, dockerfile]) => {
+        if (!existsSync(slyDockerfile) && !existsSync(dockerfile)) {
           return undefined;
         }
-        return dockerfile;
+        return slyDockerfile || dockerfile;
       });
   }
 
