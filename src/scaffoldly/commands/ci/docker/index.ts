@@ -559,12 +559,6 @@ export class DockerService {
     if (mode === 'start') {
       spec.as = `runtime`;
       spec.entrypoint = ['rowdy'];
-      if (isDebug()) {
-        spec.entrypoint.push('--debug');
-      }
-      if (isTrace()) {
-        spec.entrypoint.push('--trace');
-      }
       spec.cmd = config.serveCommands;
 
       const copy = Object.keys(fromStages)

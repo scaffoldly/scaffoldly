@@ -6,7 +6,7 @@ import { GitDeployStatus, GitService } from '../../cd/git';
 import { SecretDeployStatus } from '../../cd/aws/secret';
 import { LambdaDeployStatus } from '../../cd/aws/lambda';
 import { ui } from '../../../command';
-import { isDebug } from '@actions/core';
+import { isDebug, isTrace } from '../../../ui';
 import { Routes } from '@scaffoldly/rowdy';
 
 export type EnvDeployStatus = {
@@ -142,6 +142,14 @@ export class EnvService {
           .withPaths(this.gitService.config.routes)
           .withDefault(handler)
           .intoDataURL();
+      }
+
+      if (isDebug()) {
+        runtimeEnv.ROWDY_DEBUG = 'true';
+      }
+
+      if (isTrace()) {
+        runtimeEnv.ROWDY_TRACE = 'true';
       }
 
       // Filter out secrets from runtime env, and sanitize values
