@@ -62,6 +62,10 @@ export class DeployCommand extends CdCommand<DeployCommand> {
     if (this.options.memory) {
       config.scaffoldly.memorySize = parseInt(this.options.memory, 10);
     }
+    if (process.env.SLY_MEMORY) {
+      // HACK: SLY_MEMORY via yargs doesn't come in GHA
+      config.scaffoldly.memorySize = parseInt(process.env.SLY_MEMORY, 10);
+    }
 
     this.gitService.setConfig(config);
 
