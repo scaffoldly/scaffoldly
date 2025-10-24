@@ -52,6 +52,7 @@ export class Command {
   public async run(argv: string[]): Promise<void> {
     const yargs = (await import('yargs')).default;
     const ya = yargs()
+      .env('SLY')
       .scriptName(this.messagesHelper.processName)
       .command('create', 'Create Scaffoldly resources', (create) => {
         create
