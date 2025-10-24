@@ -134,6 +134,7 @@ export interface IScaffoldlyConfig extends IServiceConfig {
   get resources(): string[];
   get timeout(): number;
   get memorySize(): number;
+  set memorySize(value: number);
   get generatedFiles(): string[];
   get user(): string | undefined;
 }
@@ -490,6 +491,10 @@ export class ScaffoldlyConfig implements IScaffoldlyConfig {
   get memorySize(): number {
     const { memorySize = 1024 } = this.scaffoldly;
     return memorySize;
+  }
+
+  set memorySize(value: number) {
+    this.scaffoldly.memorySize = value;
   }
 
   get ignoreFilter(): (pathname: string) => boolean {

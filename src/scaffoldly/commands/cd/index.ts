@@ -55,6 +55,7 @@ export type ResourceOptions = {
   buildOnly?: boolean;
   dryRun?: boolean;
   permissionsAware?: PermissionAware;
+  memory?: string;
 };
 
 export type ResourceExtractor<Resource, ReadCommandOutput> = (

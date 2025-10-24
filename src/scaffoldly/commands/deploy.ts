@@ -58,6 +58,11 @@ export class DeployCommand extends CdCommand<DeployCommand> {
     this.options.permissionsAware = this;
 
     const config = await this.config;
+
+    if (this.options.memory) {
+      config.scaffoldly.memorySize = parseInt(this.options.memory, 10);
+    }
+
     this.gitService.setConfig(config);
 
     if (this.options.dev) {

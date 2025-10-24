@@ -209,11 +209,13 @@ export class Command {
             const buildOnly = args['build-only'] as boolean | undefined;
             const preset = args.preset as PresetType | undefined;
             const dryrun = args.dryrun as boolean | undefined;
+            const memory = args.memory as string | undefined;
             const deploy = await new DeployCommand(this.gitService.withName(name), process.env)
               .withMode(development ? 'development' : undefined)
               .withOptions({
                 dryRun: dryrun || false,
                 buildOnly: buildOnly || false,
+                memory: memory || undefined,
                 notify: (action, type, message) => {
                   this.eventService.emitAction(action, type, message);
                 },
@@ -263,6 +265,14 @@ export class Command {
             default: false,
             requiresArg: false,
             description: 'Dry run mode. Propsed changes will be displayed.',
+          },
+          memory: {
+            demand: false,
+            type: 'string',
+            nargs: 1,
+            description:
+              'Amount of memory (in megabytes) to allocate to the lambda function (1024, 2048, etc).',
+            hidden: false,
           },
         },
       })
