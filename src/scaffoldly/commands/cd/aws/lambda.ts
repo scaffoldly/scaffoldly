@@ -387,6 +387,14 @@ export class LambdaService implements IamConsumer, EnvProducer {
               AuthType: 'NONE',
               InvokeMode: 'RESPONSE_STREAM',
               Qualifier: status.functionQualifier,
+              Cors: {
+                AllowOrigins: ['*'],
+                AllowMethods: ['*'],
+                AllowHeaders: ['*'],
+                ExposeHeaders: ['*'],
+                MaxAge: 86400,
+                AllowCredentials: true,
+              },
             }),
           ),
         update: () =>
@@ -396,6 +404,14 @@ export class LambdaService implements IamConsumer, EnvProducer {
               AuthType: 'NONE',
               InvokeMode: 'RESPONSE_STREAM',
               Qualifier: status.functionQualifier,
+              Cors: {
+                AllowOrigins: ['*'],
+                AllowMethods: ['*'],
+                AllowHeaders: ['*'],
+                ExposeHeaders: ['*'],
+                MaxAge: 86400,
+                AllowCredentials: true,
+              },
             }),
           ),
         emitPermissions: (aware) => {
@@ -455,6 +471,14 @@ export class LambdaService implements IamConsumer, EnvProducer {
     }
 
     const requests: AddPermissionRequest[] = [
+      {
+        FunctionName: status.functionArn,
+        Qualifier: status.functionQualifier,
+        StatementId: 'InvokeFunction',
+        Action: 'lambda:InvokeFunction',
+        Principal: '*',
+        FunctionUrlAuthType: 'NONE',
+      },
       {
         FunctionName: status.functionArn,
         Qualifier: status.functionQualifier,
