@@ -477,7 +477,6 @@ export class LambdaService implements IamConsumer, EnvProducer {
         StatementId: 'InvokeFunction',
         Action: 'lambda:InvokeFunction',
         Principal: '*',
-        FunctionUrlAuthType: 'NONE',
       },
       {
         FunctionName: status.functionArn,
