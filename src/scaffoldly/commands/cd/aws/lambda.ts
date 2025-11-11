@@ -825,6 +825,8 @@ export class LambdaService implements IamConsumer, EnvProducer {
       Statement: [
         {
           Action: [
+            'lambda:Get*',
+            'lambda:List*',
             'logs:CreateLogStream',
             'logs:CreateLogGroup',
             'logs:TagResource',
