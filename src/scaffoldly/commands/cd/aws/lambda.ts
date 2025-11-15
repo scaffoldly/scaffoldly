@@ -258,13 +258,16 @@ export class LambdaService implements IamConsumer, EnvProducer {
           ),
         emitPermissions: (aware) => {
           aware.withPermissions([
-            'lambda:CreateFunction',
-            'lambda:GetFunction',
-            'lambda:UpdateFunctionConfiguration',
-            'lambda:ListEventSourceMappings',
-            'lambda:CreateEventSourceMapping',
-            'lambda:UpdateEventSourceMapping',
-            'lambda:DeleteEventSourceMapping',
+            ...new Set([
+              'lambda:CreateFunction',
+              'lambda:GetFunction',
+              'lambda:UpdateFunctionConfiguration',
+              'lambda:ListEventSourceMappings',
+              'lambda:CreateEventSourceMapping',
+              'lambda:UpdateEventSourceMapping',
+              'lambda:DeleteEventSourceMapping',
+              ...aware.permissions,
+            ]),
           ]);
         },
       },
