@@ -845,6 +845,7 @@ export class LambdaService implements IamConsumer, EnvProducer {
             'iam:CreateRole',
             'iam:GetRole',
             'iam:GetRolePolicy',
+            'iam:PassRole',
             'iam:PutRolePolicy',
             'iam:UpdateAssumeRolePolicy',
             'lambda:AddPermission',
